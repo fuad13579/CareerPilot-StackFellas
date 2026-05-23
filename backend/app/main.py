@@ -1,7 +1,8 @@
 import os
 
-from fastapi.middleware.cors import CORSMiddleware
+from app.api import cv_routes
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -40,6 +41,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(cv_routes.router, prefix="/api/cv", tags=["CV"])
 
 
 @app.get("/", response_model=RootResponse)

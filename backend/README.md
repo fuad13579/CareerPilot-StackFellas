@@ -55,3 +55,54 @@ When `CORS_ORIGINS=*`, credentials are disabled. When explicit origins are provi
 
 7. Open Swagger docs:
    `http://127.0.0.1:8000/docs`
+
+## CV Upload API
+
+### Endpoint
+
+- `POST /api/cv/upload`
+
+### Supported file types
+
+- `.pdf`
+- `.docx`
+
+### Behavior
+
+- Accepts one uploaded CV file
+- Saves the uploaded file to `backend/app/storage/uploaded_cvs/`
+- Extracts readable text from the CV
+- Returns the extracted text in the API response
+- Rejects unsupported file types with a `400` error
+
+### Successful response
+
+```json
+{
+  "message": "CV uploaded and processed successfully",
+  "cv_id": "generated-id",
+  "filename": "resume.pdf",
+  "file_type": "pdf",
+  "extracted_text": "Extracted CV text here..."
+}
+```
+
+### Invalid file type response
+
+Status code: `400`
+
+```json
+{
+  "detail": "Only PDF and DOCX files are supported"
+}
+```
+
+### Testing in Swagger
+
+1. Run:
+   ```powershell
+   uvicorn app.main:app --reload
+   ```
+2. Open:
+   `http://127.0.0.1:8000/docs`
+3. Use `POST /api/cv/upload` and upload a `.pdf` or `.docx` file.
