@@ -14,6 +14,12 @@ The app reads `CORS_ORIGINS` from the environment.
 
 When `CORS_ORIGINS=*`, credentials are disabled. When explicit origins are provided, credentials are enabled automatically.
 
+The upload API also supports:
+
+- `INCLUDE_EXTRACTED_TEXT_IN_UPLOAD_RESPONSE`
+  Default: `true`
+  Set to `false` if you do not want `extracted_text` returned in the upload response.
+
 ## Local setup
 
 1. Go to the backend folder:
@@ -70,6 +76,7 @@ When `CORS_ORIGINS=*`, credentials are disabled. When explicit origins are provi
 ### Behavior
 
 - Accepts one uploaded CV file
+- Streams the uploaded file to disk with a 10 MB size limit
 - Saves the uploaded file to `backend/app/storage/uploaded_cvs/`
 - Extracts readable text from the CV
 - Returns the extracted text in the API response
