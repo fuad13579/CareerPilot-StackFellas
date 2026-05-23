@@ -1,5 +1,30 @@
-from fastapi import FastAPI
+import os
+
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
+from pydantic import BaseModel
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
+
+class RootResponse(BaseModel):
+    message: str
+
+
+class HealthResponse(BaseModel):
+    status: str
+    message: str
+
+
+def get_cors_origins() -> list[str]:
+    origins = os.getenv("CORS_ORIGINS", "*")
+    return [origin.strip() for origin in origins.split(",") if origin.strip()]
+
+
+cors_origins = get_cors_origins()
+allow_credentials = cors_origins != ["*"]
 
 
 app = FastAPI(
@@ -10,20 +35,20 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-@app.get("/")
-def read_root() -> dict[str, str]:
+@app.get("/", response_model=RootResponse)
+def read_root() -> RootResponse:
     return {"message": "CareerPilot Backend is running"}
 
 
-@app.get("/health")
-def health_check() -> dict[str, str]:
+@app.get("/health", response_model=HealthResponse)
+def health_check() -> HealthResponse:
     return {
         "status": "success",
         "message": "CareerPilot backend is healthy",

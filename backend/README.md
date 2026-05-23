@@ -2,6 +2,18 @@
 
 This backend provides the FastAPI foundation for the CareerPilot hackathon prototype.
 
+## Configuration
+
+The app reads `CORS_ORIGINS` from the environment.
+
+- Default: `*`
+- Example for local frontend development:
+  ```powershell
+  $env:CORS_ORIGINS="http://localhost:3000,http://127.0.0.1:3000"
+  ```
+
+When `CORS_ORIGINS=*`, credentials are disabled. When explicit origins are provided, credentials are enabled automatically.
+
 ## Local setup
 
 1. Go to the backend folder:
