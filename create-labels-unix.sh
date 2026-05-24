@@ -9,9 +9,15 @@ upsert_label() {
   local name="$1"
   local color="$2"
   local description="$3"
+  local output
 
-  if gh label create "$name" --repo "$repo" --color "$color" --description "$description" 2>/dev/null; then
+  if output="$(gh label create "$name" --repo "$repo" --color "$color" --description "$description" 2>&1)"; then
     return 0
+  fi
+
+  if [[ "$output" != *"already exists"* ]]; then
+    printf '%s\n' "$output" >&2
+    return 1
   fi
 
   gh label edit "$name" --repo "$repo" --color "$color" --description "$description"
