@@ -18,7 +18,8 @@ class EmbeddingResult:
 
 class EmbeddingService:
     def __init__(self) -> None:
-        self._sentence_transformer = self._load_sentence_transformer()
+        self._sentence_transformer = None
+        self._transformer_load_attempted = False
         self._hashing_vectorizer = HashingVectorizer(
             n_features=512,
             alternate_sign=False,
@@ -29,8 +30,9 @@ class EmbeddingService:
         if not texts:
             return EmbeddingResult(vectors=[], provider="none", model_name="none")
 
-        if self._sentence_transformer is not None:
-            embeddings = self._sentence_transformer.encode(texts, convert_to_numpy=True)
+        sentence_transformer = self._get_sentence_transformer()
+        if sentence_transformer is not None:
+            embeddings = sentence_transformer.encode(texts, convert_to_numpy=True)
             return EmbeddingResult(
                 vectors=embeddings.tolist(),
                 provider="sentence-transformers",
@@ -62,6 +64,12 @@ class EmbeddingService:
 
         similarities = candidate_array @ query_array / denominator
         return similarities.tolist()
+
+    def _get_sentence_transformer(self):
+        if not self._transformer_load_attempted:
+            self._sentence_transformer = self._load_sentence_transformer()
+            self._transformer_load_attempted = True
+        return self._sentence_transformer
 
     def _load_sentence_transformer(self):
         try:
