@@ -1,5 +1,7 @@
-﻿# Batch create GitHub labels for the repo
-repo="fuad13579/CareerPilot-StackFellas"
+#!/usr/bin/env bash
+
+# Batch create GitHub labels for the repo
+repo="${1:-${GITHUB_REPO:-fuad13579/CareerPilot-StackFellas}}"
 
 gh label create "frontend"       --repo "$repo" --color "1abc9c" --description "Frontend related"
 gh label create "backend"        --repo "$repo" --color "3498db" --description "Backend related"

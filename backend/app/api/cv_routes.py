@@ -6,6 +6,7 @@ from pydantic import BaseModel
 import os
 
 from app.services.cv_extraction_service import extract_text_from_cv
+from app.services.cv_chunking_service import load_processed_cv_sections, save_processed_cv
 
 
 router = APIRouter()
@@ -26,6 +27,11 @@ class CVUploadResponse(BaseModel):
     filename: str
     file_type: str
     extracted_text: str | None = None
+
+
+class CVSectionsResponse(BaseModel):
+    cv_id: str
+    sections: dict[str, str]
 
 
 @router.post(
@@ -94,6 +100,8 @@ async def upload_cv(file: UploadFile = File(...)) -> CVUploadResponse:
             detail="Failed to process uploaded CV",
         ) from exc
 
+    save_processed_cv(cv_id=cv_id, extracted_text=extracted_text)
+
     return CVUploadResponse(
         message="CV uploaded and processed successfully",
         cv_id=cv_id,
@@ -101,3 +109,16 @@ async def upload_cv(file: UploadFile = File(...)) -> CVUploadResponse:
         file_type=suffix.lstrip("."),
         extracted_text=extracted_text if INCLUDE_EXTRACTED_TEXT else None,
     )
+
+
+@router.get("/{cv_id}/sections", response_model=CVSectionsResponse)
+def get_cv_sections(cv_id: str) -> CVSectionsResponse:
+    try:
+        sections = load_processed_cv_sections(cv_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    return CVSectionsResponse(cv_id=cv_id, sections=sections)
