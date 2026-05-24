@@ -1,6 +1,6 @@
 import os
 
-from app.api import cv_routes
+from app.api import cv_routes, rag_routes
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -43,6 +43,7 @@ app.add_middleware(
 )
 
 app.include_router(cv_routes.router, prefix="/api/cv", tags=["CV"])
+app.include_router(rag_routes.router, prefix="/api/rag", tags=["RAG"])
 
 
 @app.get("/", response_model=RootResponse)

@@ -79,6 +79,8 @@ The upload API also supports:
 - Streams the uploaded file to disk with a 10 MB size limit
 - Saves the uploaded file to `backend/app/storage/uploaded_cvs/`
 - Extracts readable text from the CV
+- Saves extracted CV text to `backend/app/storage/processed_cvs/{cv_id}.txt`
+- Saves sectioned CV data to `backend/app/storage/processed_cvs/{cv_id}_sections.json`
 - Returns the extracted text in the API response
 - Rejects unsupported file types with a `400` error
 
@@ -113,3 +115,91 @@ Status code: `400`
 2. Open:
    `http://127.0.0.1:8000/docs`
 3. Use `POST /api/cv/upload` and upload a `.pdf` or `.docx` file.
+
+## RAG Core
+
+The RAG prototype adds:
+
+- CV section splitting into `skills`, `education`, `experience`, `projects`, and `other`
+- Section-based chunk creation
+- Local embeddings using `sentence-transformers` when available
+- Automatic fallback to a lightweight `scikit-learn` hashing embedding if the transformer model cannot load
+- Local JSON vector storage in `backend/app/storage/vector_db/`
+
+### RAG endpoints
+
+- `GET /api/cv/{cv_id}/sections`
+- `POST /api/rag/build`
+- `POST /api/rag/retrieve`
+
+### Build the RAG index
+
+Endpoint:
+
+- `POST /api/rag/build`
+
+Request body:
+
+```json
+{
+  "cv_id": "returned-cv-id"
+}
+```
+
+Response:
+
+```json
+{
+  "message": "RAG index built successfully",
+  "cv_id": "returned-cv-id",
+  "total_chunks": 8,
+  "sections_indexed": ["education", "experience", "projects", "skills"]
+}
+```
+
+### Retrieve CV context
+
+Endpoint:
+
+- `POST /api/rag/retrieve`
+
+Request body:
+
+```json
+{
+  "cv_id": "returned-cv-id",
+  "query": "What projects has this user worked on?",
+  "top_k": 3
+}
+```
+
+Response:
+
+```json
+{
+  "cv_id": "returned-cv-id",
+  "query": "What projects has this user worked on?",
+  "retrieved_chunks": [
+    {
+      "section": "projects",
+      "text": "Built a FastAPI backend for a hackathon app...",
+      "score": 0.8731
+    }
+  ],
+  "context": "Built a FastAPI backend for a hackathon app..."
+}
+```
+
+### Testing flow in Swagger
+
+1. Run the backend:
+   ```powershell
+   uvicorn app.main:app --reload
+   ```
+2. Open:
+   `http://127.0.0.1:8000/docs`
+3. Upload a CV with `POST /api/cv/upload`.
+4. Copy the returned `cv_id`.
+5. Check sections with `GET /api/cv/{cv_id}/sections`.
+6. Build the index with `POST /api/rag/build`.
+7. Retrieve context with `POST /api/rag/retrieve`.
