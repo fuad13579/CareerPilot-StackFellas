@@ -50,11 +50,31 @@ def build_cv_rag_index(cv_id: str, chunks: list[dict]) -> dict:
 def load_cv_rag_index(cv_id: str) -> dict:
     store_path = get_vector_store_path(cv_id)
     embeddings_path = get_vector_embeddings_path(cv_id)
-    if not store_path.exists() or not embeddings_path.exists():
+    if not store_path.exists():
         raise FileNotFoundError(f"RAG index not found for cv_id '{cv_id}'")
+
+    metadata = json.loads(store_path.read_text(encoding="utf-8"))
+    if embeddings_path.exists():
+        embeddings = np.load(embeddings_path)
+        return {
+            "metadata": metadata,
+            "embeddings": embeddings,
+        }
+
+    legacy_embeddings = extract_legacy_embeddings(metadata)
+    if legacy_embeddings is None:
+        raise FileNotFoundError(f"RAG index not found for cv_id '{cv_id}'")
+
+    embeddings = np.array(legacy_embeddings, dtype=np.float32)
+    np.save(embeddings_path, embeddings)
+
+    for chunk in metadata.get("chunks", []):
+        chunk.pop("embedding", None)
+    store_path.write_text(json.dumps(metadata), encoding="utf-8")
+
     return {
-        "metadata": json.loads(store_path.read_text(encoding="utf-8")),
-        "embeddings": np.load(embeddings_path),
+        "metadata": metadata,
+        "embeddings": embeddings,
     }
 
 
@@ -82,3 +102,18 @@ def retrieve_relevant_chunks(cv_id: str, query: str, top_k: int = 3) -> list[dic
 
     ranked_results.sort(key=lambda item: item["score"], reverse=True)
     return ranked_results[:top_k]
+
+
+def extract_legacy_embeddings(metadata: dict) -> list[list[float]] | None:
+    chunks = metadata.get("chunks", [])
+    if not chunks:
+        return []
+
+    embeddings: list[list[float]] = []
+    for chunk in chunks:
+        embedding = chunk.get("embedding")
+        if embedding is None:
+            return None
+        embeddings.append(embedding)
+
+    return embeddings

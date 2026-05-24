@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 
 import numpy as np
 from sklearn.feature_extraction.text import HashingVectorizer
@@ -32,23 +33,28 @@ class EmbeddingService:
 
         sentence_transformer = self._get_sentence_transformer()
         if sentence_transformer is not None:
-            embeddings = sentence_transformer.encode(texts, convert_to_numpy=True)
-            return EmbeddingResult(
-                vectors=embeddings.tolist(),
-                provider="sentence-transformers",
-                model_name=EMBEDDING_MODEL_NAME,
-            )
+            try:
+                embeddings = sentence_transformer.encode(texts, convert_to_numpy=True)
+                return EmbeddingResult(
+                    vectors=embeddings.tolist(),
+                    provider="sentence-transformers",
+                    model_name=EMBEDDING_MODEL_NAME,
+                )
+            except Exception:
+                self._disable_sentence_transformer()
 
-        matrix = self._hashing_vectorizer.transform(texts).toarray()
-        return EmbeddingResult(
-            vectors=matrix.tolist(),
-            provider="sklearn-hashing",
-            model_name="HashingVectorizer-512",
-        )
+        return self._embed_texts_with_hashing(texts)
 
     def embed_query(self, query: str) -> list[float]:
-        result = self.embed_texts([query])
-        return result.vectors[0]
+        sentence_transformer = self._get_sentence_transformer()
+        if sentence_transformer is not None:
+            try:
+                embedding = sentence_transformer.encode([query], convert_to_numpy=True)
+                return embedding[0].tolist()
+            except Exception:
+                self._disable_sentence_transformer()
+
+        return self._embed_query_with_hashing(query)
 
     def cosine_similarity(self, query_vector: list[float], candidate_vectors: list[list[float]]) -> list[float]:
         if not candidate_vectors:
@@ -71,11 +77,33 @@ class EmbeddingService:
             self._transformer_load_attempted = True
         return self._sentence_transformer
 
+    def _disable_sentence_transformer(self) -> None:
+        self._sentence_transformer = None
+        self._transformer_load_attempted = True
+
+    def _embed_texts_with_hashing(self, texts: list[str]) -> EmbeddingResult:
+        matrix = self._hashing_vectorizer.transform(texts).toarray()
+        return EmbeddingResult(
+            vectors=matrix.tolist(),
+            provider="sklearn-hashing",
+            model_name="HashingVectorizer-512",
+        )
+
+    def _embed_query_with_hashing(self, query: str) -> list[float]:
+        matrix = self._hashing_vectorizer.transform([query]).toarray()
+        return matrix[0].tolist()
+
     def _load_sentence_transformer(self):
         try:
             from sentence_transformers import SentenceTransformer
 
-            return SentenceTransformer(EMBEDDING_MODEL_NAME, local_files_only=True)
+            local_only = (
+                os.getenv("SENTENCE_TRANSFORMER_LOCAL_ONLY", "false").lower() == "true"
+            )
+            return SentenceTransformer(
+                EMBEDDING_MODEL_NAME,
+                local_files_only=local_only,
+            )
         except Exception:
             return None
 
