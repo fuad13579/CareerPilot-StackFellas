@@ -1,36 +1,50 @@
 #!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
 
 # Batch create GitHub labels for the repo
 repo="${1:-${GITHUB_REPO:-fuad13579/CareerPilot-StackFellas}}"
 
-gh label create "frontend"       --repo "$repo" --color "1abc9c" --description "Frontend related"
-gh label create "backend"        --repo "$repo" --color "3498db" --description "Backend related"
-gh label create "ai-rag"         --repo "$repo" --color "9b59b6" --description "AI (RAG) features"
-gh label create "cv-upload"      --repo "$repo" --color "f39c12" --description "CV Upload feature"
-gh label create "job-agent"      --repo "$repo" --color "e67e22" --description "Job agent features"
-gh label create "fit-score"      --repo "$repo" --color "2ecc71" --description "Fit score calculations"
-gh label create "ai-assistant"   --repo "$repo" --color "e84393" --description "AI Assistant features"
-gh label create "tracker"        --repo "$repo" --color "636e72" --description "Progress tracker"
-gh label create "calendar-todo"  --repo "$repo" --color "00cec9" --description "Calendar/To-do"
-gh label create "dashboard"      --repo "$repo" --color "00b894" --description "Dashboard features"
-gh label create "docs"           --repo "$repo" --color "b2bec3" --description "Documentation"
-gh label create "demo"           --repo "$repo" --color "fdcb6e" --description "Demo related"
+upsert_label() {
+  local name="$1"
+  local color="$2"
+  local description="$3"
 
-gh label create "priority-high"   --repo "$repo" --color "e74c3c" --description "High priority"
-gh label create "priority-medium" --repo "$repo" --color "f1c40f" --description "Medium priority"
-gh label create "priority-low"    --repo "$repo" --color "2ecc71" --description "Low priority"
+  if gh label create "$name" --repo "$repo" --color "$color" --description "$description" 2>/dev/null; then
+    return 0
+  fi
 
-gh label create "todo"            --repo "$repo" --color "95a5a6" --description "To do"
-gh label create "in-progress"     --repo "$repo" --color "2980b9" --description "Work in progress"
-gh label create "blocked"         --repo "$repo" --color "e17055" --description "Blocked"
-gh label create "needs-review"    --repo "$repo" --color "9b59b6" --description "Needs review"
-gh label create "done"            --repo "$repo" --color "27ae60" --description "Done"
+  gh label edit "$name" --repo "$repo" --color "$color" --description "$description"
+}
 
-gh label create "feature"         --repo "$repo" --color "1abc9c" --description "New feature"
-gh label create "bug"             --repo "$repo" --color "e74c3c" --description "Bug, error, or issue"
-gh label create "enhancement"     --repo "$repo" --color "f1c40f" --description "Enhancement"
-gh label create "design"          --repo "$repo" --color "fd79a8" --description "Design"
-gh label create "refactor"        --repo "$repo" --color "636e72" --description "Refactor"
-gh label create "testing"         --repo "$repo" --color "0984e3" --description "Testing related"
-gh label create "integration"     --repo "$repo" --color "00b894" --description "Integration work"
-gh label create "deployment"      --repo "$repo" --color "6c5ce7" --description "Deployment/DevOps"
+upsert_label "frontend"        "1abc9c" "Frontend related"
+upsert_label "backend"         "3498db" "Backend related"
+upsert_label "ai-rag"          "9b59b6" "AI (RAG) features"
+upsert_label "cv-upload"       "f39c12" "CV Upload feature"
+upsert_label "job-agent"       "e67e22" "Job agent features"
+upsert_label "fit-score"       "2ecc71" "Fit score calculations"
+upsert_label "ai-assistant"    "e84393" "AI Assistant features"
+upsert_label "tracker"         "636e72" "Progress tracker"
+upsert_label "calendar-todo"   "00cec9" "Calendar/To-do"
+upsert_label "dashboard"       "00b894" "Dashboard features"
+upsert_label "docs"            "b2bec3" "Documentation"
+upsert_label "demo"            "fdcb6e" "Demo related"
+
+upsert_label "priority-high"   "e74c3c" "High priority"
+upsert_label "priority-medium" "f1c40f" "Medium priority"
+upsert_label "priority-low"    "2ecc71" "Low priority"
+
+upsert_label "todo"            "95a5a6" "To do"
+upsert_label "in-progress"     "2980b9" "Work in progress"
+upsert_label "blocked"         "e17055" "Blocked"
+upsert_label "needs-review"    "9b59b6" "Needs review"
+upsert_label "done"            "27ae60" "Done"
+
+upsert_label "feature"         "1abc9c" "New feature"
+upsert_label "bug"             "e74c3c" "Bug, error, or issue"
+upsert_label "enhancement"     "f1c40f" "Enhancement"
+upsert_label "design"          "fd79a8" "Design"
+upsert_label "refactor"        "636e72" "Refactor"
+upsert_label "testing"         "0984e3" "Testing related"
+upsert_label "integration"     "00b894" "Integration work"
+upsert_label "deployment"      "6c5ce7" "Deployment/DevOps"
