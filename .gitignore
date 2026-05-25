@@ -3,8 +3,14 @@ node_modules/
 backend/.env
 .cache/
 __pycache__/
+*.pyc
 venv/
 .venv/
 backend/.venv/
 .puku/
 backend/app/storage/vector_db/
+.pytest_cache/
+
+# Local database
+*.db
+backend/app/storage/*.db
