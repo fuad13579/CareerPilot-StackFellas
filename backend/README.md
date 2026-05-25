@@ -129,8 +129,50 @@ The RAG prototype adds:
 ### RAG endpoints
 
 - `GET /api/cv/{cv_id}/sections`
+- `POST /api/fit/score`
 - `POST /api/rag/build`
 - `POST /api/rag/retrieve`
+
+## Fit Score Engine
+
+The fit score engine adds a deterministic CV-to-job match score that:
+
+- Extracts skills from the stored CV text
+- Extracts required skills from the job posting text
+- Calculates explicit skill overlap
+- Calculates weighted keyword overlap
+- Returns a final fit score from `0` to `100`
+- Returns matched skills, missing skills, and an explanation
+
+### Fit score endpoint
+
+Endpoint:
+
+- `POST /api/fit/score`
+
+Request body:
+
+```json
+{
+  "cv_id": "returned-cv-id",
+  "job_posting": "We need a backend engineer with Python, FastAPI, Docker, AWS, and PostgreSQL experience."
+}
+```
+
+Response:
+
+```json
+{
+  "cv_id": "returned-cv-id",
+  "fit_score": 72.5,
+  "skill_score": 80.0,
+  "keyword_score": 50.0,
+  "matched_skills": ["docker", "fastapi", "python"],
+  "missing_skills": ["aws", "postgresql"],
+  "matched_keywords": ["api", "backend", "database"],
+  "explanation": "Moderate match. The candidate matches docker, fastapi, python. Missing or weaker areas include aws, postgresql."
+}
+```
 
 ### Build the RAG index
 
