@@ -23,3 +23,5 @@ class JobSearchResponse(BaseModel):
     source: str = Field(..., description="Data source used")
     total_results: int = Field(..., description="Total number of jobs returned")
     jobs: list[JobCard] = Field(..., description="List of job cards")
+    is_fallback: bool = Field(False, description="Whether fallback demo jobs were used")
+    message: str | None = Field(None, description="Status message")

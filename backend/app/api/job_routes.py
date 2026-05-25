@@ -26,16 +26,18 @@ async def search_jobs_endpoint(request: JobSearchRequest) -> JobSearchResponse:
         JobSearchResponse with structured job cards
     """
     logger.info(f"Job search request: {request.query}")
-    
-    source, jobs, is_fallback = await search_jobs(request.query)
-    
+
+    source, jobs, is_fallback, message = await search_jobs(request.query)
+
     # Log fallback status for debugging
     if is_fallback:
-        logger.warning("API returned fallback/demo data due to external API failure")
-    
+        logger.warning(f"Using fallback jobs: {message}")
+
     return JobSearchResponse(
         query=request.query,
         source=source,
         total_results=len(jobs),
         jobs=jobs,
+        is_fallback=is_fallback,
+        message=message,
     )
