@@ -254,3 +254,80 @@ Response:
 5. Check sections with `GET /api/cv/{cv_id}/sections`.
 6. Build the index with `POST /api/rag/build`.
 7. Retrieve context with `POST /api/rag/retrieve`.
+
+## Database Persistence
+
+CareerPilot uses SQLite for persistent storage of application data.
+
+### Database Location
+
+- **Path**: `app/storage/careerpilot.db`
+- **Created automatically**: On first app startup
+- **Tables**: CVProfile, Application, Todo, CalendarEvent, AssistantSession
+
+### CV Profile Storage
+
+When a CV is uploaded, metadata is saved to the database:
+
+- `POST /api/cv/upload` saves CV metadata (filename, file_type, profile summary)
+
+### Job Application Tracker
+
+Track your job applications with CRUD operations:
+
+- `POST /api/applications` - Create a new application
+- `GET /api/applications` - List all applications (filter by status with `?status=applied,interview,offer,rejected`)
+- `PATCH /api/applications/{id}/status` - Update application status
+- `DELETE /api/applications/{id}` - Delete an application
+
+Example create request:
+```json
+{
+  "job_title": "Backend Engineer",
+  "company_name": "TechCorp",
+  "job_url": "https://example.com/job/123",
+  "status": "applied",
+  "notes": "Referred by Jane Doe"
+}
+```
+
+### Todo Items
+
+Manage tasks with todo items:
+
+- `POST /api/todos` - Create a todo item
+- `GET /api/todos` - List all todos (filter by completed with `?completed=true|false`)
+- `PATCH /api/todos/{todo_id}` - Update a todo item
+- `DELETE /api/todos/{todo_id}` - Delete a todo item
+
+Example create request:
+```json
+{
+  "title": "Review job application",
+  "description": "Follow up on Backend Engineer position",
+  "priority": "high"
+}
+```
+
+### Calendar Events
+
+Keep track of interviews and important dates:
+
+- `POST /api/events` - Create a calendar event
+- `GET /api/events` - List all events
+- `DELETE /api/events/{event_id}` - Delete an event
+
+Example create request:
+```json
+{
+  "title": "Technical Interview",
+  "description": "Coding assessment with TechCorp",
+  "event_date": "2024-03-15",
+  "event_time": "14:00",
+  "event_type": "interview"
+}
+```
+
+### Assistant Session Persistence
+
+AI assistant conversations are saved to the database, allowing session continuity across app restarts.

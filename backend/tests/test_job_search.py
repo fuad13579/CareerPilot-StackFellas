@@ -80,13 +80,33 @@ class TestJobSearchEndpoint:
         assert response.status_code == 422
 
     def test_source_is_remotive_or_fallback(self, client: TestClient) -> None:
-        """Source is either 'Remotive' or 'Demo Fallback'."""
+        """Source is either 'Remotive' or 'Fallback Demo Data'."""
         response = client.post(
             "/api/jobs/search",
             json={"query": "Find remote Python backend jobs"},
         )
         data = response.json()
-        assert data["source"] in ("Remotive", "Demo Fallback")
+        assert data["source"] in ("Remotive", "Fallback Demo Data")
+
+    def test_is_fallback_field_present(self, client: TestClient) -> None:
+        """Response includes is_fallback boolean field."""
+        response = client.post(
+            "/api/jobs/search",
+            json={"query": "Find remote Python backend jobs"},
+        )
+        data = response.json()
+        assert "is_fallback" in data
+        assert isinstance(data["is_fallback"], bool)
+
+    def test_message_field_present(self, client: TestClient) -> None:
+        """Response includes message field (status string)."""
+        response = client.post(
+            "/api/jobs/search",
+            json={"query": "Find remote Python backend jobs"},
+        )
+        data = response.json()
+        assert "message" in data
+        assert isinstance(data["message"], (str, type(None)))
 
     def test_returned_job_count_matches_total_results(
         self, client: TestClient
@@ -118,3 +138,65 @@ class TestJobSearchEndpoint:
         data = response.json()
         assert data["total_results"] > 0
         assert len(data["jobs"]) > 0
+
+    def test_multiple_natural_language_queries(self, client: TestClient) -> None:
+        """Test multiple natural language queries."""
+        queries = [
+            "Find remote Python backend jobs",
+            "Find React frontend internships",
+            "Find data analyst jobs",
+            "Find machine learning internships",
+        ]
+
+        for query in queries:
+            response = client.post(
+                "/api/jobs/search",
+                json={"query": query},
+            )
+            assert response.status_code == 200
+
+            data = response.json()
+
+            assert "jobs" in data
+            assert "total_results" in data
+            assert isinstance(data["jobs"], list)
+            assert isinstance(data["total_results"], int)
+
+    def test_total_results_is_integer(self, client: TestClient) -> None:
+        """total_results is verified as an integer."""
+        response = client.post(
+            "/api/jobs/search",
+            json={"query": "Find remote Python backend jobs"},
+        )
+        data = response.json()
+        assert isinstance(data["total_results"], int)
+
+    def test_job_card_has_all_required_fields(self, client: TestClient) -> None:
+        """Each job card has all 10 required fields."""
+        response = client.post(
+            "/api/jobs/search",
+            json={"query": "Find remote Python backend jobs"},
+        )
+        data = response.json()
+        assert isinstance(data["jobs"], list)
+
+        if data["jobs"]:
+            job = data["jobs"][0]
+
+            required_fields = [
+                "job_id",
+                "role",
+                "company",
+                "location",
+                "deadline",
+                "salary",
+                "required_skills",
+                "description",
+                "job_url",
+                "source",
+            ]
+
+            for field in required_fields:
+                assert field in job
+
+            assert isinstance(job["required_skills"], list)

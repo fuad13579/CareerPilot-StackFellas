@@ -1,11 +1,14 @@
+"""CareerPilot Backend - Main FastAPI Application."""
 import os
 
-from app.api import assistant_routes, cover_letter_routes, cv_routes, fit_routes, job_routes, rag_routes, skills_fit_routes
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from dotenv import load_dotenv
 
+from app.api import assistant_routes, cover_letter_routes, cv_routes, fit_routes, job_routes, rag_routes, skills_fit_routes, tracker_routes, todo_routes, calendar_routes
+from app.database import Base, engine
+from app.models.database_models import CVProfile, Application, Todo, CalendarEvent, AssistantSession
 
 load_dotenv()
 
@@ -49,6 +52,15 @@ app.include_router(rag_routes.router, prefix="/api/rag", tags=["RAG"])
 app.include_router(skills_fit_routes.router, prefix="/api/fit", tags=["Fit Score"])
 app.include_router(assistant_routes.router, prefix="/api/assistant", tags=["Assistant"])
 app.include_router(cover_letter_routes.router, prefix="/api/cover-letter", tags=["Cover Letter"])
+app.include_router(tracker_routes.router, prefix="/api/tracker", tags=["Tracker"])
+app.include_router(todo_routes.router, prefix="/api/todos", tags=["Todos"])
+app.include_router(calendar_routes.router, prefix="/api/calendar", tags=["Calendar"])
+
+
+@app.on_event("startup")
+def on_startup():
+    """Initialize database tables on startup."""
+    Base.metadata.create_all(bind=engine)
 
 
 @app.get("/", response_model=RootResponse)
