@@ -1,10 +1,13 @@
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel
 import os
+from sqlalchemy.orm import Session
 
+from app.database import get_db
+from app.models.database_models import CVProfile
 from app.services.cv_extraction_service import extract_text_from_cv
 from app.services.cv_chunking_service import load_processed_cv_sections, save_processed_cv
 
@@ -101,6 +104,25 @@ async def upload_cv(file: UploadFile = File(...)) -> CVUploadResponse:
         ) from exc
 
     save_processed_cv(cv_id=cv_id, extracted_text=extracted_text)
+
+    # Save CV metadata to database
+    try:
+        db: Session = next(get_db())
+        try:
+            cv_profile = CVProfile(
+                cv_id=cv_id,
+                filename=file.filename,
+                file_type=suffix.lstrip("."),
+                file_path=str(saved_path),
+                processed_text_path=str(UPLOAD_DIRECTORY / f"{cv_id}.txt"),
+            )
+            db.add(cv_profile)
+            db.commit()
+        finally:
+            db.close()
+    except Exception:
+        # Don't fail upload if database save fails
+        pass
 
     return CVUploadResponse(
         message="CV uploaded and processed successfully",

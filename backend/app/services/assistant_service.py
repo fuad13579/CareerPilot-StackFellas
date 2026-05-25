@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from app.models.assistant_models import AssistantQueryResponse, AssistantSource
 from app.services.vector_store_service import retrieve_relevant_chunks
+from app.models.database_models import AssistantSession
+from app.database import SessionLocal
 
 
 # In-memory session storage: session_id -> list of messages
@@ -21,6 +23,21 @@ class ConversationMessage:
 
 def get_conversation_history(session_id: str) -> list[dict[str, str]]:
     """Get conversation history for a session."""
+    # Try to load from database first
+    try:
+        db = SessionLocal()
+        try:
+            session = db.query(AssistantSession).filter(AssistantSession.session_id == session_id).first()
+            if session and session.messages:
+                # Sync to memory for consistency
+                SESSION_MEMORY[session_id] = session.messages
+                return session.messages
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+    # Fall back to in-memory
     return SESSION_MEMORY.get(session_id, [])
 
 
@@ -34,6 +51,31 @@ def add_to_conversation(session_id: str, role: str, content: str) -> None:
     # Keep only the last MAX_HISTORY_MESSAGES to avoid memory bloat
     if len(SESSION_MEMORY[session_id]) > MAX_HISTORY_MESSAGES:
         SESSION_MEMORY[session_id] = SESSION_MEMORY[session_id][-MAX_HISTORY_MESSAGES:]
+
+    # Also save to database for persistence
+    try:
+        db = SessionLocal()
+        try:
+            session = db.query(AssistantSession).filter(AssistantSession.session_id == session_id).first()
+            if session:
+                # Append to existing messages
+                existing_messages = session.messages.copy() if session.messages else []
+                existing_messages.append({"role": role, "content": content})
+                # Keep only last MAX_HISTORY_MESSAGES
+                session.messages = existing_messages[-MAX_HISTORY_MESSAGES:]
+            else:
+                # Create new session
+                session = AssistantSession(
+                    session_id=session_id,
+                    messages=[{"role": role, "content": content}]
+                )
+                db.add(session)
+            db.commit()
+        finally:
+            db.close()
+    except Exception:
+        # Don't break functionality if database save fails
+        pass
 
 
 def generate_answer_with_llm(context: str, question: str, history: list[dict]) -> str | None:
