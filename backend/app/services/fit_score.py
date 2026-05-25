@@ -1,5 +1,7 @@
+import functools
 import os
 import re
+from collections.abc import Iterable
 
 
 DEFAULT_SKILL_WEIGHT = 0.75
@@ -137,6 +139,12 @@ def calculate_fit_score(cv_text: str, job_description: str) -> dict:
     skill_weight = get_skill_weight()
     keyword_weight = get_keyword_weight(skill_weight)
 
+    # Normalize weights to ensure they sum to 1.0
+    weight_sum = skill_weight + keyword_weight
+    if weight_sum > 0:
+        skill_weight /= weight_sum
+        keyword_weight /= weight_sum
+
     # Fit score is intentionally transparent:
     # 75% comes from explicit required skill overlap.
     # 25% comes from broader keyword overlap.
@@ -193,16 +201,17 @@ def contains_term(text: str, term: str) -> bool:
     return bool(re.search(pattern, text))
 
 
-def get_common_skills() -> set[str]:
+@functools.lru_cache(maxsize=1)
+def get_common_skills() -> frozenset[str]:
     configured_skills = os.getenv("FIT_SCORE_COMMON_SKILLS")
     if not configured_skills:
-        return DEFAULT_COMMON_SKILLS
+        return frozenset(DEFAULT_COMMON_SKILLS)
 
-    return {
+    return frozenset(
         normalize_text(skill).strip()
         for skill in configured_skills.split(",")
         if skill.strip()
-    }
+    )
 
 
 def get_skill_weight() -> float:
@@ -240,5 +249,5 @@ def clamp_weight(value: float, fallback: float) -> float:
     return fallback
 
 
-def format_skills(skills: set[str]) -> list[str]:
+def format_skills(skills: Iterable[str]) -> list[str]:
     return sorted(DISPLAY_SKILL_NAMES.get(skill, skill) for skill in skills)
