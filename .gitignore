@@ -8,7 +8,6 @@ venv/
 .venv/
 backend/.venv/
 .puku/
-.vscode/
 backend/app/storage/vector_db/
 .pytest_cache/
 
