@@ -14,3 +14,6 @@ backend/app/storage/vector_db/
 # Local database
 *.db
 backend/app/storage/*.db
+
+# VS Code local-only settings
+.vscode/settings.local.json
