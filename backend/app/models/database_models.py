@@ -1,7 +1,7 @@
 """SQLAlchemy database models for CareerPilot."""
 from datetime import datetime
 
-from sqlalchemy import String, Text, Boolean, Integer, DateTime, ForeignKey
+from sqlalchemy import String, Text, Boolean, Integer, DateTime, ForeignKey, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -30,7 +30,7 @@ class Application(Base):
     company: Mapped[str] = mapped_column(String(255))
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(50), default="Saved")
-    fit_score: Mapped[float | None] = mapped_column(String(50), nullable=True)
+    fit_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     job_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

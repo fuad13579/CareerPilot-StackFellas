@@ -3,7 +3,9 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from app.database import DATABASE_PATH, SessionLocal
 from app.main import app
+from app.models.database_models import AssistantSession
 
 client = TestClient(app)
 
@@ -311,26 +313,122 @@ class TestDatabaseFileExists:
 
     def test_database_file_exists(self):
         """Test the SQLite database file exists after backend startup."""
-        db_path = Path("app/storage/careerpilot.db")
+        db_path = Path(DATABASE_PATH)
         assert db_path.exists()
 
 
 class TestAssistantSessionPersistence:
-    """Test assistant session persistence if endpoint works with test data."""
+    """Test assistant session persistence - verify messages are stored and reused."""
 
-    def test_assistant_query_with_test_data(self):
-        """Test assistant endpoint can be called with test CV ID and session."""
+    def test_assistant_query_stores_message_in_database(self):
+        """Test that assistant query stores a message row in the database."""
+        session_id = "test-session-persistence-001"
+
+        # Send first assistant query
         response = client.post(
             "/api/assistant/query",
             json={
                 "cv_id": "test-cv-id",
-                "session_id": "test-session-db",
+                "session_id": session_id,
                 "question": "What are my strongest skills?",
             },
         )
-        # A 200 response means the endpoint accepts the request
-        # The response might be a "no CV found" type message but that's OK
         assert response.status_code == 200
+
+        # Verify a message row was stored in the database
+        db = SessionLocal()
+        try:
+            count = (
+                db.query(AssistantSession)
+                .filter(AssistantSession.session_id == session_id)
+                .count()
+            )
+            assert count >= 1, f"Expected at least 1 message row, found {count}"
+        finally:
+            db.close()
+
+    def test_assistant_query_stores_multiple_messages_for_same_session(self):
+        """Test that multiple queries with same session_id store multiple rows."""
+        session_id = "test-session-persistence-002"
+
+        # Send first query
+        response1 = client.post(
+            "/api/assistant/query",
+            json={
+                "cv_id": "test-cv-id",
+                "session_id": session_id,
+                "question": "Tell me about my skills",
+            },
+        )
+        assert response1.status_code == 200
+
+        # Send second query with same session_id
+        response2 = client.post(
+            "/api/assistant/query",
+            json={
+                "cv_id": "test-cv-id",
+                "session_id": session_id,
+                "question": "What about my experience?",
+            },
+        )
+        assert response2.status_code == 200
+
+        # Verify multiple message rows exist in the database
+        db = SessionLocal()
+        try:
+            messages = (
+                db.query(AssistantSession)
+                .filter(AssistantSession.session_id == session_id)
+                .order_by(AssistantSession.created_at.asc())
+                .all()
+            )
+            assert len(messages) >= 2, f"Expected at least 2 messages, found {len(messages)}"
+
+            # Verify roles are stored correctly
+            roles = [msg.role for msg in messages]
+            assert "user" in roles, "Expected at least one user message"
+            assert "assistant" in roles, "Expected at least one assistant message"
+        finally:
+            db.close()
+
+    def test_assistant_query_stores_user_and_assistant_messages(self):
+        """Test that both user and assistant messages are stored with correct roles."""
+        session_id = "test-session-persistence-003"
+
+        response = client.post(
+            "/api/assistant/query",
+            json={
+                "cv_id": "test-cv-id",
+                "session_id": session_id,
+                "question": "What is my background?",
+            },
+        )
+        assert response.status_code == 200
+
+        # Verify user and assistant messages exist
+        db = SessionLocal()
+        try:
+            user_count = (
+                db.query(AssistantSession)
+                .filter(
+                    AssistantSession.session_id == session_id,
+                    AssistantSession.role == "user"
+                )
+                .count()
+            )
+            assistant_count = (
+                db.query(AssistantSession)
+                .filter(
+                    AssistantSession.session_id == session_id,
+                    AssistantSession.role == "assistant"
+                )
+                .count()
+            )
+
+            assert user_count >= 1, f"Expected at least 1 user message, found {user_count}"
+            assert assistant_count >= 1, f"Expected at least 1 assistant message, found {assistant_count}"
+        finally:
+            db.close()
 
     def test_assistant_response_contains_answer(self):
         """Test assistant response contains an answer field."""

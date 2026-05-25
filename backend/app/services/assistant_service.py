@@ -1,6 +1,5 @@
 """AI Assistant service with RAG context and session memory."""
 import os
-from dataclasses import dataclass
 
 from app.models.assistant_models import AssistantQueryResponse, AssistantSource
 from app.services.vector_store_service import retrieve_relevant_chunks
@@ -13,27 +12,33 @@ SESSION_MEMORY: dict[str, list[dict[str, str]]] = {}
 MAX_HISTORY_MESSAGES = 10
 
 
-@dataclass
-class ConversationMessage:
-    """Single message in a conversation."""
-
-    role: str
-    content: str
-
-
-def get_conversation_history(session_id: str) -> list[dict[str, str]]:
-    """Get conversation history for a session."""
+def get_conversation_history(session_id: str, db=None) -> list[dict[str, str]]:
+    """Get conversation history for a session from database.
+    
+    Queries AssistantSession rows by session_id and returns a list of
+    message dictionaries ordered by created_at ascending.
+    """
     # Try to load from database first
     try:
-        db = SessionLocal()
+        should_close = db is None
+        db = db or SessionLocal()
         try:
-            session = db.query(AssistantSession).filter(AssistantSession.session_id == session_id).first()
-            if session and session.messages:
+            sessions = (
+                db.query(AssistantSession)
+                .filter(AssistantSession.session_id == session_id)
+                .order_by(AssistantSession.created_at.asc())
+                .all()
+            )
+            if sessions:
                 # Sync to memory for consistency
-                SESSION_MEMORY[session_id] = session.messages
-                return session.messages
+                history = [{"role": s.role, "content": s.content} for s in sessions]
+                # Keep only last MAX_HISTORY_MESSAGES
+                history = history[-MAX_HISTORY_MESSAGES:]
+                SESSION_MEMORY[session_id] = history
+                return history
         finally:
-            db.close()
+            if should_close:
+                db.close()
     except Exception:
         pass
 
@@ -41,8 +46,41 @@ def get_conversation_history(session_id: str) -> list[dict[str, str]]:
     return SESSION_MEMORY.get(session_id, [])
 
 
-def add_to_conversation(session_id: str, role: str, content: str) -> None:
-    """Add a message to the conversation history."""
+def add_message_to_conversation(
+    session_id: str,
+    cv_id: str | None,
+    role: str,
+    content: str,
+    db=None
+) -> None:
+    """Add a message row to the conversation history in the database.
+    
+    Inserts a new AssistantSession row with the given session_id, role, and content.
+    Role should be "user" or "assistant".
+    """
+    try:
+        should_close = db is None
+        db = db or SessionLocal()
+        try:
+            # Insert new message row
+            session = AssistantSession(
+                session_id=session_id,
+                cv_id=cv_id,
+                role=role,
+                content=content,
+            )
+            db.add(session)
+            db.commit()
+        finally:
+            if should_close:
+                db.close()
+    except Exception:
+        # Don't break functionality if database save fails
+        pass
+
+
+def add_to_conversation(session_id: str, cv_id: str | None, role: str, content: str) -> None:
+    """Add a message to the conversation history (both memory and database)."""
     if session_id not in SESSION_MEMORY:
         SESSION_MEMORY[session_id] = []
 
@@ -53,29 +91,7 @@ def add_to_conversation(session_id: str, role: str, content: str) -> None:
         SESSION_MEMORY[session_id] = SESSION_MEMORY[session_id][-MAX_HISTORY_MESSAGES:]
 
     # Also save to database for persistence
-    try:
-        db = SessionLocal()
-        try:
-            session = db.query(AssistantSession).filter(AssistantSession.session_id == session_id).first()
-            if session:
-                # Append to existing messages
-                existing_messages = session.messages.copy() if session.messages else []
-                existing_messages.append({"role": role, "content": content})
-                # Keep only last MAX_HISTORY_MESSAGES
-                session.messages = existing_messages[-MAX_HISTORY_MESSAGES:]
-            else:
-                # Create new session
-                session = AssistantSession(
-                    session_id=session_id,
-                    messages=[{"role": role, "content": content}]
-                )
-                db.add(session)
-            db.commit()
-        finally:
-            db.close()
-    except Exception:
-        # Don't break functionality if database save fails
-        pass
+    add_message_to_conversation(session_id, cv_id, role, content)
 
 
 def generate_answer_with_llm(context: str, question: str, history: list[dict]) -> str | None:
@@ -207,7 +223,7 @@ def get_cv_context(cv_id: str, question: str) -> tuple[list[dict], str]:
 def process_assistant_query(cv_id: str, session_id: str, question: str) -> AssistantQueryResponse:
     """Process an AI assistant query with RAG context and session memory."""
     # Add user message to history
-    add_to_conversation(session_id, "user", question)
+    add_to_conversation(session_id, cv_id, "user", question)
 
     # Get conversation history
     history = get_conversation_history(session_id)
@@ -221,7 +237,7 @@ def process_assistant_query(cv_id: str, session_id: str, question: str) -> Assis
         answer = generate_fallback_answer(context, question)
 
     # Add assistant response to history
-    add_to_conversation(session_id, "assistant", answer)
+    add_to_conversation(session_id, cv_id, "assistant", answer)
 
     # Build response
     sources = [
