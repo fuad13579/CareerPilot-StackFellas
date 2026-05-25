@@ -1,6 +1,6 @@
 import os
 
-from app.api import cv_routes, fit_routes, job_routes, rag_routes, skills_fit_routes
+from app.api import assistant_routes, cv_routes, fit_routes, job_routes, rag_routes, skills_fit_routes
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -47,6 +47,7 @@ app.include_router(fit_routes.router, prefix="/api/fit", tags=["Fit Score"])
 app.include_router(job_routes.router, prefix="/api/jobs", tags=["Jobs"])
 app.include_router(rag_routes.router, prefix="/api/rag", tags=["RAG"])
 app.include_router(skills_fit_routes.router, prefix="/api/fit", tags=["Fit Score"])
+app.include_router(assistant_routes.router, prefix="/api/assistant", tags=["Assistant"])
 
 
 @app.get("/", response_model=RootResponse)
