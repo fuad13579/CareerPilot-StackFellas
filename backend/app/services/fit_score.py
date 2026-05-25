@@ -1,0 +1,186 @@
+import re
+
+
+SKILL_WEIGHT = 0.75
+KEYWORD_WEIGHT = 0.25
+
+COMMON_SKILLS = {
+    "python",
+    "java",
+    "javascript",
+    "typescript",
+    "react",
+    "next.js",
+    "fastapi",
+    "django",
+    "flask",
+    "node.js",
+    "express",
+    "sql",
+    "postgresql",
+    "mysql",
+    "mongodb",
+    "docker",
+    "git",
+    "github",
+    "machine learning",
+    "deep learning",
+    "nlp",
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "aws",
+    "azure",
+    "linux",
+    "html",
+    "css",
+    "tailwind",
+}
+
+STOPWORDS = {
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "to",
+    "for",
+    "with",
+    "in",
+    "on",
+    "of",
+    "is",
+    "are",
+    "be",
+    "as",
+    "by",
+    "this",
+    "that",
+    "from",
+}
+
+SKILL_ALIASES = {
+    "javascript": {"js"},
+    "typescript": {"ts"},
+    "react": {"reactjs", "react.js"},
+    "next.js": {"nextjs", "next js"},
+    "node.js": {"nodejs", "node js"},
+    "postgresql": {"postgres", "postgresql"},
+    "mongodb": {"mongo", "mongo db"},
+    "scikit-learn": {"sklearn", "scikit learn"},
+}
+
+
+def normalize_text(text: str) -> str:
+    text = text.lower()
+    text = re.sub(r"\breact\.js\b", "reactjs", text)
+    text = re.sub(r"\bnext\.js\b", "nextjs", text)
+    text = re.sub(r"\bnode\.js\b", "nodejs", text)
+    text = re.sub(r"\bmongo\s+db\b", "mongodb", text)
+    text = re.sub(r"\bscikit[\s-]?learn\b", "scikit-learn", text)
+    return text
+
+
+def extract_skills(text: str) -> set[str]:
+    text = normalize_text(text)
+    found_skills: set[str] = set()
+
+    for skill in COMMON_SKILLS:
+        if contains_term(text, skill):
+            found_skills.add(skill)
+            continue
+
+        aliases = SKILL_ALIASES.get(skill, set())
+        if any(contains_term(text, alias) for alias in aliases):
+            found_skills.add(skill)
+
+    return found_skills
+
+
+def extract_keywords(text: str) -> set[str]:
+    text = normalize_text(text)
+    words = re.findall(r"\b[a-zA-Z][a-zA-Z0-9+#.-]*\b", text)
+
+    keywords: set[str] = set()
+    for word in words:
+        if word not in STOPWORDS and len(word) > 2:
+            keywords.add(word)
+
+    return keywords
+
+
+def calculate_fit_score(cv_text: str, job_description: str) -> dict:
+    cv_skills = extract_skills(cv_text)
+    job_skills = extract_skills(job_description)
+
+    cv_keywords = extract_keywords(cv_text)
+    job_keywords = extract_keywords(job_description)
+
+    matched_skills = cv_skills.intersection(job_skills)
+    missing_skills = job_skills.difference(cv_skills)
+    matched_keywords = cv_keywords.intersection(job_keywords)
+
+    if job_skills:
+        skill_score = len(matched_skills) / len(job_skills)
+    else:
+        skill_score = 0
+
+    if job_keywords:
+        keyword_score = len(matched_keywords) / len(job_keywords)
+    else:
+        keyword_score = 0
+
+    # Fit score is intentionally transparent:
+    # 75% comes from explicit required skill overlap.
+    # 25% comes from broader keyword overlap.
+    # This makes the result explainable and avoids fake AI-generated scoring.
+    final_score = (skill_score * SKILL_WEIGHT) + (keyword_score * KEYWORD_WEIGHT)
+    final_percentage = round(final_score * 100, 2)
+
+    return {
+        "fit_score": final_percentage,
+        "skill_score": round(skill_score * 100, 2),
+        "keyword_score": round(keyword_score * 100, 2),
+        "matched_skills": sorted(matched_skills),
+        "missing_skills": sorted(missing_skills),
+        "matched_keywords": sorted(list(matched_keywords))[:20],
+        "explanation": generate_explanation(
+            final_percentage,
+            matched_skills,
+            missing_skills,
+        ),
+    }
+
+
+def generate_explanation(
+    score: float,
+    matched_skills: set[str],
+    missing_skills: set[str],
+) -> str:
+    if score >= 75:
+        verdict = "Strong match"
+    elif score >= 50:
+        verdict = "Moderate match"
+    else:
+        verdict = "Weak match"
+
+    matched = (
+        ", ".join(sorted(matched_skills))
+        if matched_skills
+        else "no major required skills"
+    )
+    missing = (
+        ", ".join(sorted(missing_skills))
+        if missing_skills
+        else "no major missing skills"
+    )
+
+    return (
+        f"{verdict}. The candidate matches {matched}. "
+        f"Missing or weaker areas include {missing}."
+    )
+
+
+def contains_term(text: str, term: str) -> bool:
+    pattern = rf"(?<![a-zA-Z0-9]){re.escape(term.lower())}(?![a-zA-Z0-9])"
+    return bool(re.search(pattern, text))
