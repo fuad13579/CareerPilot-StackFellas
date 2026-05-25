@@ -20,6 +20,15 @@ The upload API also supports:
   Default: `true`
   Set to `false` if you do not want `extracted_text` returned in the upload response.
 
+The fit score engine also supports:
+
+- `FIT_SCORE_SKILL_WEIGHT`
+  Default: `0.75`
+- `FIT_SCORE_KEYWORD_WEIGHT`
+  Default: `0.25`
+- `FIT_SCORE_COMMON_SKILLS`
+  Optional comma-separated override list for recognized skills
+
 ## Local setup
 
 1. Go to the backend folder:

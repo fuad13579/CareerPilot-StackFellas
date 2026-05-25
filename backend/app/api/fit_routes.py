@@ -15,7 +15,7 @@ def score_cv_fit(request: FitScoreRequest) -> FitScoreResponse:
     except FileNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
+            detail="CV not found",
         ) from exc
 
     result = calculate_fit_score(cv_text=cv_text, job_description=request.job_posting)
