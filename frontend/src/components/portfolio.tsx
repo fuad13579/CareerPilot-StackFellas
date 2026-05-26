@@ -142,7 +142,7 @@ export function PortfolioHome() {
   return (
     <div className="min-h-screen bg-[#fafafa]">
       <Hero />
-      <main className="space-y-28 pb-20">
+      <main className="space-y-20 pb-16">
         <AboutSection />
         <EducationSection />
         <ExperienceSection />
@@ -161,7 +161,7 @@ export function PortfolioHome() {
 
 function Hero() {
   return (
-    <section className="relative flex min-h-[85vh] items-center px-6 py-24 lg:px-16">
+    <section className="relative flex min-h-[80vh] items-center px-6 py-20 lg:px-16">
       {/* Subtle dot-grid decoration */}
       <div 
         className="pointer-events-none absolute inset-0 opacity-[0.03]" 
@@ -171,10 +171,10 @@ function Hero() {
         }} 
       />
       
-      <div className="relative mx-auto w-full max-w-5xl">
+      <div className="relative mx-auto w-full max-w-6xl">
         {/* Availability Pills */}
         <Reveal>
-          <div className="mb-6 flex flex-wrap gap-3">
+          <div className="mb-5 flex flex-wrap gap-2.5">
             {heroInfo.availability.map((item, i) => (
               <span
                 key={i}
@@ -190,39 +190,39 @@ function Hero() {
           </div>
         </Reveal>
 
-        {/* Name */}
+        {/* Name - ~20-25% larger */}
         <Reveal>
-          <h1 className="mb-3 text-[clamp(3rem,8vw,5.5rem)] font-extrabold tracking-tight leading-[0.95] text-black">
+          <h1 className="mb-2 text-[clamp(3.5rem,10vw,7rem)] font-extrabold tracking-tight leading-[0.92] text-black">
             {heroInfo.name}
           </h1>
         </Reveal>
 
-        {/* Role */}
+        {/* Role - larger and stronger */}
         <Reveal>
-          <p className="mb-6 text-[clamp(1.5rem,4vw,2.75rem)] font-bold text-[#1d4ed8] tracking-tight">
+          <p className="mb-6 text-[clamp(1.75rem,5vw,3.25rem)] font-extrabold text-[#1d4ed8] tracking-tight">
             {heroInfo.role}
           </p>
         </Reveal>
 
-        {/* Summary */}
+        {/* Summary - text-lg with higher line-height */}
         <Reveal>
-          <p className="mb-10 max-w-2xl text-lg leading-relaxed text-[#374151]">
+          <p className="mb-8 max-w-2xl text-lg leading-[1.85] text-[#374151]">
             {heroInfo.summary}
           </p>
         </Reveal>
 
         {/* CTAs */}
         <Reveal>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-3">
             <Link
               href="#contact"
-              className="inline-flex items-center gap-2 rounded-full bg-black px-7 py-3.5 text-sm font-bold text-white transition-all hover:bg-[#1d4ed8]"
+              className="inline-flex items-center gap-2 rounded-full bg-black px-8 py-4 text-sm font-bold text-white transition-all hover:bg-[#1d4ed8]"
             >
               Get in Touch <ArrowRight size={16} />
             </Link>
             <Link
               href="#projects"
-              className="inline-flex items-center gap-2 rounded-full border-2 border-[#e5e7eb] bg-white px-7 py-3.5 text-sm font-bold text-black transition-all hover:border-black"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-[#e5e7eb] bg-white px-8 py-4 text-sm font-bold text-black transition-all hover:border-black"
             >
               View Work <ArrowRight size={16} />
             </Link>
@@ -231,7 +231,7 @@ function Hero() {
 
         {/* Slim info row */}
         <Reveal delay={0.2}>
-          <div className="mt-16 grid grid-cols-2 gap-x-12 gap-y-6 sm:grid-cols-4">
+          <div className="mt-14 grid grid-cols-2 gap-x-12 gap-y-5 sm:grid-cols-4">
             {profileStats.map((stat, i) => (
               <div key={i} className="border-l-2 border-[#e5e7eb] pl-4">
                 <div className="text-2xl font-extrabold text-black">{stat.value}</div>
@@ -260,14 +260,14 @@ function SectionHeader({
 }) {
   return (
     <Reveal>
-      <div className="mb-12 max-w-2xl">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#1D4ED8]">
+      <div className="mb-10 max-w-2xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#1D4ED8]">
           {eyebrow}
         </p>
-        <h2 className="mt-3 text-4xl font-extrabold tracking-[-0.04em] text-[#111827] sm:text-5xl">
+        <h2 className="mt-2 text-4xl font-extrabold tracking-[-0.04em] text-[#111827] sm:text-5xl">
           {title}
         </h2>
-        <p className="mt-5 text-base font-medium leading-7 text-[#6B7280]">
+        <p className="mt-4 text-base font-medium leading-relaxed text-[#6B7280]">
           {description}
         </p>
       </div>
@@ -282,17 +282,17 @@ function SectionHeader({
 function AboutSection() {
   return (
     <section id="about" className="relative">
-      <div className="mx-auto max-w-5xl px-6">
+      <div className="mx-auto max-w-6xl px-6">
         <SectionHeader
           eyebrow="About"
           title="Professional Summary"
           description="A concise overview for recruiters and hiring managers."
         />
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-5 lg:grid-cols-2">
           {/* Positioning Card */}
           <Reveal>
-            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-8">
+            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-7">
               <div className="flex items-start gap-4">
                 <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#eff6ff]">
                   <Award className="text-[#1d4ed8]" size={24} />
@@ -311,11 +311,11 @@ function AboutSection() {
 
           {/* Description Card */}
           <Reveal>
-            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-8">
-              <p className="text-base leading-relaxed text-[#374151]">
+            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-7">
+              <p className="text-base leading-[1.8] text-[#374151]">
                 {about.description}
               </p>
-              <div className="mt-6 flex gap-6">
+              <div className="mt-5 flex gap-6">
                 <div className="flex items-center gap-2 text-sm text-[#6b7280]">
                   <div className="size-2 rounded-full bg-[#1d4ed8]" />
                   <span>5 Years Learning</span>
@@ -340,7 +340,7 @@ function AboutSection() {
 function EducationSection() {
   return (
     <section id="education" className="relative">
-      <div className="mx-auto max-w-5xl px-6">
+      <div className="mx-auto max-w-6xl px-6">
         <SectionHeader
           eyebrow="Education"
           title="Academic Background"
@@ -355,7 +355,7 @@ function EducationSection() {
           <Stagger className="space-y-0">
             {education.map((item, index) => (
               <Reveal key={item.title}>
-                <div className="relative flex gap-8 pb-12 last:pb-0">
+                <div className="relative flex gap-8 pb-10 last:pb-0">
                   {/* Timeline Dot */}
                   <div className="relative z-10 flex size-6 shrink-0 items-center justify-center">
                     <div className="size-3 rounded-full bg-[#1d4ed8] ring-4 ring-[#fafafa]" />
@@ -366,7 +366,7 @@ function EducationSection() {
                     <p className="text-sm font-semibold text-[#1d4ed8]">{item.period}</p>
                     <h3 className="mt-1 text-xl font-extrabold text-black">{item.title}</h3>
                     <p className="mt-1 text-sm font-medium text-[#6b7280]">{item.institution}</p>
-                    <p className="mt-3 text-base leading-relaxed text-[#374151]">{item.description}</p>
+                    <p className="mt-3 text-base leading-[1.75] text-[#374151]">{item.description}</p>
                   </div>
                 </div>
               </Reveal>
@@ -385,17 +385,17 @@ function EducationSection() {
 function ExperienceSection() {
   return (
     <section id="experience" className="relative">
-      <div className="mx-auto max-w-5xl px-6">
+      <div className="mx-auto max-w-6xl px-6">
         <SectionHeader
           eyebrow="Experience"
           title="Practical Experience"
           description="Professional patterns, collaboration, and delivery."
         />
 
-        <Stagger className="grid gap-6 md:grid-cols-2">
+        <Stagger className="grid gap-5 md:grid-cols-2">
           {experience.map((item) => (
             <Reveal key={item.role}>
-              <div className="group rounded-2xl border border-[#e5e7eb] bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+              <div className="group rounded-2xl border border-[#e5e7eb] bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                 {/* Period */}
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#9ca3af]">{item.period}</p>
                 
@@ -404,14 +404,14 @@ function ExperienceSection() {
                 <p className="mt-1 text-sm font-medium text-[#1d4ed8]">{item.type}</p>
                 
                 {/* Description */}
-                <p className="mt-4 text-base leading-relaxed text-[#374151]">{item.description}</p>
+                <p className="mt-4 text-base leading-[1.75] text-[#374151]">{item.description}</p>
                 
                 {/* Technologies */}
                 <div className="mt-5 flex flex-wrap gap-2">
                   {item.technologies.map((tech) => (
                     <span
                       key={tech}
-                      className="rounded-md bg-[#f3f4f6] px-2.5 py-1 text-xs font-medium text-[#6b7280]"
+                      className="rounded-md bg-[#f3f4f6] px-3 py-1.5 text-xs font-medium text-[#6b7280]"
                     >
                       {tech}
                     </span>
@@ -441,7 +441,7 @@ function ExperienceSection() {
 function SkillsSection() {
   return (
     <section id="skills" className="relative">
-      <div className="mx-auto max-w-7xl px-6">
+      <div className="mx-auto max-w-6xl px-6">
         <SectionHeader
           eyebrow="Skills"
           title="Core Strengths"
@@ -451,7 +451,7 @@ function SkillsSection() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {skills.map((skill) => (
             <Reveal key={skill.name}>
-              <div className="group rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:shadow-[#1D4ED8]/5">
+              <div className="group rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:shadow-[#1D4ED8]/5">
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-base font-bold text-[#111827]">
                     {skill.name}
@@ -488,14 +488,14 @@ function SkillsSection() {
 function ProjectsSection() {
   return (
     <section id="projects" className="relative">
-      <div className="mx-auto max-w-5xl px-6">
+      <div className="mx-auto max-w-6xl px-6">
         <SectionHeader
           eyebrow="Projects"
           title="Featured Work"
           description="Clear project cards for quick recruiter evaluation."
         />
 
-        <Stagger className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <Stagger className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
             <Reveal key={project.title}>
               <div className="group flex flex-col rounded-2xl border border-[#e5e7eb] bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
@@ -633,7 +633,7 @@ function RecruiterSnapshot() {
 
   return (
     <section className="relative">
-      <div className="mx-auto max-w-5xl px-6">
+      <div className="mx-auto max-w-6xl px-6">
         <SectionHeader
           eyebrow="Recruiter Snapshot"
           title="Quick Facts"
@@ -667,10 +667,10 @@ function RecruiterSnapshot() {
 function ContactSection() {
   return (
     <section id="contact" className="relative">
-      <div className="mx-auto max-w-5xl px-6">
+      <div className="mx-auto max-w-6xl px-6">
         <Reveal>
-          <div className="rounded-3xl bg-black p-8 sm:p-12">
-            <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+          <div className="rounded-3xl bg-black p-8 sm:p-10">
+            <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
               {/* Left Content */}
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#6b7280]">
@@ -705,20 +705,20 @@ function ContactSection() {
               {/* Right Form */}
               <form className="grid gap-4">
                 <input
-                  className="rounded-xl bg-[#1f2937] px-4 py-3 text-sm font-medium text-white placeholder:text-[#6b7280] outline-none transition-all focus:ring-2 focus:ring-[#3b82f6]/30"
+                  className="rounded-xl bg-[#1f2937] px-4 py-3.5 text-sm font-medium text-white placeholder:text-[#6b7280] outline-none transition-all focus:ring-2 focus:ring-[#3b82f6]/30"
                   placeholder="Your name"
                 />
                 <input
-                  className="rounded-xl bg-[#1f2937] px-4 py-3 text-sm font-medium text-white placeholder:text-[#6b7280] outline-none transition-all focus:ring-2 focus:ring-[#3b82f6]/30"
+                  className="rounded-xl bg-[#1f2937] px-4 py-3.5 text-sm font-medium text-white placeholder:text-[#6b7280] outline-none transition-all focus:ring-2 focus:ring-[#3b82f6]/30"
                   placeholder="Email address"
                 />
                 <textarea
-                  className="min-h-24 rounded-xl bg-[#1f2937] px-4 py-3 text-sm font-medium text-white placeholder:text-[#6b7280] outline-none transition-all focus:ring-2 focus:ring-[#3b82f6]/30"
+                  className="min-h-24 rounded-xl bg-[#1f2937] px-4 py-3.5 text-sm font-medium text-white placeholder:text-[#6b7280] outline-none transition-all focus:ring-2 focus:ring-[#3b82f6]/30"
                   placeholder="Your message"
                 />
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-black transition-all hover:bg-[#60a5fa]"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-black transition-all hover:bg-[#60a5fa]"
                 >
                   Send Message <ArrowRight size={14} />
                 </button>
@@ -728,7 +728,7 @@ function ContactSection() {
         </Reveal>
 
         {/* Premium Footer */}
-        <footer className="mt-16 flex flex-col items-center gap-6 text-center">
+        <footer className="mt-14 flex flex-col items-center gap-5 text-center">
           <div>
             <p className="text-xl font-extrabold text-black">Tahmeed</p>
             <p className="mt-1 text-sm text-[#6b7280]">Building polished, reliable digital experiences.</p>

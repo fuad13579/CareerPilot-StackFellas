@@ -71,13 +71,13 @@ export function Navigation() {
         }`}
       >
         <nav
-          className={`mx-auto flex h-14 max-w-7xl items-center justify-between px-6 backdrop-blur-xl transition-all duration-500 ${
+          className={`mx-auto flex h-16 max-w-7xl items-center justify-between px-6 backdrop-blur-xl transition-all duration-500 ${
             isScrolled ? "border-b border-[#E5E7EB]/50" : ""
           }`}
         >
           <Link
             href="#"
-            className="text-lg font-extrabold tracking-tight text-[#111827]"
+            className="text-xl font-extrabold tracking-tight text-[#111827]"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
             Tahmeed<span className="text-[#1D4ED8]">.</span>
@@ -113,7 +113,7 @@ export function Navigation() {
                 e.preventDefault();
                 handleNavClick("#contact");
               }}
-              className="rounded-lg bg-[#111827] px-4 py-2 text-[13px] font-semibold text-white transition-all duration-300 hover:bg-[#1D4ED8] hover:shadow-lg hover:shadow-[#1D4ED8]/20"
+              className="rounded-lg bg-[#111827] px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#1D4ED8]"
             >
               Get in touch
             </Link>
@@ -123,7 +123,7 @@ export function Navigation() {
             onClick={() => setIsMobileOpen(!isMobileOpen)}
             className="rounded-lg p-2 text-[#111827] transition-colors hover:bg-[#F3F4F6] md:hidden"
           >
-            {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
+            {isMobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </nav>
 
@@ -167,7 +167,7 @@ export function Navigation() {
         </motion.div>
       </motion.header>
 
-      <div className="h-14" />
+      <div className="h-16" />
     </>
   );
 }
