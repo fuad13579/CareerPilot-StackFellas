@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AmbientBackground } from "@/components/motion-shell";
 import { Navigation } from "@/components/navigation";
 import "./globals.css";
 
@@ -14,11 +15,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full bg-slate-50 text-slate-950">
-        <div className="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
+      <body className="min-h-full bg-[#FAFAFA] text-[#111827]">
+        <AmbientBackground />
+        <div className="min-h-screen">
           <Navigation />
-          <main className="min-w-0 px-4 py-6 sm:px-6 lg:px-10">
-            <div className="mx-auto w-full max-w-6xl">{children}</div>
+          <main className="min-w-0 px-5 pb-16 pt-24 sm:px-8 lg:px-10">
+            <div className="mx-auto w-full max-w-[1200px]">{children}</div>
           </main>
         </div>
       </body>
