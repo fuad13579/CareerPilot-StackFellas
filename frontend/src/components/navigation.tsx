@@ -2,19 +2,21 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 
 const navLinks = [
-  { name: "About", href: "#about" },
-  { name: "Experience", href: "#experience" },
-  { name: "Education", href: "#education" },
-  { name: "Skills", href: "#skills" },
-  { name: "Projects", href: "#projects" },
-  { name: "Contact", href: "#contact" },
+  { name: "Home", href: "/", isRoute: true },
+  { name: "Dashboard", href: "/dashboard", isRoute: true },
+  { name: "Upload", href: "/upload", isRoute: true },
+  { name: "Jobs", href: "/jobs", isRoute: true },
+  { name: "Assistant", href: "/assistant", isRoute: true },
+  { name: "Tracker", href: "/tracker", isRoute: true },
 ];
 
 export function Navigation() {
+  const pathname = usePathname();
   const [activeSection, setActiveSection] = useState("");
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -28,7 +30,7 @@ export function Navigation() {
       setScrollProgress(scrolled);
       setIsScrolled(window.scrollY > 20);
 
-      const sections = navLinks.map((link) => link.href.slice(1));
+      const sections = navLinks.filter(l => !l.isRoute).map((link) => link.href.slice(1));
       const current = sections.find((section) => {
         const element = document.getElementById(section);
         if (element) {
@@ -44,8 +46,9 @@ export function Navigation() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleNavClick = (href: string) => {
+  const handleNavClick = (href: string, isRoute?: boolean) => {
     setIsMobileOpen(false);
+    if (isRoute) return;
     const element = document.querySelector(href);
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
@@ -86,22 +89,41 @@ export function Navigation() {
           <ul className="hidden items-center gap-1 md:flex">
             {navLinks.map((link) => (
               <li key={link.name}>
-                <button
-                  onClick={() => handleNavClick(link.href)}
-                  className={`group relative px-3.5 py-2 text-[13px] font-semibold transition-colors duration-300 ${
-                    activeSection === link.href.slice(1)
-                      ? "text-[#1D4ED8]"
-                      : "text-[#6B7280] hover:text-[#111827]"
-                  }`}
-                >
-                  {link.name}
-                  <motion.span
-                    className="absolute bottom-0 left-3.5 right-3.5 h-[2px] bg-[#1D4ED8]"
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: activeSection === link.href.slice(1) ? 1 : 0 }}
-                    transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                  />
-                </button>
+                {link.isRoute ? (
+                  <Link
+                    href={link.href}
+                    className={`group relative px-4 py-2.5 text-sm font-semibold transition-colors duration-300 ${
+                      pathname === link.href
+                        ? "text-[#1D4ED8]"
+                        : "text-[#6B7280] hover:text-[#111827]"
+                    }`}
+                  >
+                    {link.name}
+                    <motion.span
+                      className="absolute bottom-0 left-4 right-4 h-[2px] bg-[#1D4ED8]"
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: pathname === link.href ? 1 : 0 }}
+                      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                    />
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => handleNavClick(link.href)}
+                    className={`group relative px-4 py-2.5 text-sm font-semibold transition-colors duration-300 ${
+                      activeSection === link.href.slice(1)
+                        ? "text-[#1D4ED8]"
+                        : "text-[#6B7280] hover:text-[#111827]"
+                    }`}
+                  >
+                    {link.name}
+                    <motion.span
+                      className="absolute bottom-0 left-4 right-4 h-[2px] bg-[#1D4ED8]"
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: activeSection === link.href.slice(1) ? 1 : 0 }}
+                      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                    />
+                  </button>
+                )}
               </li>
             ))}
           </ul>
@@ -139,16 +161,30 @@ export function Navigation() {
           <ul className="flex flex-col gap-1 px-6 py-4">
             {navLinks.map((link) => (
               <li key={link.name}>
-                <button
-                  onClick={() => handleNavClick(link.href)}
-                  className={`w-full rounded-lg px-4 py-3 text-left text-sm font-semibold transition-colors ${
-                    activeSection === link.href.slice(1)
-                      ? "bg-[#EFF6FF] text-[#1D4ED8]"
-                      : "text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#111827]"
-                  }`}
-                >
-                  {link.name}
-                </button>
+                {link.isRoute ? (
+                  <Link
+                    href={link.href}
+                    onClick={() => setIsMobileOpen(false)}
+                    className={`block w-full rounded-lg px-4 py-3 text-left text-sm font-semibold transition-colors ${
+                      pathname === link.href
+                        ? "bg-[#EFF6FF] text-[#1D4ED8]"
+                        : "text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#111827]"
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => handleNavClick(link.href)}
+                    className={`w-full rounded-lg px-4 py-3 text-left text-sm font-semibold transition-colors ${
+                      activeSection === link.href.slice(1)
+                        ? "bg-[#EFF6FF] text-[#1D4ED8]"
+                        : "text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#111827]"
+                    }`}
+                  >
+                    {link.name}
+                  </button>
+                )}
               </li>
             ))}
             <li className="mt-2">
