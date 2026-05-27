@@ -11,10 +11,20 @@ import {
   FileJson,
   Sparkles,
   Loader2,
-  FileCheck
+  FileCheck,
+  PenTool,
+  Copy,
+  Check,
+  RefreshCw,
+  AlertTriangle,
+  Briefcase,
+  Building2,
+  MapPin
 } from "lucide-react";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error";
+
+type CoverLetterStatus = "idle" | "generating" | "success" | "error";
 
 interface CVSummary {
   filename: string;
@@ -24,6 +34,14 @@ interface CVSummary {
   skills?: string[];
   experience?: string[];
   education?: string[];
+}
+
+interface JobDetails {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  description: string;
 }
 
 const ACCEPTED_TYPES = [
