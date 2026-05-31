@@ -27,9 +27,9 @@ const exitVariants = {
 
 export function AmbientBackground() {
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#FAFAFA]">
+    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#FAF7F0]">
       {/* Base gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#FAFAFA] via-[#F8FAFC] to-[#F3F4F6]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#FAF7F0] via-[#F5F0E8] to-[#FAF7F0]" />
       
       {/* Subtle noise texture */}
       <div className="portfolio-noise absolute inset-0 opacity-30" />

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, type FormEvent } from "react";
-import { Send, Loader2, Sparkles, Bot, User, FileText, Target, Map, PenTool, Zap } from "lucide-react";
-import { GlassCard } from "./motion-shell";
+import { Send, Loader2, Sparkles, Bot, User, Briefcase, Lightbulb, Map, FileText, Zap } from "lucide-react";
 
 interface Message {
   id: string;
@@ -12,17 +11,17 @@ interface Message {
 }
 
 const quickActions = [
-  { icon: FileText, label: "Resume Analysis", prompt: "Analyze my resume and suggest improvements" },
-  { icon: Target, label: "Job Readiness", prompt: "Am I ready for this role? What gaps do I have?" },
-  { icon: Map, label: "Roadmap", prompt: "Create a learning roadmap to bridge my skill gaps" },
-  { icon: PenTool, label: "Cover Letter", prompt: "Help me write a cover letter for this position" },
+  { icon: Briefcase, label: "Job Readiness", prompt: "Am I ready for a frontend developer role?" },
+  { icon: Lightbulb, label: "Skill Gaps", prompt: "What skills am I missing for my target roles?" },
+  { icon: Map, label: "Learning Roadmap", prompt: "Build me a 3-month roadmap to become job-ready" },
+  { icon: FileText, label: "Cover Letter", prompt: "Draft a cover letter for a job I'm interested in" },
 ];
 
 const mockResponses: Record<string, string> = {
-  "analyze": "Based on your resume, I found 3 key improvements: 1) Add quantifiable metrics to your achievements, 2) Highlight React/TypeScript projects more prominently, 3) Include a skills section with modern frameworks. Want me to help refine specific sections?",
-  "readiness": "You're 78% ready for frontend engineering roles. Your strengths: React, TypeScript, CSS. Gaps: Limited system design experience, no CI/CD mentions. I recommend 2-4 weeks of focused preparation to close these gaps.",
-  "roadmap": "Here's your 4-week roadmap:\n**Week 1-2:** System design fundamentals, testing practices\n**Week 3:** CI/CD pipelines, deployment best practices\n**Week 4:** Mock interviews + portfolio polish\nShould I create a detailed week-by-week plan?",
-  "cover": "I'll help you craft a compelling cover letter. Key elements for your application:\n\n1. **Opening:** Express genuine interest in the company\n2. **Body:** Highlight 2-3 relevant achievements matching their requirements\n3. **Closing:** Call to action with follow-up availability\n\nShall I draft it based on a specific job posting?",
+  "readiness": "Based on your CV, you appear to be a strong fit for frontend-focused roles because you have React, TypeScript, and project experience. Your backend skills with Python and FastAPI add to your versatility. Review the specific job requirements for each position to confirm readiness.",
+  "skills": "Based on your CV, you have solid skills in Python, backend API development, and React/TypeScript. For your target roles, focus on strengthening testing, deployment, and any specific frameworks mentioned in job postings.",
+  "roadmap": "Month 1: Strengthen core skills and work on portfolio projects. Month 2: Build one full-stack project with database and deployment. Month 3: Apply to jobs, practice interviews, and improve your GitHub profile.",
+  "cover": "I can draft a cover letter using your uploaded CV and the selected job description. Your responses will be grounded in your actual skills, experience, and the specific role requirements.",
 };
 
 export function AssistantExperience() {
@@ -30,13 +29,14 @@ export function AssistantExperience() {
     {
       id: "1",
       role: "assistant",
-      content: "Hi! I'm your CareerPilot assistant. I can help with resume analysis, job readiness assessment, learning roadmaps, and cover letter writing. What would you like to work on?",
+      content: "Hi, I'm your CareerPilot assistant. I can analyze your uploaded CV, check your readiness for a role, identify missing skills, build a roadmap, or draft a cover letter.",
       timestamp: new Date(),
     },
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [messageCount, setMessageCount] = useState(1);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -49,28 +49,29 @@ export function AssistantExperience() {
 
   const getAIResponse = (userMessage: string): string => {
     const lower = userMessage.toLowerCase();
-    if (lower.includes("analyze") || lower.includes("resume") || lower.includes("improve")) {
-      return mockResponses.analyze;
-    }
-    if (lower.includes("ready") || lower.includes("gap") || lower.includes("strength")) {
+    if (lower.includes("ready") || lower.includes("fit") || lower.includes("job role")) {
       return mockResponses.readiness;
     }
-    if (lower.includes("roadmap") || lower.includes("learn") || lower.includes("plan")) {
+    if (lower.includes("skill") || lower.includes("missing") || lower.includes("gap") || lower.includes("improve")) {
+      return mockResponses.skills;
+    }
+    if (lower.includes("roadmap") || lower.includes("3-month") || lower.includes("job-ready") || lower.includes("learn")) {
       return mockResponses.roadmap;
     }
-    if (lower.includes("cover letter") || lower.includes("draft") || lower.includes("write")) {
+    if (lower.includes("cover letter") || lower.includes("draft")) {
       return mockResponses.cover;
     }
-    return "I can help you with resume improvements, job-fit analysis, skill gap assessments, learning roadmaps, and cover letter drafting. What specific area would you like to focus on? Feel free to ask about any of these topics!";
+    return "I can help you with job readiness assessment, skill gap analysis, learning roadmaps, and cover letter drafting. Your responses are grounded in your uploaded CV. What specific area would you like to focus on?";
   };
 
   const handleSendMessage = async (e?: FormEvent) => {
     e?.preventDefault();
     if (!inputValue.trim() && !hasStarted) return;
 
-    const userMessage = inputValue.trim() || "Analyze my resume and suggest improvements";
+    const userMessage = inputValue.trim() || "Am I ready for a frontend developer role?";
     setInputValue("");
     setHasStarted(true);
+    setMessageCount((prev) => prev + 1);
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -95,9 +96,21 @@ export function AssistantExperience() {
   };
 
   return (
-    <div className="flex h-[600px] flex-col">
+    <div className="flex h-[600px] flex-col -mt-2">
+      {/* Page Content Header */}
+      <div className="mb-3 border-b border-gray-200 pb-3">
+        <h2 className="text-base font-bold text-[#111827]">AI Career Assistant</h2>
+        <p className="mt-1 text-sm text-[#6B7280]">
+          Ask about your CV, job readiness, skill gaps, roadmap, and applications.
+        </p>
+        <div className="mt-1.5 flex items-center gap-1.5 text-xs text-[#1D4ED8]">
+          <Zap size={10} />
+          <span>CV context active • Session memory enabled</span>
+        </div>
+      </div>
+
       {/* Messages Container */}
-      <div className="flex-1 space-y-5 overflow-y-auto pr-2">
+      <div className="flex-1 space-y-3 overflow-y-auto pr-1.5">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -115,7 +128,7 @@ export function AssistantExperience() {
                   : "border border-[#E5E7EB] bg-white text-[#374151]"
               }`}
             >
-              <p className="whitespace-pre-wrap text-sm font-medium leading-relaxed">
+              <p className="whitespace-pre-wrap text-sm font-medium leading-8">
                 {msg.content}
               </p>
               <p
@@ -152,7 +165,7 @@ export function AssistantExperience() {
 
       {/* Quick Actions - Only show before first message */}
       {!hasStarted && (
-        <div className="mb-4 grid grid-cols-2 gap-3">
+        <div className="mb-3 mt-2 grid grid-cols-2 gap-2.5">
           {quickActions.map((action) => (
             <button
               key={action.label}
@@ -160,9 +173,9 @@ export function AssistantExperience() {
                 setInputValue(action.prompt);
                 handleSendMessage();
               }}
-              className="flex items-center gap-3 rounded-xl border-2 border-gray-200 bg-white p-4 text-left transition hover:border-[#1D4ED8] hover:bg-blue-50"
+              className="flex items-center gap-2.5 rounded-xl border-2 border-gray-200 bg-white p-3.5 text-left transition hover:border-[#1D4ED8] hover:bg-blue-50"
             >
-              <action.icon size={20} className="text-[#1D4ED8]" />
+              <action.icon size={18} className="text-[#1D4ED8]" />
               <span className="text-sm font-bold text-gray-700">{action.label}</span>
             </button>
           ))}
@@ -170,12 +183,12 @@ export function AssistantExperience() {
       )}
 
       {/* Input Box */}
-      <form onSubmit={handleSendMessage} className="mt-4 flex gap-3">
-        <div className="flex flex-1 items-center gap-2 rounded-2xl border-2 border-gray-200 bg-white px-4 py-3 transition focus-within:border-[#1D4ED8] focus-within:ring-4 focus-within:ring-blue-100">
+      <form onSubmit={handleSendMessage} className="mt-3 flex gap-2.5">
+        <div className="flex flex-1 items-center gap-2 rounded-2xl border-2 border-gray-200 bg-white px-3.5 py-2.5 transition focus-within:border-[#1D4ED8] focus-within:ring-2 focus-within:ring-blue-100">
           <Sparkles size={18} className="shrink-0 text-[#1D4ED8]" />
           <input
             className="flex-1 bg-transparent text-base font-medium text-[#111827] outline-none placeholder:text-[#9CA3AF]"
-            placeholder="Ask about resume, jobs, skills, or roadmaps..."
+            placeholder="Ask about your CV, job readiness, skills, or roadmap..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
           />
@@ -190,8 +203,16 @@ export function AssistantExperience() {
 
       {/* Helper Text */}
       <p className="mt-3 text-center text-xs font-medium text-gray-400">
-        Supports: Resume analysis • Job readiness • Skill gaps • Roadmaps • Cover letters
+        Answers are grounded in your uploaded CV and current session context.
       </p>
+
+      {/* Session Memory Indicator */}
+      {messageCount > 1 && (
+        <div className="mt-2 flex items-center justify-center gap-1.5 text-xs text-[#1D4ED8]">
+          <Zap size={12} />
+          <span>Session context active: CareerPilot will remember this conversation while you continue chatting.</span>
+        </div>
+      )}
     </div>
   );
 }

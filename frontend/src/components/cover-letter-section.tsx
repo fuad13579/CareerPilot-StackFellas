@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { 
   Loader2, PenTool, Copy, Check,
-  RefreshCw, AlertTriangle, Briefcase
+  RefreshCw, AlertTriangle, Briefcase, FileText, Sparkles, TrendingUp
 } from "lucide-react";
 
 type CoverLetterStatus = "idle" | "generating" | "success" | "error";
@@ -14,25 +14,56 @@ interface JobDetails {
   company: string;
   location: string;
   description: string;
+  fitScore: number;
+  matchedSkills: string[];
+  missingSkills: string[];
 }
 
 const MOCK_JOBS: JobDetails[] = [
-  { id: "1", title: "Frontend Developer", company: "Vercel", location: "Remote", description: "Build next-gen web applications with React and TypeScript" },
-  { id: "2", title: "Product Engineer", company: "Linear", location: "New York, NY", description: "Join our team building the future of project management tools" },
-  { id: "3", title: "Full Stack Developer", company: "Stripe", location: "Seattle, WA", description: "Help build payment infrastructure" },
+  { 
+    id: "1", 
+    title: "Junior Backend Developer", 
+    company: "CodeCrafters", 
+    location: "Remote", 
+    description: "Build next-gen backend services with FastAPI, Python, and database design",
+    fitScore: 76,
+    matchedSkills: ["FastAPI", "Python", "Database Design", "API Development"],
+    missingSkills: ["Docker", "Production deployment"]
+  },
+  { 
+    id: "2", 
+    title: "Frontend Developer Intern", 
+    company: "TechNova", 
+    location: "Dhaka", 
+    description: "Build next-gen web applications with React and TypeScript",
+    fitScore: 84,
+    matchedSkills: ["React", "TypeScript", "Tailwind CSS", "UI Projects"],
+    missingSkills: ["Testing experience", "Deployment workflow"]
+  },
+  { 
+    id: "3", 
+    title: "Full Stack Developer", 
+    company: "WebSol", 
+    location: "Hybrid", 
+    description: "Help build payment infrastructure and full-stack features",
+    fitScore: 73,
+    matchedSkills: ["JavaScript", "Node.js", "MongoDB", "API Routes"],
+    missingSkills: ["Next.js", "AWS services"]
+  },
 ];
 
 const MOCK_COVER_LETTER = `Dear Hiring Manager,
 
-I am writing to express my strong interest in the [Position] role at [Company]. With my background in full-stack development, I am confident in my ability to contribute to your team.
+I am excited to apply for the [Position] position at [Company]. Based on my experience building CareerPilot, I have worked with [MatchedSkills], CV parsing, job matching logic, and application tracking workflows.
 
-Throughout my career, I have developed expertise in React, TypeScript, and Node.js, consistently delivering high-quality solutions. My experience includes architecting pixel-perfect UIs and collaborating with cross-functional teams.
+My recent backend work includes designing API routes, implementing resume processing, storing user profile data, and building services that support AI-powered job recommendations. These experiences align well with your requirements for backend development, API design, and data-driven product features.
 
-I am particularly excited about [Company]'s mission and would welcome the opportunity to discuss how my skills align with your needs.
+I am especially interested in this role because it would allow me to contribute to practical backend systems while continuing to improve my skills in [MissingSkills].
 
-Thank you for considering my application.
+Thank you for considering my application. I would be excited to discuss how my project experience and learning mindset can contribute to your team.
 
-Best regards`;
+Sincerely,
+[Your Name]`;
 
 export function CoverLetterSection() {
   const [coverLetterStatus, setCoverLetterStatus] = useState<CoverLetterStatus>("idle");
@@ -42,14 +73,12 @@ export function CoverLetterSection() {
   const [editedLetter, setEditedLetter] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobDetails | null>(null);
-  const [fitScore, setFitScore] = useState<number>(0);
   const [analyzingJob, setAnalyzingJob] = useState(false);
 
   const analyzeJobFit = async (job: JobDetails) => {
     setAnalyzingJob(true);
     // TODO: Connect to backend: POST /api/analyze-fit
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    setFitScore(Math.floor(Math.random() * 30) + 70);
     setSelectedJob(job);
     setAnalyzingJob(false);
   };
@@ -73,7 +102,9 @@ export function CoverLetterSection() {
       await new Promise((resolve) => setTimeout(resolve, 2500));
       const personalizedLetter = MOCK_COVER_LETTER
         .replace("[Position]", selectedJob.title)
-        .replace("[Company]", selectedJob.company);
+        .replace("[Company]", selectedJob.company)
+        .replace("[MatchedSkills]", selectedJob.matchedSkills.slice(0, 3).join(", "))
+        .replace("[MissingSkills]", selectedJob.missingSkills.join(", "));
       setCoverLetter(personalizedLetter);
       setCoverLetterStatus("success");
     } catch (err) {
@@ -111,7 +142,7 @@ export function CoverLetterSection() {
                   <PenTool size={22} className="text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Cover Letter</h3>
+                  <h3 className="text-xl font-bold text-gray-900">Your Personalized Cover Letter</h3>
                   <p className="text-sm font-medium text-gray-500">{selectedJob?.title} at {selectedJob?.company}</p>
                 </div>
               </div>
@@ -134,6 +165,24 @@ export function CoverLetterSection() {
               </div>
             </div>
 
+            {/* Personalization Indicators */}
+            {coverLetterStatus === "success" && (
+              <div className="mb-4 flex flex-wrap gap-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+                  <FileText size={12} /> Based on uploaded CV
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                  <Briefcase size={12} /> Uses selected job posting
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700">
+                  <TrendingUp size={12} /> Matched skills included
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                  <Sparkles size={12} /> Personalized draft
+                </span>
+              </div>
+            )}
+
             {coverLetterStatus === "generating" && (
               <div className="py-12 text-center">
                 <div className="mb-6 flex justify-center">
@@ -144,8 +193,8 @@ export function CoverLetterSection() {
                     </div>
                   </div>
                 </div>
-                <h4 className="text-xl font-bold text-gray-900">Generating your cover letter</h4>
-                <p className="mt-2 text-base font-medium text-gray-500">Analyzing your CV and job requirements...</p>
+                <h4 className="text-xl font-bold text-gray-900">Generating your personalized cover letter</h4>
+                <p className="mt-2 text-base font-medium text-gray-500">Analyzing your CV, job requirements, and matched skills...</p>
                 <div className="mt-6 h-2.5 w-full max-w-md mx-auto overflow-hidden rounded-full bg-gray-100">
                   <div className="h-full animate-pulse rounded-full bg-gradient-to-r from-blue-600 to-blue-400" style={{ width: "70%" }} />
                 </div>
@@ -185,8 +234,8 @@ export function CoverLetterSection() {
               <Briefcase size={22} className="text-purple-600" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Select a Job</h3>
-              <p className="text-sm font-medium text-gray-500">Choose a job posting to analyze and generate cover letter</p>
+              <h3 className="text-xl font-bold text-gray-900">Generate a Personalized Cover Letter</h3>
+              <p className="text-sm font-medium text-gray-500">Draft a role-specific cover letter using your CV and the selected job posting</p>
             </div>
           </div>
 
@@ -203,25 +252,61 @@ export function CoverLetterSection() {
                     {job.location}
                   </span>
                 </div>
+                {selectedJob?.id === job.id && (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {job.matchedSkills.slice(0, 2).map((skill) => (
+                      <span key={skill} className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </button>
             ))}
           </div>
 
           {selectedJob && (
-            <div className="flex flex-wrap items-center gap-6 rounded-2xl bg-gray-50 p-6">
+            <div className="flex flex-wrap items-start gap-6 rounded-2xl bg-gray-50 p-6">
+              {/* Fit Score */}
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <svg className="size-16 -rotate-90" viewBox="0 0 36 36">
                     <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831" fill="none" stroke="#E5E7EB" strokeWidth="3" />
-                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831" fill="none" stroke={fitScore >= 85 ? "#10B981" : "#F59E0B"} strokeWidth="3" strokeDasharray={`${fitScore}, 100`} />
+                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831" fill="none" stroke={selectedJob.fitScore >= 85 ? "#10B981" : "#F59E0B"} strokeWidth="3" strokeDasharray={`${selectedJob.fitScore}, 100`} />
                   </svg>
-                  <span className="absolute inset-0 flex items-center justify-center text-sm font-bold">{fitScore}%</span>
+                  <span className="absolute inset-0 flex items-center justify-center text-sm font-bold">{selectedJob.fitScore}%</span>
                 </div>
                 <div>
                   <p className="text-sm font-bold text-gray-700">Fit Score</p>
                   <p className="text-xs text-gray-500">Based on your CV</p>
                 </div>
               </div>
+
+              {/* Matched Skills */}
+              <div className="flex-1 min-w-[200px]">
+                <p className="text-sm font-bold text-gray-700 mb-2">Matched Skills</p>
+                <div className="flex flex-wrap gap-1">
+                  {selectedJob.matchedSkills.map((skill) => (
+                    <span key={skill} className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Improve Areas */}
+              <div className="flex-1 min-w-[200px]">
+                <p className="text-sm font-bold text-gray-700 mb-2">Improve Before Applying</p>
+                <div className="flex flex-wrap gap-1">
+                  {selectedJob.missingSkills.map((skill) => (
+                    <span key={skill} className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Generate Button */}
               <div className="ml-auto">
                 {analyzingJob ? (
                   <button disabled className="flex items-center gap-3 rounded-2xl bg-blue-600 px-8 py-4 text-lg font-bold text-white">

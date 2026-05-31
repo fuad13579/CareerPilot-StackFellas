@@ -83,7 +83,7 @@ export function Navigation() {
             className="text-xl font-extrabold tracking-tight text-[#111827]"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
-            Tahmeed<span className="text-[#1D4ED8]">.</span>
+            CareerPilot
           </Link>
 
           <ul className="hidden items-center gap-1 md:flex">
@@ -130,14 +130,10 @@ export function Navigation() {
 
           <div className="hidden items-center gap-3 md:flex">
             <Link
-              href="#contact"
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavClick("#contact");
-              }}
-              className="rounded-lg bg-[#111827] px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#1D4ED8]"
+              href="/upload"
+              className="rounded-lg bg-[#1D4ED8] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:bg-[#1E40AF] hover:shadow-md"
             >
-              Get in touch
+              Upload CV
             </Link>
           </div>
 
@@ -189,14 +185,10 @@ export function Navigation() {
             ))}
             <li className="mt-2">
               <Link
-                href="#contact"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleNavClick("#contact");
-                }}
+                href="/upload"
                 className="block w-full rounded-lg bg-[#1D4ED8] px-4 py-3 text-center text-sm font-semibold text-white"
               >
-                Get in touch
+                Upload CV
               </Link>
             </li>
           </ul>
