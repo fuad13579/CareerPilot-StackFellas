@@ -39,21 +39,21 @@ interface LiveJobSearchResponse {
   message?: string | null;
 }
 
-// Map API job to frontend Job format
+// Map backend enriched job to frontend Job format
 function mapApiJobToJob(apiJob: any): Job {
   return {
     id: apiJob.job_id,
-    role: apiJob.title,
-    company: apiJob.company_name,
-    location: apiJob.candidate_required_location || apiJob.location || "Remote",
+    role: apiJob.role,
+    company: apiJob.company,
+    location: apiJob.location || "Remote",
     salary: apiJob.salary || "Not specified",
-    deadline: apiJob.publication_date || new Date().toISOString().split('T')[0],
+    deadline: apiJob.deadline || new Date().toISOString().split('T')[0],
     fitScore: Math.round(apiJob.fit_score || 0),
-    type: mapJobType(apiJob.job_type),
+    type: "Remote" as const, // Remotive only returns remote jobs
     matchReason: apiJob.reason || "Calculated based on your CV skills",
     missingSkills: apiJob.missing_skills || [],
     matchingSkills: apiJob.matched_skills || [],
-    requiredSkills: [...(apiJob.matched_skills || []), ...(apiJob.missing_skills || [])],
+    requiredSkills: apiJob.required_skills || [...(apiJob.matched_skills || []), ...(apiJob.missing_skills || [])],
   };
 }
 
