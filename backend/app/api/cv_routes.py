@@ -111,6 +111,10 @@ async def upload_cv(file: UploadFile = File(...)) -> CVUploadResponse:
     save_processed_cv(cv_id=cv_id, extracted_text=extracted_text)
 
     # Save CV metadata to database
+    # Use the processed CV path (from cv_chunking_service)
+    from app.services.cv_chunking_service import get_processed_cv_text_path
+    processed_path = str(get_processed_cv_text_path(cv_id))
+    
     try:
         db: Session = next(get_db())
         try:
@@ -119,7 +123,7 @@ async def upload_cv(file: UploadFile = File(...)) -> CVUploadResponse:
                 filename=file.filename,
                 file_type=suffix.lstrip("."),
                 file_path=str(saved_path),
-                processed_text_path=str(UPLOAD_DIRECTORY / f"{cv_id}.txt"),
+                processed_text_path=processed_path,
             )
             db.add(cv_profile)
             db.commit()

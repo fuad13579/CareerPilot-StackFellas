@@ -90,13 +90,12 @@ export function UploadExperience() {
       const data = await response.json();
 
       // Save CV skills and ID to localStorage for Jobs page
-      if (data.skills && data.skills.length > 0) {
-        localStorage.setItem("careerpilot_cv_skills", JSON.stringify(data.skills));
-      }
-      if (data.cv_id) {
-        localStorage.setItem("careerpilot_cv_id", data.cv_id);
-      }
-      
+      localStorage.setItem("careerpilot_cv_id", String(data.cv_id));
+      localStorage.setItem(
+        "careerpilot_cv_skills",
+        JSON.stringify(data.skills ?? data.extracted_skills ?? [])
+      );
+
       // Notify jobs page of CV update for real-time refresh
       window.dispatchEvent(new Event("careerpilot_cv_updated"));
 
