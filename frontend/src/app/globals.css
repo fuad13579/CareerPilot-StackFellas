@@ -128,3 +128,25 @@ button {
     content: "...";
   }
 }
+
+/* Dot grid background pattern */
+.dot-pattern {
+  background-image: radial-gradient(#000 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Progress bar width utilities */
+.progress-bar {
+  width: var(--progress, 0%);
+}
+
+.progress-bar-dynamic {
+  width: var(--progress-width, 0%);
+}
+
+/* Progress bar width utilities */
+.progress-20 { width: 20%; }
+.progress-40 { width: 40%; }
+.progress-60 { width: 60%; }
+.progress-80 { width: 80%; }
+.progress-100 { width: 100%; }

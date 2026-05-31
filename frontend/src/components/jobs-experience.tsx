@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, MapPin, DollarSign, Calendar, Sparkles, Bookmark, Loader2, Briefcase, TrendingUp, AlertCircle, Lightbulb } from "lucide-react";
+import { Search, MapPin, DollarSign, Calendar, Sparkles, Bookmark, Loader2, Briefcase, TrendingUp, AlertCircle, Lightbulb, CheckCircle2 } from "lucide-react";
 import { GlassCard, Reveal, Stagger } from "./motion-shell";
 import { useTracker } from "./tracker-context";
 
@@ -210,19 +210,15 @@ export function JobsExperience() {
   };
 
   const handleApplyJob = (job: Job, fitScore: number) => {
-    // Add to tracker context
     addApplication({
-      jobId: job.id,
       role: job.role,
       company: job.company,
       location: job.location,
       status: "Applied",
       fitScore: fitScore,
-      jobUrl: "#",
       deadline: job.deadline,
       nextAction: "Follow up with recruiter in 1 week",
     });
-    // Mark as applied locally
     setAppliedJobs((prev) => new Set(prev).add(job.id));
   };
 
@@ -395,6 +391,7 @@ export function JobsExperience() {
                 <button
                   onClick={() => handleApplyJob(job, displayFitScore)}
                   disabled={appliedJobs.has(job.id)}
+                  aria-label={appliedJobs.has(job.id) ? `Applied to ${job.role} at ${job.company}` : `Apply to ${job.role} at ${job.company}`}
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1D4ED8] px-4 py-3 font-extrabold text-white transition-all hover:bg-[#1e40af] disabled:opacity-50 disabled:bg-green-600"
                 >
                   {appliedJobs.has(job.id) ? (
@@ -411,6 +408,7 @@ export function JobsExperience() {
                 </button>
                 <button
                   onClick={() => handleSaveJob(job.id)}
+                  aria-label={savedJobs.has(job.id) ? `Remove ${job.role} from saved jobs` : `Save ${job.role} job`}
                   className={`rounded-xl border-2 px-4 py-3 font-extrabold transition-all ${
                     savedJobs.has(job.id)
                       ? "border-[#1D4ED8] bg-[#1D4ED8] text-white"

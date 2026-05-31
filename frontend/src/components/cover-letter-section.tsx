@@ -5,6 +5,8 @@ import {
   Loader2, PenTool, Copy, Check,
   RefreshCw, AlertTriangle, Briefcase, FileText, Sparkles, TrendingUp
 } from "lucide-react";
+// TODO: Connect to backend for cover letter generation
+// import { useTracker } from "./tracker-context";
 
 type CoverLetterStatus = "idle" | "generating" | "success" | "error";
 
@@ -195,8 +197,9 @@ export function CoverLetterSection() {
                 </div>
                 <h4 className="text-xl font-bold text-gray-900">Generating your personalized cover letter</h4>
                 <p className="mt-2 text-base font-medium text-gray-500">Analyzing your CV, job requirements, and matched skills...</p>
+                {/* Progress bar for generation animation */}
                 <div className="mt-6 h-2.5 w-full max-w-md mx-auto overflow-hidden rounded-full bg-gray-100">
-                  <div className="h-full animate-pulse rounded-full bg-gradient-to-r from-blue-600 to-blue-400" style={{ width: "70%" }} />
+                  <div className="h-full animate-pulse rounded-full bg-gradient-to-r from-blue-600 to-blue-400 progress-bar-70" />
                 </div>
               </div>
             )}
@@ -204,8 +207,13 @@ export function CoverLetterSection() {
             {coverLetterStatus === "success" && coverLetter && (
               <div className="rounded-2xl bg-gray-50 border border-gray-200 p-6">
                 {isEditing ? (
-                  <textarea value={editedLetter} onChange={(e) => setEditedLetter(e.target.value)}
-                    className="w-full min-h-80 p-4 text-base leading-relaxed text-gray-700 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <textarea 
+                    value={editedLetter} 
+                    onChange={(e) => setEditedLetter(e.target.value)}
+                    aria-label="Edit cover letter"
+                    placeholder="Edit your cover letter here..."
+                    className="w-full min-h-80 p-4 text-base leading-relaxed text-gray-700 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                  />
                 ) : (
                   <pre className="whitespace-pre-wrap text-base leading-relaxed text-gray-700 font-sans">{coverLetter}</pre>
                 )}

@@ -3,6 +3,7 @@
 import { GlassCard, Reveal, Stagger } from "./motion-shell";
 import { Briefcase, MapPin, Calendar, Target, CheckCircle2, Clock, MessageSquare, AlertCircle } from "lucide-react";
 import { useTracker } from "./tracker-context";
+import { useEffect, useRef } from "react";
 
 const columnColors: Record<string, string> = {
   Applied: "border-l-[#3B82F6]",
@@ -29,6 +30,14 @@ export function TrackerExperience() {
   const { applications } = state;
   const pendingTodos = getPendingTodos().slice(0, 4);
   const weeklyStats = getWeeklyStats();
+  const progressRef = useRef<HTMLDivElement>(null);
+  const progressWidth = Math.min(weeklyStats.applicationsThisWeek / 5 * 100, 100);
+
+  useEffect(() => {
+    if (progressRef.current) {
+      progressRef.current.style.width = `${progressWidth}%`;
+    }
+  }, [progressWidth]);
 
   // Group applications by status
   const applicationsByStatus = {
@@ -84,8 +93,8 @@ export function TrackerExperience() {
           </div>
           <div className="mt-4 h-3 rounded-full bg-[#EEF2F7]">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6]"
-              style={{ width: `${Math.min(weeklyStats.applicationsThisWeek / 5 * 100, 100)}%` }}
+              ref={progressRef}
+              className="h-full rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] transition-all duration-500"
             />
           </div>
         </GlassCard>
