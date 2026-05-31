@@ -1,19 +1,26 @@
 """Todo routes for to-do item management."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.database_models import Todo
 from app.models.todo_models import TodoCreate, TodoUpdate, TodoResponse
+from app.services.user_context_service import require_anonymous_user_id
 
 
 router = APIRouter()
 
 
 @router.post("", response_model=TodoResponse)
-def create_todo(request: TodoCreate, db: Session = Depends(get_db)) -> TodoResponse:
+def create_todo(
+    request: TodoCreate,
+    db: Session = Depends(get_db),
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+) -> TodoResponse:
     """Create a new to-do item."""
+    anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
     db_todo = Todo(
+        anonymous_user_id=anonymous_user_id,
         title=request.title,
         description=request.description,
         due_date=request.due_date,
@@ -33,9 +40,18 @@ def create_todo(request: TodoCreate, db: Session = Depends(get_db)) -> TodoRespo
 
 
 @router.get("", response_model=list[TodoResponse])
-def get_todos(db: Session = Depends(get_db)) -> list[TodoResponse]:
+def get_todos(
+    db: Session = Depends(get_db),
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+) -> list[TodoResponse]:
     """Get all to-do items."""
-    todos = db.query(Todo).order_by(Todo.created_at.desc()).all()
+    anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
+    todos = (
+        db.query(Todo)
+        .filter(Todo.anonymous_user_id == anonymous_user_id)
+        .order_by(Todo.created_at.desc())
+        .all()
+    )
 
     return [
         TodoResponse(
@@ -51,9 +67,19 @@ def get_todos(db: Session = Depends(get_db)) -> list[TodoResponse]:
 
 
 @router.patch("/{todo_id}", response_model=TodoResponse)
-def update_todo(todo_id: int, request: TodoUpdate, db: Session = Depends(get_db)) -> TodoResponse:
+def update_todo(
+    todo_id: int,
+    request: TodoUpdate,
+    db: Session = Depends(get_db),
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+) -> TodoResponse:
     """Update a to-do item."""
-    todo = db.query(Todo).filter(Todo.id == todo_id).first()
+    anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
+    todo = (
+        db.query(Todo)
+        .filter(Todo.id == todo_id, Todo.anonymous_user_id == anonymous_user_id)
+        .first()
+    )
     if not todo:
         raise HTTPException(status_code=404, detail="Todo not found")
 
@@ -80,9 +106,18 @@ def update_todo(todo_id: int, request: TodoUpdate, db: Session = Depends(get_db)
 
 
 @router.delete("/{todo_id}")
-def delete_todo(todo_id: int, db: Session = Depends(get_db)) -> dict:
+def delete_todo(
+    todo_id: int,
+    db: Session = Depends(get_db),
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+) -> dict:
     """Delete a to-do item."""
-    todo = db.query(Todo).filter(Todo.id == todo_id).first()
+    anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
+    todo = (
+        db.query(Todo)
+        .filter(Todo.id == todo_id, Todo.anonymous_user_id == anonymous_user_id)
+        .first()
+    )
     if not todo:
         raise HTTPException(status_code=404, detail="Todo not found")
 

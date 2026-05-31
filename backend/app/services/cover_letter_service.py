@@ -22,13 +22,25 @@ def generate_cover_letter_with_llm(
     job_title: str,
     company: str,
     job_description: str,
+    location: str | None = None,
+    required_skills: list[str] | None = None,
+    job_url: str | None = None,
 ) -> str | None:
     """Generate cover letter using OpenAI or Anthropic LLM API."""
     # Try OpenAI first
     openai_key = os.getenv("OPENAI_API_KEY")
     if openai_key:
         try:
-            return _generate_with_openai(openai_key, cv_context, job_title, company, job_description)
+            return _generate_with_openai(
+                openai_key,
+                cv_context,
+                job_title,
+                company,
+                job_description,
+                location=location,
+                required_skills=required_skills,
+                job_url=job_url,
+            )
         except Exception:
             pass
 
@@ -36,14 +48,32 @@ def generate_cover_letter_with_llm(
     anthropic_key = os.getenv("ANTHROPIC_API_KEY")
     if anthropic_key:
         try:
-            return _generate_with_anthropic(anthropic_key, cv_context, job_title, company, job_description)
+            return _generate_with_anthropic(
+                anthropic_key,
+                cv_context,
+                job_title,
+                company,
+                job_description,
+                location=location,
+                required_skills=required_skills,
+                job_url=job_url,
+            )
         except Exception:
             pass
 
     return None
 
 
-def _generate_with_openai(api_key: str, cv_context: str, job_title: str, company: str, job_description: str) -> str:
+def _generate_with_openai(
+    api_key: str,
+    cv_context: str,
+    job_title: str,
+    company: str,
+    job_description: str,
+    location: str | None = None,
+    required_skills: list[str] | None = None,
+    job_url: str | None = None,
+) -> str:
     """Generate cover letter using OpenAI API."""
     from openai import OpenAI
 
@@ -53,7 +83,10 @@ def _generate_with_openai(api_key: str, cv_context: str, job_title: str, company
 
 Company: {company}
 Job Title: {job_title}
+Location: {location or "Not specified"}
 Job Description: {job_description}
+Required Skills: {", ".join(required_skills or []) or "Not specified"}
+Job URL: {job_url or "Not provided"}
 
 Based on the candidate's CV:
 {cv_context}
@@ -84,7 +117,16 @@ Write only the cover letter, no extra explanation."""
     return response.choices[0].message.content.strip()
 
 
-def _generate_with_anthropic(api_key: str, cv_context: str, job_title: str, company: str, job_description: str) -> str:
+def _generate_with_anthropic(
+    api_key: str,
+    cv_context: str,
+    job_title: str,
+    company: str,
+    job_description: str,
+    location: str | None = None,
+    required_skills: list[str] | None = None,
+    job_url: str | None = None,
+) -> str:
     """Generate cover letter using Anthropic API."""
     import anthropic
 
@@ -94,7 +136,10 @@ def _generate_with_anthropic(api_key: str, cv_context: str, job_title: str, comp
 
 Company: {company}
 Job Title: {job_title}
+Location: {location or "Not specified"}
 Job Description: {job_description}
+Required Skills: {", ".join(required_skills or []) or "Not specified"}
+Job URL: {job_url or "Not provided"}
 
 Based on the candidate's CV:
 {cv_context}
@@ -124,6 +169,9 @@ def generate_fallback_cover_letter(
     job_title: str,
     company: str,
     job_description: str,
+    location: str | None = None,
+    required_skills: list[str] | None = None,
+    job_url: str | None = None,
 ) -> str:
     """Generate a template-based cover letter when no LLM is available."""
     if not cv_context.strip():
@@ -142,6 +190,8 @@ def generate_fallback_cover_letter(
 
     skills_text = skills_mentioned[0] if skills_mentioned else "various technical skills and relevant project experience"
 
+    required_skills_text = ", ".join(required_skills or []) or "the role requirements"
+
     return f"""Dear Hiring Manager,
 
 I am excited to apply for the {job_title} role at {company}. This position aligns with my career goals and technical background.
@@ -149,6 +199,8 @@ I am excited to apply for the {job_title} role at {company}. This position align
 Based on my CV, I have experience with {skills_text}. I am particularly drawn to this opportunity because the role requirements match my skill set in Python, API development, and modern software engineering practices.
 
 {job_description[:200]}... (showing alignment with my background).
+
+I also noted the following requirements for this role: {required_skills_text}.
 
 My CV demonstrates practical experience in software development, problem-solving, and collaborative team environments. I am confident that this background will help me contribute effectively to your team.
 
@@ -163,15 +215,34 @@ def process_cover_letter_request(
     job_title: str,
     company: str,
     job_description: str,
+    location: str | None = None,
+    required_skills: list[str] | None = None,
+    job_url: str | None = None,
 ) -> CoverLetterResponse:
     """Process a cover letter generation request."""
     # Retrieve relevant CV context
     chunks, cv_context = get_cv_context_for_job(cv_id, job_title, job_description)
 
     # Generate cover letter (try LLM, fallback to template)
-    cover_letter = generate_cover_letter_with_llm(cv_context, job_title, company, job_description)
+    cover_letter = generate_cover_letter_with_llm(
+        cv_context,
+        job_title,
+        company,
+        job_description,
+        location=location,
+        required_skills=required_skills,
+        job_url=job_url,
+    )
     if cover_letter is None:
-        cover_letter = generate_fallback_cover_letter(cv_context, job_title, company, job_description)
+        cover_letter = generate_fallback_cover_letter(
+            cv_context,
+            job_title,
+            company,
+            job_description,
+            location=location,
+            required_skills=required_skills,
+            job_url=job_url,
+        )
 
     return CoverLetterResponse(
         cover_letter=cover_letter,

@@ -25,7 +25,7 @@ const pillars = [
   },
   {
     icon: FileText,
-    title: "Profile& Resume Intelligence",
+    title: "Profile & Resume Intelligence",
     description: "Upload your CV once. CareerPilot extracts and indexes your profile for all agents.",
   },
   {

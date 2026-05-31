@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const location = searchParams.get('location') || 'remote';
     const limit = searchParams.get('limit') || '10';
     const allowDemo = searchParams.get('allow_demo') || 'false';
+    const userId = request.headers.get("x-careerpilot-user-id") || "";
 
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
     const url = `${backendUrl}/api/jobs/search?cv_id=${encodeURIComponent(cvId)}&query=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}&limit=${limit}&allow_demo=${allowDemo}`;
@@ -16,6 +17,7 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...(userId ? { 'x-careerpilot-user-id': userId } : {}),
       },
       next: { revalidate: 60 }, // Cache for 60 seconds
     });
