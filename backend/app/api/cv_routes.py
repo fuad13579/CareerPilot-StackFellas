@@ -10,6 +10,7 @@ from app.database import get_db
 from app.models.database_models import CVProfile
 from app.services.cv_extraction_service import extract_text_from_cv
 from app.services.cv_chunking_service import load_processed_cv_sections, save_processed_cv
+from app.services.fit_score import extract_skills
 
 
 router = APIRouter()
@@ -30,6 +31,7 @@ class CVUploadResponse(BaseModel):
     filename: str
     file_type: str
     extracted_text: str | None = None
+    skills: list[str] = []
 
 
 class CVSectionsResponse(BaseModel):
@@ -103,6 +105,9 @@ async def upload_cv(file: UploadFile = File(...)) -> CVUploadResponse:
             detail="Failed to process uploaded CV",
         ) from exc
 
+    # Extract skills from CV text
+    extracted_skills = list(extract_skills(extracted_text))
+
     save_processed_cv(cv_id=cv_id, extracted_text=extracted_text)
 
     # Save CV metadata to database
@@ -130,6 +135,7 @@ async def upload_cv(file: UploadFile = File(...)) -> CVUploadResponse:
         filename=file.filename,
         file_type=suffix.lstrip("."),
         extracted_text=extracted_text if INCLUDE_EXTRACTED_TEXT else None,
+        skills=extracted_skills,
     )
 
 
