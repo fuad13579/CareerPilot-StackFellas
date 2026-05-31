@@ -8,7 +8,7 @@ class ApplicationCreate(BaseModel):
     role: str = Field(..., description="Job title/role")
     company: str = Field(..., description="Company name")
     location: str | None = Field(None, description="Job location")
-    status: str = Field(default="Saved", description="Application status")
+    status: str = Field(default="Applied", description="Application status: Applied, Interviewing, Offer, or Rejected")
     fit_score: float | None = Field(None, description="Fit score percentage")
     job_url: str | None = Field(None, description="URL to job posting")
     notes: str | None = Field(None, description="Additional notes")
