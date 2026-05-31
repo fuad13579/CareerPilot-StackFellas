@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { 
   ArrowRight, 
   FileText, 
@@ -25,6 +26,26 @@ import {
 } from "lucide-react";
 import { Reveal, Stagger } from "./motion-shell";
 import { useTracker } from "./tracker-context";
+
+interface RecommendedJob {
+  id: string;
+  role: string;
+  company: string;
+  location: string;
+  salary: string;
+  fitScore: number;
+  matchReason: string;
+  type: string;
+  deadline: string;
+}
+
+interface LiveJobSearchResponse {
+  jobs: any[];
+  total: number;
+  is_live: boolean;
+  source: string | null;
+  error: string | null;
+}
 
 export function DashboardHome() {
   return (
@@ -58,9 +79,9 @@ const cvStatus = {
   overallScore: 85,
 };
 
-const recommendedJobs = [
+const defaultRecommendedJobs: RecommendedJob[] = [
   {
-    id: 1,
+    id: "1",
     role: "Frontend Developer",
     company: "TechCorp Inc.",
     location: "Remote",
@@ -71,7 +92,7 @@ const recommendedJobs = [
     deadline: "2026-06-05",
   },
   {
-    id: 2,
+    id: "2",
     role: "React Developer",
     company: "StartupXYZ",
     location: "New York, NY",
@@ -82,7 +103,7 @@ const recommendedJobs = [
     deadline: "2026-06-08",
   },
   {
-    id: 3,
+    id: "3",
     role: "UI Engineer",
     company: "DesignFirst",
     location: "San Francisco, CA",
@@ -281,6 +302,37 @@ function QuickStatsSection() {
 }
 
 function RecommendedJobsSection() {
+  const [recommendedJobs, setRecommendedJobs] = useState<RecommendedJob[]>(defaultRecommendedJobs);
+
+  useEffect(() => {
+    const fetchRecommendedJobs = async () => {
+      try {
+        const cvId = typeof window !== 'undefined' ? localStorage.getItem("careerpilot_cv_id") || "default" : "default";
+        const response = await fetch(`/api/jobs/search?cv_id=${encodeURIComponent(cvId)}&limit=3&allow_demo=true`);
+        const data: LiveJobSearchResponse = await response.json();
+        
+        if (data.jobs && data.jobs.length > 0) {
+          const mappedJobs: RecommendedJob[] = data.jobs.map((job: any) => ({
+            id: job.job_id,
+            role: job.title,
+            company: job.company_name,
+            location: job.candidate_required_location || job.location || "Remote",
+            salary: job.salary || "Not specified",
+            fitScore: Math.round(job.fit_score || 0),
+            matchReason: job.reason || "Based on your skills",
+            type: job.job_type || "Remote",
+            deadline: job.publication_date || new Date().toISOString().split('T')[0],
+          }));
+          setRecommendedJobs(mappedJobs);
+        }
+      } catch (err) {
+        console.error("Failed to fetch recommended jobs:", err);
+      }
+    };
+    
+    fetchRecommendedJobs();
+  }, []);
+
   return (
     <section className="relative">
       <div className="mx-auto max-w-6xl px-6">
@@ -290,7 +342,7 @@ function RecommendedJobsSection() {
           description="Jobs that match your skills and preferences."
         />
         <Stagger className="grid gap-5 lg:grid-cols-3">
-          {recommendedJobs.map((job) => (
+          {recommendedJobs.slice(0, 3).map((job) => (
             <Reveal key={job.id}>
               <div className="group flex flex-col rounded-2xl border border-[#e5e7eb] bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                 <div className="flex items-start justify-between gap-4">

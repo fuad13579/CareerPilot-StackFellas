@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, MapPin, DollarSign, Calendar, Sparkles, Bookmark, Loader2, Briefcase, TrendingUp, AlertCircle, Lightbulb, CheckCircle2 } from "lucide-react";
 import { GlassCard, Reveal, Stagger } from "./motion-shell";
 import { useTracker } from "./tracker-context";
@@ -28,7 +28,46 @@ interface FitScoreResponse {
   total_required: number;
 }
 
-const mockJobs: Job[] = [
+// Live API response types
+interface LiveJobSearchResponse {
+  jobs: Job[];
+  total: number;
+  is_live: boolean;
+  source: string | null;
+  error: string | null;
+}
+
+// Map API job to frontend Job format
+function mapApiJobToJob(apiJob: any): Job {
+  return {
+    id: apiJob.job_id,
+    role: apiJob.title,
+    company: apiJob.company_name,
+    location: apiJob.candidate_required_location || apiJob.location || "Remote",
+    salary: apiJob.salary || "Not specified",
+    deadline: apiJob.publication_date || new Date().toISOString().split('T')[0],
+    fitScore: Math.round(apiJob.fit_score || 0),
+    type: mapJobType(apiJob.job_type),
+    matchReason: apiJob.reason || "Calculated based on your CV skills",
+    missingSkills: apiJob.missing_skills || [],
+    matchingSkills: apiJob.matched_skills || [],
+    requiredSkills: [...(apiJob.matched_skills || []), ...(apiJob.missing_skills || [])],
+  };
+}
+
+function mapJobType(jobType: string): Job["type"] {
+  const type = jobType?.toLowerCase() || "";
+  if (type.includes("contract") || type.includes("freelance")) return "Full-time";
+  if (type.includes("fulltime") || type.includes("full-time") || type.includes("full time")) return "Full-time";
+  if (type.includes("parttime") || type.includes("part-time") || type.includes("part time")) return "Internship";
+  if (type.includes("intern")) return "Internship";
+  if (type.includes("hybrid")) return "Hybrid";
+  if (type.includes("remote")) return "Remote";
+  return "Remote";
+}
+
+// Demo jobs for testing when API is unavailable
+const demoJobs: Job[] = [
   {
     id: "1",
     role: "Frontend Developer Intern",
@@ -165,13 +204,39 @@ export function JobsExperience() {
   const { addApplication } = useTracker();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [jobs] = useState<Job[]>(mockJobs);
+  const [jobs, setJobs] = useState<Job[]>(demoJobs);
+  const [isLive, setIsLive] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
   const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
   const [analyzedJobs, setAnalyzedJobs] = useState<Set<string>>(new Set());
   const [cvSkills] = useState<string[]>(loadCvSkills);
   const [hasCvUploaded, setHasCvUploaded] = useState(cvSkills.length > 0);
+
+  // Fetch jobs from API on mount
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const cvId = localStorage.getItem("careerpilot_cv_id") || "default";
+        const response = await fetch(`/api/jobs/search?cv_id=${encodeURIComponent(cvId)}&limit=12&allow_demo=true`);
+        const data: LiveJobSearchResponse = await response.json();
+        
+        if (data.jobs && data.jobs.length > 0) {
+          setJobs(data.jobs.map(mapApiJobToJob));
+          setIsLive(data.is_live);
+        }
+        if (data.error) {
+          setApiError(data.error);
+        }
+      } catch (err) {
+        console.error("Failed to fetch jobs:", err);
+        setApiError("Failed to load live jobs");
+      }
+    };
+    
+    fetchJobs();
+  }, []);
 
   // Calculate fit scores based on CV skills
   const getJobFitScore = (job: Job): FitScoreResponse | null => {
@@ -186,8 +251,24 @@ export function JobsExperience() {
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsSearching(false);
+    try {
+      const cvId = localStorage.getItem("careerpilot_cv_id") || "default";
+      const response = await fetch(`/api/jobs/search?cv_id=${encodeURIComponent(cvId)}&query=${encodeURIComponent(searchQuery)}&limit=12&allow_demo=true`);
+      const data: LiveJobSearchResponse = await response.json();
+      
+      if (data.jobs && data.jobs.length > 0) {
+        setJobs(data.jobs.map(mapApiJobToJob));
+        setIsLive(data.is_live);
+      }
+      if (data.error) {
+        setApiError(data.error);
+      }
+    } catch (err) {
+      console.error("Search failed:", err);
+      setApiError("Search failed");
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleAnalyzeFit = async (jobId: string) => {
@@ -255,6 +336,17 @@ export function JobsExperience() {
         <span className="text-sm font-bold text-gray-600">
           {jobs.length} jobs found
         </span>
+        {isLive && (
+          <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-600" />
+            Live
+          </span>
+        )}
+        {!isLive && (
+          <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
+            Demo
+          </span>
+        )}
       </div>
 
       {/* CV Skills Notice */}
