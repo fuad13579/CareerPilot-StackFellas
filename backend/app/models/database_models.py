@@ -29,7 +29,7 @@ class Application(Base):
     role: Mapped[str] = mapped_column(String(255))
     company: Mapped[str] = mapped_column(String(255))
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    status: Mapped[str] = mapped_column(String(50), default="Saved")
+    status: Mapped[str] = mapped_column(String(50), default="Applied")
     fit_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     job_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
