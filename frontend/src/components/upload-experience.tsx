@@ -5,21 +5,12 @@ import {
   FileText, 
   Upload,
   CloudUpload,
-  CheckCircle2, 
   AlertCircle, 
   X,
   FileJson,
   Sparkles,
   Loader2,
-  FileCheck,
-  PenTool,
-  Copy,
-  Check,
-  RefreshCw,
-  AlertTriangle,
-  Briefcase,
-  Building2,
-  MapPin
+  FileCheck
 } from "lucide-react";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error";
@@ -199,6 +190,7 @@ export function UploadExperience() {
             accept={[...ACCEPTED_TYPES, ...ACCEPTED_EXTENSIONS].join(",")}
             onChange={handleFileSelect}
             className="hidden"
+            aria-label="Upload CV file"
           />
 
           {/* Idle State */}
@@ -264,7 +256,7 @@ export function UploadExperience() {
                 Extracting text, chunking by section, detecting skills and experience, and preparing your profile for RAG-based recommendations...
               </p>
               <div className="mt-10 h-2.5 w-80 overflow-hidden rounded-full bg-gray-100">
-                <div className="h-full animate-pulse rounded-full bg-gradient-to-r from-blue-600 to-blue-500 transition-all duration-500" style={{ width: "60%" }} />
+                <div className="h-full animate-pulse rounded-full bg-gradient-to-r from-blue-600 to-blue-500 transition-all duration-500 progress-bar-60" />
               </div>
             </div>
           )}
@@ -284,6 +276,8 @@ export function UploadExperience() {
                 </div>
                 <button
                   onClick={resetUpload}
+                  aria-label="Upload another CV"
+                  title="Upload another CV"
                   className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-500 transition hover:bg-gray-200 hover:text-gray-900"
                 >
                   <X size={20} />

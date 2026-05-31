@@ -124,11 +124,7 @@ function WelcomeHero() {
   return (
     <section className="relative flex min-h-[50vh] items-center px-6 py-16 lg:px-16">
       <div 
-        className="pointer-events-none absolute inset-0 opacity-[0.03]" 
-        style={{
-          backgroundImage: 'radial-gradient(#000 1px, transparent 1px)',
-          backgroundSize: '24px 24px'
-        }} 
+        className="pointer-events-none absolute inset-0 opacity-[0.03] dot-pattern" 
       />
       <div className="relative mx-auto w-full max-w-6xl">
         <Reveal>
