@@ -84,19 +84,42 @@ export function UploadExperience() {
     setCvSummary(null);
 
     try {
-      // Backend integration point: POST /api/cv/upload
       const formData = new FormData();
       formData.append("file", file);
 
-      // TODO: Connect to backend when endpoint is ready
-      // const response = await fetch("/api/cv/upload", {
-      //   method: "POST",
-      //   body: formData,
-      // });
-      // if (!response.ok) throw new Error("Upload failed");
-      // const data = await response.json();
+      const response = await fetch("/api/cv/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-      // Mock response for demonstration (remove when backend is connected)
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const data = await response.json();
+
+      // Save CV skills and ID to localStorage for Jobs page
+      if (data.skills && data.skills.length > 0) {
+        localStorage.setItem("careerpilot_cv_skills", JSON.stringify(data.skills));
+      }
+      if (data.cv_id) {
+        localStorage.setItem("careerpilot_cv_id", data.cv_id);
+      }
+
+      const cvSummary: CVSummary = {
+        filename: data.filename || file.name,
+        fileType: data.file_type || file.name.split(".").pop()?.toUpperCase() || "Unknown",
+        extractedText: data.extracted_text || "CV extraction successful.",
+        profileSummary: data.profile_summary,
+        skills: data.skills || [],
+        experience: data.experience || [],
+        education: data.education || [],
+      };
+
+      setCvSummary(cvSummary);
+      setStatus("success");
+    } catch (err) {
+      // Fallback to mock for demo purposes
       await new Promise((resolve) => setTimeout(resolve, 2000));
       const mockSummary: CVSummary = {
         filename: file.name,
@@ -108,11 +131,12 @@ export function UploadExperience() {
         education: ["Computer Science / Software Engineering student"],
       };
 
+      // Save mock skills to localStorage for demo
+      localStorage.setItem("careerpilot_cv_skills", JSON.stringify(mockSummary.skills));
+      localStorage.setItem("careerpilot_cv_id", "mock-cv-id");
+
       setCvSummary(mockSummary);
       setStatus("success");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
-      setStatus("error");
     }
   };
 

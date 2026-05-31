@@ -12,10 +12,19 @@ interface Job {
   salary: string;
   deadline: string;
   fitScore: number;
-  type: "Remote" | "Hybrid" | "On-site" | "Internship";
+  type: "Remote" | "Hybrid" | "On-site" | "Internship" | "Full-time";
   matchReason: string;
   missingSkills: string[];
   matchingSkills: string[];
+  requiredSkills?: string[];
+}
+
+interface FitScoreResponse {
+  fit_score: number;
+  matched_skills: string[];
+  missing_skills: string[];
+  match_count: number;
+  total_required: number;
 }
 
 const mockJobs: Job[] = [
@@ -31,6 +40,7 @@ const mockJobs: Job[] = [
     matchReason: "Strong match with React, TypeScript, Tailwind, and UI project experience.",
     missingSkills: ["Testing experience", "Deployment workflow"],
     matchingSkills: ["React", "TypeScript", "Tailwind CSS"],
+    requiredSkills: ["React", "TypeScript", "Tailwind CSS", "JavaScript", "CSS"],
   },
   {
     id: "2",
@@ -44,6 +54,7 @@ const mockJobs: Job[] = [
     matchReason: "Good match with FastAPI, Python, database design, and API development experience.",
     missingSkills: ["Docker", "Production deployment"],
     matchingSkills: ["Python", "FastAPI", "Database Design"],
+    requiredSkills: ["Python", "FastAPI", "Docker", "PostgreSQL", "REST API"],
   },
   {
     id: "3",
@@ -57,6 +68,7 @@ const mockJobs: Job[] = [
     matchReason: "Partial match with Python and project experience.",
     missingSkills: ["Machine learning model training", "Pandas", "Scikit-learn", "Data preprocessing"],
     matchingSkills: ["Python"],
+    requiredSkills: ["Python", "Machine Learning", "TensorFlow", "Pandas", "SQL"],
   },
   {
     id: "4",
@@ -70,6 +82,7 @@ const mockJobs: Job[] = [
     matchReason: "Your skills align well with their tech stack including React and TypeScript.",
     missingSkills: ["Redux", "GraphQL"],
     matchingSkills: ["React", "TypeScript", "CSS"],
+    requiredSkills: ["React", "TypeScript", "Redux", "GraphQL", "Next.js"],
   },
   {
     id: "5",
@@ -83,6 +96,7 @@ const mockJobs: Job[] = [
     matchReason: "Reasonable match for your experience level with frontend and backend skills.",
     missingSkills: ["Next.js", "AWS services"],
     matchingSkills: ["JavaScript", "Node.js", "MongoDB"],
+    requiredSkills: ["JavaScript", "Node.js", "React", "MongoDB", "AWS"],
   },
   {
     id: "6",
@@ -96,8 +110,42 @@ const mockJobs: Job[] = [
     matchReason: "Your experience shows good design sense. Consider adding more Figma work.",
     missingSkills: ["Figma", "User research", "Prototyping"],
     matchingSkills: ["CSS", "Design fundamentals"],
+    requiredSkills: ["Figma", "User Research", "Prototyping", "CSS", "HTML"],
   },
 ];
+
+// Calculate fit score from user skills vs required skills
+const calculateFitScore = (userSkills: string[], jobSkills: string[]): FitScoreResponse => {
+  const userSet = new Set(userSkills.map(s => s.toLowerCase().trim()));
+  const jobSet = new Set(jobSkills.map(s => s.toLowerCase().trim()));
+
+  const matched = [...jobSet].filter(skill => userSet.has(skill));
+  const missing = [...jobSet].filter(skill => !userSet.has(skill));
+
+  const total = jobSet.size;
+  const fit_score = total === 0 ? 100 : Math.round((matched.length / total) * 100);
+
+  return {
+    fit_score,
+    matched_skills: matched,
+    missing_skills: missing,
+    match_count: matched.length,
+    total_required: total,
+  };
+};
+
+// Load CV skills from localStorage
+const loadCvSkills = (): string[] => {
+  try {
+    const stored = localStorage.getItem("careerpilot_cv_skills");
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch {
+    // Ignore localStorage errors
+  }
+  return [];
+};
 
 const getMatchColor = (fitScore: number) => {
   if (fitScore >= 80) return "bg-green-100 text-green-700";
@@ -119,6 +167,16 @@ export function JobsExperience() {
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
   const [analyzedJobs, setAnalyzedJobs] = useState<Set<string>>(new Set());
+  const [cvSkills] = useState<string[]>(loadCvSkills);
+  const [hasCvUploaded, setHasCvUploaded] = useState(cvSkills.length > 0);
+
+  // Calculate fit scores based on CV skills
+  const getJobFitScore = (job: Job): FitScoreResponse | null => {
+    if (!job.requiredSkills || job.requiredSkills.length === 0) {
+      return null;
+    }
+    return calculateFitScore(cvSkills, job.requiredSkills);
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,9 +241,28 @@ export function JobsExperience() {
         </span>
       </div>
 
+      {/* CV Skills Notice */}
+      {!hasCvUploaded && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-center gap-3">
+            <AlertCircle size={18} className="text-blue-600" />
+            <div>
+              <p className="text-sm font-semibold text-blue-700">Upload your CV first to calculate personalized fit scores</p>
+              <p className="text-xs text-blue-600">Go to /upload to upload your CV and enable skill-based matching</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Job Cards */}
       <Stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-        {jobs.map((job) => (
+        {jobs.map((job) => {
+          const computedFit = getJobFitScore(job);
+          const displayFitScore = computedFit ? computedFit.fit_score : job.fitScore;
+          const displayMatchedSkills = computedFit ? computedFit.matched_skills : job.matchingSkills;
+          const displayMissingSkills = computedFit ? computedFit.missing_skills : job.missingSkills;
+
+          return (
           <Reveal key={job.id}>
             <GlassCard className="flex h-full flex-col p-6 transition-shadow hover:shadow-xl">
               {/* Header */}
@@ -199,8 +276,8 @@ export function JobsExperience() {
                     <p className="text-sm font-bold text-[#1D4ED8]">{job.company}</p>
                   </div>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-sm font-extrabold ${getMatchColor(job.fitScore)}`}>
-                  {job.fitScore}% Match
+                <span className={`rounded-full px-3 py-1 text-sm font-extrabold ${getMatchColor(displayFitScore)}`}>
+                  {displayFitScore}% Match
                 </span>
               </div>
 
@@ -237,22 +314,29 @@ export function JobsExperience() {
               </div>
 
               {/* Missing Skills - Always visible */}
+              {displayMissingSkills.length > 0 ? (
               <div className="mt-3 flex items-center gap-2">
                 <AlertCircle size={12} className="shrink-0 text-orange-500" />
                 <span className="text-xs font-medium text-gray-500">Improve before applying:</span>
                 <div className="flex flex-wrap gap-1">
-                  {job.missingSkills.slice(0, 2).map((skill) => (
+                  {displayMissingSkills.slice(0, 2).map((skill) => (
                     <span key={skill} className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600">
                       {skill}
                     </span>
                   ))}
-                  {job.missingSkills.length > 2 && (
+                  {displayMissingSkills.length > 2 && (
                     <span className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600">
-                      +{job.missingSkills.length - 2}
+                      +{displayMissingSkills.length - 2}
                     </span>
                   )}
                 </div>
               </div>
+              ) : (
+              <div className="mt-3 flex items-center gap-2">
+                <TrendingUp size={12} className="shrink-0 text-green-500" />
+                <span className="text-xs font-medium text-gray-500">Required skills unavailable for this job</span>
+              </div>
+              )}
 
               {/* Analysis Result */}
               {analyzedJobs.has(job.id) && (
@@ -262,7 +346,7 @@ export function JobsExperience() {
                     <div>
                       <p className="text-xs font-semibold text-gray-700">Matching skills</p>
                       <div className="mt-1 flex flex-wrap gap-1">
-                        {job.matchingSkills.map((skill) => (
+                        {displayMatchedSkills.map((skill) => (
                           <span key={skill} className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                             {skill}
                           </span>
@@ -275,7 +359,7 @@ export function JobsExperience() {
                     <div>
                       <p className="text-xs font-semibold text-gray-700">Skills to improve</p>
                       <div className="mt-1 flex flex-wrap gap-1">
-                        {job.missingSkills.map((skill) => (
+                        {displayMissingSkills.map((skill) => (
                           <span key={skill} className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
                             {skill}
                           </span>
@@ -313,7 +397,8 @@ export function JobsExperience() {
               </div>
             </GlassCard>
           </Reveal>
-        ))}
+          );
+        })}
       </Stagger>
     </div>
   );
