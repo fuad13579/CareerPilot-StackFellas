@@ -2,76 +2,7 @@
 
 import { GlassCard, Reveal, Stagger } from "./motion-shell";
 import { Briefcase, MapPin, Calendar, Target, CheckCircle2, Clock, MessageSquare, AlertCircle } from "lucide-react";
-
-const applications = {
-  Applied: [
-    {
-      id: 1,
-      role: "Frontend Developer Intern",
-      company: "TechNova",
-      location: "Dhaka",
-      fitScore: 84,
-      deadline: "2026-06-03",
-      nextAction: "Submit cover letter by Friday",
-    },
-    {
-      id: 2,
-      role: "Junior Backend Developer",
-      company: "CodeCrafters",
-      location: "Remote",
-      fitScore: 78,
-      deadline: "2026-06-07",
-      nextAction: "Review job requirements",
-    },
-  ],
-  Interviewing: [
-    {
-      id: 3,
-      role: "Software Engineer Intern",
-      company: "Brain Station 23",
-      location: "Dhaka",
-      fitScore: 91,
-      deadline: "2026-06-02",
-      nextAction: "Complete DSA practice set before interview",
-    },
-  ],
-  Offer: [
-    {
-      id: 4,
-      role: "Web Developer Intern",
-      company: "DemoTech",
-      location: "Hybrid",
-      fitScore: 88,
-      deadline: "2026-06-05",
-      nextAction: "Review offer details",
-    },
-  ],
-  Rejected: [
-    {
-      id: 5,
-      role: "React Intern",
-      company: "ExampleSoft",
-      location: "Remote",
-      fitScore: 65,
-      deadline: "2026-05-28",
-      nextAction: "Learn React best practices",
-    },
-  ],
-};
-
-const stats = [
-  { label: "Total Applications", value: "7", icon: Briefcase },
-  { label: "Interviews", value: "2", icon: Calendar },
-  { label: "Offers", value: "1", icon: CheckCircle2 },
-  { label: "Pending Deadlines", value: "4", icon: Clock },
-];
-
-const upcomingTasks = [
-  { task: "Submit cover letter for TechNova by Friday", priority: "high" },
-  { task: "Follow up with Brain Station 23 recruiter", priority: "medium" },
-  { task: "Update CV project section", priority: "medium" },
-  { task: "Complete DSA practice set before interview", priority: "low" },
-];
+import { useTracker } from "./tracker-context";
 
 const columnColors: Record<string, string> = {
   Applied: "border-l-[#3B82F6]",
@@ -88,6 +19,37 @@ const badgeColors: Record<string, string> = {
 };
 
 export function TrackerExperience() {
+  const { 
+    state, 
+    getApplicationCount, 
+    getApplicationCountByStatus, 
+    getPendingTodos,
+    getWeeklyStats 
+  } = useTracker();
+  const { applications } = state;
+  const pendingTodos = getPendingTodos().slice(0, 4);
+  const weeklyStats = getWeeklyStats();
+
+  // Group applications by status
+  const applicationsByStatus = {
+    Applied: applications.filter(a => a.status === "Applied"),
+    Interviewing: applications.filter(a => a.status === "Interviewing"),
+    Offer: applications.filter(a => a.status === "Offer"),
+    Rejected: applications.filter(a => a.status === "Rejected"),
+  };
+
+  const totalApplications = getApplicationCount();
+  const interviewingCount = getApplicationCountByStatus("Interviewing");
+  const offerCount = getApplicationCountByStatus("Offer");
+  const pendingCount = pendingTodos.length;
+
+  const stats = [
+    { label: "Total Applications", value: String(totalApplications), icon: Briefcase },
+    { label: "Interviews", value: String(interviewingCount), icon: Calendar },
+    { label: "Offers", value: String(offerCount), icon: CheckCircle2 },
+    { label: "Pending Tasks", value: String(pendingCount), icon: Clock },
+  ];
+
   return (
     <div className="space-y-8">
       {/* Summary Stats */}
@@ -116,14 +78,14 @@ export function TrackerExperience() {
               <p className="mt-1 text-lg font-extrabold text-black">Apply to 5 jobs</p>
             </div>
             <div className="text-right">
-              <p className="text-3xl font-extrabold text-[#1D4ED8]">3 / 5</p>
-              <p className="text-sm font-medium text-[#6B7280]">applications completed</p>
+              <p className="text-3xl font-extrabold text-[#1D4ED8]">{weeklyStats.applicationsThisWeek} / 5</p>
+              <p className="text-sm font-medium text-[#6B7280]">applications this week</p>
             </div>
           </div>
           <div className="mt-4 h-3 rounded-full bg-[#EEF2F7]">
             <div
               className="h-full rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6]"
-              style={{ width: "60%" }}
+              style={{ width: `${Math.min(weeklyStats.applicationsThisWeek / 5 * 100, 100)}%` }}
             />
           </div>
         </GlassCard>
@@ -131,7 +93,7 @@ export function TrackerExperience() {
 
       {/* Kanban Board */}
       <div className="grid gap-5 lg:grid-cols-4">
-        {Object.entries(applications).map(([status, apps]) => (
+        {Object.entries(applicationsByStatus).map(([status, apps]) => (
           <div key={status} className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -191,9 +153,9 @@ export function TrackerExperience() {
               <h3 className="font-extrabold text-black">Upcoming Deadlines</h3>
             </div>
             <Stagger className="space-y-3">
-              {upcomingTasks.map((task, index) => (
+              {pendingTodos.map((task) => (
                 <div
-                  key={index}
+                  key={task.id}
                   className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white p-4"
                 >
                   <div className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
@@ -232,11 +194,13 @@ export function TrackerExperience() {
                 <span className="text-xs font-semibold uppercase tracking-wide text-[#1D4ED8]">CareerPilot Insight</span>
               </div>
               <p className="text-base font-medium leading-relaxed text-black">
-                You have 2 saved jobs with deadlines within 5 days. Consider applying today to maximize your chances.
+                {totalApplications === 0 
+                  ? "Start your journey by adding your first job application. CareerPilot will track your progress and provide insights."
+                  : `You have ${totalApplications} active application${totalApplications !== 1 ? 's' : ''}. Keep applying to increase your chances!`}
               </p>
               <div className="mt-3 flex items-center gap-2">
-                <AlertCircle size={14} className="text-amber-500" />
-                <span className="text-sm font-semibold text-amber-600">Action needed</span>
+                <AlertCircle size={14} className="text-blue-500" />
+                <span className="text-sm font-semibold text-blue-600">{weeklyStats.todosCompletedThisWeek} tasks completed this week</span>
               </div>
             </div>
           </GlassCard>
