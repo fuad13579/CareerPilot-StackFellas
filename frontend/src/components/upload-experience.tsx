@@ -96,6 +96,9 @@ export function UploadExperience() {
       if (data.cv_id) {
         localStorage.setItem("careerpilot_cv_id", data.cv_id);
       }
+      
+      // Notify jobs page of CV update for real-time refresh
+      window.dispatchEvent(new Event("careerpilot_cv_updated"));
 
       const cvSummary: CVSummary = {
         filename: data.filename || file.name,
@@ -125,6 +128,9 @@ export function UploadExperience() {
       // Save mock skills to localStorage for demo
       localStorage.setItem("careerpilot_cv_skills", JSON.stringify(mockSummary.skills));
       localStorage.setItem("careerpilot_cv_id", "mock-cv-id");
+      
+      // Notify jobs page of CV update for real-time refresh
+      window.dispatchEvent(new Event("careerpilot_cv_updated"));
 
       setCvSummary(mockSummary);
       setStatus("success");

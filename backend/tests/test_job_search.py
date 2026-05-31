@@ -187,7 +187,7 @@ class TestJobSearchEndpoint:
 
     def test_search_returns_jobs_list(self, client):
         """Response must include 'jobs' field."""
-        response = client.get("/api/jobs/search?cv_id=test-cv-123&allow_demo=true")
+        response = client.get("/api/jobs/search?cv_id=test-cv-123")
         if response.status_code == 200:
             data = response.json()
             assert "jobs" in data
@@ -195,7 +195,7 @@ class TestJobSearchEndpoint:
 
     def test_search_response_has_required_fields(self, client):
         """Response must have jobs, total, is_live, source."""
-        response = client.get("/api/jobs/search?cv_id=test-cv-123&allow_demo=true")
+        response = client.get("/api/jobs/search?cv_id=test-cv-123")
         if response.status_code == 200:
             data = response.json()
             assert "jobs" in data
@@ -203,9 +203,9 @@ class TestJobSearchEndpoint:
             assert "is_live" in data
             assert "source" in data
 
-    def test_demo_jobs_have_is_live_false(self, client):
-        """Demo jobs (allow_demo=true) must have is_live=False."""
-        response = client.get("/api/jobs/search?cv_id=test-cv-123&allow_demo=true")
+    def test_live_jobs_have_required_fields(self, client):
+        """Live jobs must have required fields including is_live."""
+        response = client.get("/api/jobs/search?cv_id=test-cv-123")
         if response.status_code == 200:
             data = response.json()
             if data["jobs"]:

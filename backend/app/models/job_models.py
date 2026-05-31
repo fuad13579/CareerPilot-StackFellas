@@ -12,11 +12,13 @@ class JobSearchRequest(BaseModel):
 
 
 class JobSearchResponse(BaseModel):
-    jobs: list["JobCard"] = Field(..., description="List of job cards")
-    total: int = Field(..., description="Total number of jobs returned")
-    is_live: bool = Field(True, description="Whether data came from live source")
+    jobs: list["JobCard"] = Field(default_factory=list, description="List of job cards")
+    total: int = Field(0, description="Total number of jobs returned")
+    is_live: bool = Field(False, description="Whether data came from live source")
     source: Optional[str] = Field(None, description="Source platform")
     error: Optional[str] = Field(None, description="Error message if any")
+    requires_cv: bool = Field(False, description="Whether a valid CV is required")
+    message: Optional[str] = Field(None, description="Informational message to user")
 
 
 class JobCard(BaseModel):
