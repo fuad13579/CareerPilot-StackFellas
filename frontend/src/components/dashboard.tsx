@@ -45,6 +45,8 @@ interface LiveJobSearchResponse {
   is_live: boolean;
   source: string | null;
   error: string | null;
+  requires_cv?: boolean;
+  message?: string | null;
 }
 
 export function DashboardHome() {
@@ -307,24 +309,31 @@ function RecommendedJobsSection() {
   useEffect(() => {
     const fetchRecommendedJobs = async () => {
       try {
-        const cvId = typeof window !== 'undefined' ? localStorage.getItem("careerpilot_cv_id") || "default" : "default";
-        const response = await fetch(`/api/jobs/search?cv_id=${encodeURIComponent(cvId)}&limit=3&allow_demo=true`);
+        const cvId = typeof window !== 'undefined' ? localStorage.getItem("careerpilot_cv_id") || "" : "";
+        
+        // If no CV uploaded, don't fetch jobs (will show upload prompt)
+        if (!cvId) return;
+        
+        const response = await fetch(`/api/jobs/search?cv_id=${encodeURIComponent(cvId)}&limit=3`);
         const data: LiveJobSearchResponse = await response.json();
         
-        if (data.jobs && data.jobs.length > 0) {
-          const mappedJobs: RecommendedJob[] = data.jobs.map((job: any) => ({
-            id: job.job_id,
-            role: job.title,
-            company: job.company_name,
-            location: job.candidate_required_location || job.location || "Remote",
-            salary: job.salary || "Not specified",
-            fitScore: Math.round(job.fit_score || 0),
-            matchReason: job.reason || "Based on your skills",
-            type: job.job_type || "Remote",
-            deadline: job.publication_date || new Date().toISOString().split('T')[0],
-          }));
-          setRecommendedJobs(mappedJobs);
+        // Handle requires_cv response or empty results
+        if (data.requires_cv || !data.jobs || data.jobs.length === 0) {
+          return; // Keep default jobs or empty
         }
+        
+        const mappedJobs: RecommendedJob[] = data.jobs.map((job: any) => ({
+          id: job.job_id,
+          role: job.title,
+          company: job.company_name,
+          location: job.candidate_required_location || job.location || "Remote",
+          salary: job.salary || "Not specified",
+          fitScore: Math.round(job.fit_score || 0),
+          matchReason: job.reason || "Based on your skills",
+          type: job.job_type || "Remote",
+          deadline: job.publication_date || new Date().toISOString().split('T')[0],
+        }));
+        setRecommendedJobs(mappedJobs);
       } catch (err) {
         console.error("Failed to fetch recommended jobs:", err);
       }

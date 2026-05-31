@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, MapPin, DollarSign, Calendar, Sparkles, Bookmark, Loader2, Briefcase, TrendingUp, AlertCircle, Lightbulb, CheckCircle2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Search, MapPin, DollarSign, Calendar, Sparkles, Bookmark, Loader2, Briefcase, TrendingUp, AlertCircle, Lightbulb, CheckCircle2, FileText } from "lucide-react";
 import { GlassCard, Reveal, Stagger } from "./motion-shell";
 import { useTracker } from "./tracker-context";
 
@@ -35,6 +35,8 @@ interface LiveJobSearchResponse {
   is_live: boolean;
   source: string | null;
   error: string | null;
+  requires_cv?: boolean;
+  message?: string | null;
 }
 
 // Map API job to frontend Job format
@@ -65,94 +67,6 @@ function mapJobType(jobType: string): Job["type"] {
   if (type.includes("remote")) return "Remote";
   return "Remote";
 }
-
-// Demo jobs for testing when API is unavailable
-const demoJobs: Job[] = [
-  {
-    id: "1",
-    role: "Frontend Developer Intern",
-    company: "TechNova",
-    location: "Dhaka",
-    salary: "BDT 15,000–25,000",
-    deadline: "2026-06-12",
-    fitScore: 84,
-    type: "Internship",
-    matchReason: "Strong match with React, TypeScript, Tailwind, and UI project experience.",
-    missingSkills: ["Testing experience", "Deployment workflow"],
-    matchingSkills: ["React", "TypeScript", "Tailwind CSS"],
-    requiredSkills: ["React", "TypeScript", "Tailwind CSS", "JavaScript", "CSS"],
-  },
-  {
-    id: "2",
-    role: "Junior Backend Developer",
-    company: "CodeCrafters",
-    location: "Remote",
-    salary: "BDT 30,000–45,000",
-    deadline: "2026-06-18",
-    fitScore: 76,
-    type: "Full-time",
-    matchReason: "Good match with FastAPI, Python, database design, and API development experience.",
-    missingSkills: ["Docker", "Production deployment"],
-    matchingSkills: ["Python", "FastAPI", "Database Design"],
-    requiredSkills: ["Python", "FastAPI", "Docker", "PostgreSQL", "REST API"],
-  },
-  {
-    id: "3",
-    role: "ML Intern",
-    company: "DataBridge AI",
-    location: "Dhaka",
-    salary: "BDT 20,000–30,000",
-    deadline: "2026-06-20",
-    fitScore: 68,
-    type: "Internship",
-    matchReason: "Partial match with Python and project experience.",
-    missingSkills: ["Machine learning model training", "Pandas", "Scikit-learn", "Data preprocessing"],
-    matchingSkills: ["Python"],
-    requiredSkills: ["Python", "Machine Learning", "TensorFlow", "Pandas", "SQL"],
-  },
-  {
-    id: "4",
-    role: "React Developer",
-    company: "StartupXYZ",
-    location: "Remote",
-    salary: "BDT 35,000–50,000",
-    deadline: "2026-06-25",
-    fitScore: 79,
-    type: "Full-time",
-    matchReason: "Your skills align well with their tech stack including React and TypeScript.",
-    missingSkills: ["Redux", "GraphQL"],
-    matchingSkills: ["React", "TypeScript", "CSS"],
-    requiredSkills: ["React", "TypeScript", "Redux", "GraphQL", "Next.js"],
-  },
-  {
-    id: "5",
-    role: "Full Stack Developer",
-    company: "WebSol",
-    location: "Hybrid",
-    salary: "BDT 40,000–60,000",
-    deadline: "2026-07-01",
-    fitScore: 73,
-    type: "Full-time",
-    matchReason: "Reasonable match for your experience level with frontend and backend skills.",
-    missingSkills: ["Next.js", "AWS services"],
-    matchingSkills: ["JavaScript", "Node.js", "MongoDB"],
-    requiredSkills: ["JavaScript", "Node.js", "React", "MongoDB", "AWS"],
-  },
-  {
-    id: "6",
-    role: "UI/UX Designer",
-    company: "DesignFirst",
-    location: "Dhaka",
-    salary: "BDT 25,000–40,000",
-    deadline: "2026-07-05",
-    fitScore: 61,
-    type: "On-site",
-    matchReason: "Your experience shows good design sense. Consider adding more Figma work.",
-    missingSkills: ["Figma", "User research", "Prototyping"],
-    matchingSkills: ["CSS", "Design fundamentals"],
-    requiredSkills: ["Figma", "User Research", "Prototyping", "CSS", "HTML"],
-  },
-];
 
 // Calculate fit score from user skills vs required skills
 const calculateFitScore = (userSkills: string[], jobSkills: string[]): FitScoreResponse => {
@@ -204,39 +118,96 @@ export function JobsExperience() {
   const { addApplication } = useTracker();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [jobs, setJobs] = useState<Job[]>(demoJobs);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [isLive, setIsLive] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
   const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
   const [analyzedJobs, setAnalyzedJobs] = useState<Set<string>>(new Set());
-  const [cvSkills] = useState<string[]>(loadCvSkills);
+  const [cvSkills, setCvSkills] = useState<string[]>(loadCvSkills);
   const [hasCvUploaded, setHasCvUploaded] = useState(cvSkills.length > 0);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // Fetch jobs from API on mount
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const cvId = localStorage.getItem("careerpilot_cv_id") || "default";
-        const response = await fetch(`/api/jobs/search?cv_id=${encodeURIComponent(cvId)}&limit=12&allow_demo=true`);
-        const data: LiveJobSearchResponse = await response.json();
-        
-        if (data.jobs && data.jobs.length > 0) {
-          setJobs(data.jobs.map(mapApiJobToJob));
-          setIsLive(data.is_live);
-        }
+  // Reusable refresh function for live jobs only
+  const refreshJobs = useCallback(async (overrideQuery?: string) => {
+    const currentCvId = localStorage.getItem("careerpilot_cv_id") || "";
+    const query = overrideQuery !== undefined ? overrideQuery : searchQuery;
+    
+    setIsSearching(true);
+    setApiError(null);
+    
+    try {
+      const params = new URLSearchParams({
+        cv_id: currentCvId,
+        limit: "12",
+      });
+      
+      if (query.trim()) {
+        params.set("query", query.trim());
+      }
+      
+      const response = await fetch(`/api/jobs/search?${params.toString()}`);
+      const data: LiveJobSearchResponse = await response.json();
+      
+      // Handle requires_cv response
+      if (data.requires_cv) {
+        setJobs([]);
+        setIsLive(false);
+        setApiError(data.message || "Please upload your CV first to get personalized job recommendations.");
+        setHasCvUploaded(false);
+      } else if (data.jobs && data.jobs.length > 0) {
+        setJobs(data.jobs.map(mapApiJobToJob));
+        setIsLive(data.is_live);
+        setHasCvUploaded(true);
+      } else {
+        setJobs([]);
+        setIsLive(false);
         if (data.error) {
           setApiError(data.error);
         }
-      } catch (err) {
-        console.error("Failed to fetch jobs:", err);
-        setApiError("Failed to load live jobs");
+      }
+    } catch (err) {
+      console.error("Failed to fetch jobs:", err);
+      setApiError("Unable to connect to job search service. Please try again.");
+      setJobs([]);
+      setIsLive(false);
+    } finally {
+      setIsSearching(false);
+      setIsInitialLoad(false);
+    }
+  }, [searchQuery]);
+
+  // Initial load and CV upload detection
+  useEffect(() => {
+    refreshJobs();
+    
+    // Listen for CV updates from same tab (upload page)
+    const handleCvUpdated = () => {
+      const skills = loadCvSkills();
+      setCvSkills(skills);
+      setHasCvUploaded(skills.length > 0);
+      refreshJobs();
+    };
+    
+    // Listen for CV updates from other tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "careerpilot_cv_skills" || e.key === "careerpilot_cv_id") {
+        const skills = loadCvSkills();
+        setCvSkills(skills);
+        setHasCvUploaded(skills.length > 0);
+        refreshJobs();
       }
     };
     
-    fetchJobs();
-  }, []);
+    window.addEventListener("careerpilot_cv_updated", handleCvUpdated);
+    window.addEventListener("storage", handleStorageChange);
+    
+    return () => {
+      window.removeEventListener("careerpilot_cv_updated", handleCvUpdated);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [refreshJobs]);
 
   // Calculate fit scores based on CV skills
   const getJobFitScore = (job: Job): FitScoreResponse | null => {
@@ -249,26 +220,7 @@ export function JobsExperience() {
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-
-    setIsSearching(true);
-    try {
-      const cvId = localStorage.getItem("careerpilot_cv_id") || "default";
-      const response = await fetch(`/api/jobs/search?cv_id=${encodeURIComponent(cvId)}&query=${encodeURIComponent(searchQuery)}&limit=12&allow_demo=true`);
-      const data: LiveJobSearchResponse = await response.json();
-      
-      if (data.jobs && data.jobs.length > 0) {
-        setJobs(data.jobs.map(mapApiJobToJob));
-        setIsLive(data.is_live);
-      }
-      if (data.error) {
-        setApiError(data.error);
-      }
-    } catch (err) {
-      console.error("Search failed:", err);
-      setApiError("Search failed");
-    } finally {
-      setIsSearching(false);
-    }
+    refreshJobs(searchQuery);
   };
 
   const handleAnalyzeFit = async (jobId: string) => {
@@ -334,23 +286,18 @@ export function JobsExperience() {
       <div className="flex items-center gap-2">
         <Briefcase size={18} className="text-[#1D4ED8]" />
         <span className="text-sm font-bold text-gray-600">
-          {jobs.length} jobs found
+          {isSearching && isInitialLoad ? "Loading jobs..." : `${jobs.length} jobs found`}
         </span>
-        {isLive && (
+        {isLive && !isSearching && (
           <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-600" />
             Live
           </span>
         )}
-        {!isLive && (
-          <span className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
-            Demo
-          </span>
-        )}
       </div>
 
       {/* CV Skills Notice */}
-      {!hasCvUploaded && (
+      {!hasCvUploaded && !isSearching && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
           <div className="flex items-center gap-3">
             <AlertCircle size={18} className="text-blue-600" />
@@ -359,6 +306,42 @@ export function JobsExperience() {
               <p className="text-xs text-blue-600">Go to /upload to upload your CV and enable skill-based matching</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {apiError && !isSearching && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6">
+          <div className="flex items-center gap-3">
+            <AlertCircle size={20} className="text-red-600" />
+            <div>
+              <p className="text-sm font-semibold text-red-700">{apiError}</p>
+              <button
+                onClick={() => refreshJobs()}
+                className="mt-2 text-xs font-medium text-red-600 underline hover:text-red-800"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Empty State - No CV uploaded */}
+      {hasCvUploaded && jobs.length === 0 && !isSearching && !apiError && (
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-8 text-center">
+          <Briefcase size={40} className="mx-auto text-gray-400" />
+          <p className="mt-4 text-base font-semibold text-gray-700">No jobs found</p>
+          <p className="mt-1 text-sm text-gray-500">Try a different search term or check back later for new opportunities.</p>
+        </div>
+      )}
+
+      {/* Empty State - No CV uploaded */}
+      {!hasCvUploaded && jobs.length === 0 && !isSearching && !apiError && (
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-8 text-center">
+          <FileText size={40} className="mx-auto text-gray-400" />
+          <p className="mt-4 text-base font-semibold text-gray-700">Upload your CV to see job recommendations</p>
+          <p className="mt-1 text-sm text-gray-500">Go to /upload to get personalized job matches based on your skills.</p>
         </div>
       )}
 
