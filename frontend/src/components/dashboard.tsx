@@ -20,9 +20,11 @@ import {
   Zap,
   BookOpen,
   MessageSquare,
-  Send
+  Send,
+  Plus
 } from "lucide-react";
 import { Reveal, Stagger } from "./motion-shell";
+import { useTracker } from "./tracker-context";
 
 export function DashboardHome() {
   return (
@@ -55,13 +57,6 @@ const cvStatus = {
   experienceSections: 3,
   overallScore: 85,
 };
-
-const quickStats = [
-  { value: "7", label: "Applications Sent", icon: Send, color: "text-[#1d4ed8]" },
-  { value: "78%", label: "Avg. Fit Score", icon: Target, color: "text-[#059669]" },
-  { value: "15", label: "Jobs Saved", icon: Briefcase, color: "text-[#d97706]" },
-  { value: "45%", label: "Roadmap Progress", icon: TrendingUp, color: "text-[#7c3aed]" },
-];
 
 const recommendedJobs = [
   {
@@ -97,81 +92,6 @@ const recommendedJobs = [
     type: "On-site",
     deadline: "2026-06-12",
   },
-];
-
-const applicationTracker = [
-  { status: "Applied", count: 4, color: "bg-[#3b82f6]" },
-  { status: "Interviewing", count: 2, color: "bg-[#f59e0b]" },
-  { status: "Offer", count: 0, color: "bg-[#10b981]" },
-  { status: "Rejected", count: 1, color: "bg-[#ef4444]" },
-];
-
-const upcomingTasks = [
-  { task: "Apply to saved Frontend Developer role", due: "Tomorrow", priority: "high" },
-  { task: "Update CV project section", due: "In 2 days", priority: "medium" },
-  { task: "Finish DSA practice module", due: "In 3 days", priority: "medium" },
-  { task: "Follow up with TechCorp recruiter", due: "In 4 days", priority: "low" },
-];
-
-const roadmapProgress = [
-  { 
-    week: "Week 1", 
-    title: "Resume Improvement", 
-    progress: 100, 
-    status: "completed",
-    description: "Improve CV structure, project descriptions, and skill keywords."
-  },
-  { 
-    week: "Week 2", 
-    title: "Skill Gap Practice", 
-    progress: 75, 
-    status: "in-progress",
-    description: "Practice missing skills identified from job fit analysis."
-  },
-  { 
-    week: "Week 3", 
-    title: "Job Applications", 
-    progress: 40, 
-    status: "in-progress",
-    description: "Apply to matched jobs and track application outcomes."
-  },
-  { 
-    week: "Week 4", 
-    title: "Interview Preparation", 
-    progress: 0, 
-    status: "upcoming",
-    description: "Prepare answers, practice DSA, and review saved job descriptions."
-  },
-];
-
-const aiNudges = [
-  {
-    type: "alert",
-    message: "You have not applied to any jobs this week.",
-    icon: AlertCircle,
-    color: "text-[#ef4444]",
-    bg: "bg-red-50",
-  },
-  {
-    type: "suggestion",
-    message: "Your CV is strong in React but missing backend project details.",
-    icon: Lightbulb,
-    color: "text-[#f59e0b]",
-    bg: "bg-amber-50",
-  },
-  {
-    type: "reminder",
-    message: "Three saved jobs have deadlines within 5 days.",
-    icon: Clock,
-    color: "text-[#3b82f6]",
-    bg: "bg-blue-50",
-  },
-];
-
-const skillsToImprove = [
-  { name: "System Design", level: 45 },
-  { name: "Node.js", level: 38 },
-  { name: "GraphQL", level: 52 },
 ];
 
 function SectionHeader({
@@ -318,6 +238,21 @@ function CVStatusSection() {
 }
 
 function QuickStatsSection() {
+  const { getApplicationCount, getRoadmapProgress, getCompletedTodos, getSkillsCount, getWeeklyStats } = useTracker();
+  
+  const appCount = getApplicationCount();
+  const roadmapProgress = getRoadmapProgress();
+  const completedTodos = getCompletedTodos().length;
+  const skillsCount = getSkillsCount();
+  const weeklyStats = getWeeklyStats();
+
+  const quickStats = [
+    { value: String(appCount), label: "Applications Sent", icon: Send, color: "text-[#1d4ed8]", subLabel: `${weeklyStats.applicationsThisWeek} this week` },
+    { value: `${completedTodos}`, label: "Completed Todos", icon: CheckCircle2, color: "text-[#059669]", subLabel: `${weeklyStats.todosCompletedThisWeek} this week` },
+    { value: String(skillsCount), label: "Skills Added", icon: Plus, color: "text-[#7c3aed]", subLabel: `${weeklyStats.skillsAddedThisWeek} this week` },
+    { value: `${roadmapProgress}%`, label: "Roadmap Progress", icon: TrendingUp, color: "text-[#d97706]", subLabel: "Career path" },
+  ];
+
   return (
     <section className="relative">
       <div className="mx-auto max-w-6xl px-6">
@@ -334,6 +269,7 @@ function QuickStatsSection() {
                   <div>
                     <p className="text-3xl font-extrabold text-black">{stat.value}</p>
                     <p className="mt-1 text-sm font-medium text-[#6b7280]">{stat.label}</p>
+                    <p className="mt-0.5 text-xs text-[#9ca3af]">{stat.subLabel}</p>
                   </div>
                   <div className="flex size-10 items-center justify-center rounded-xl bg-[#f3f4f6]">
                     <stat.icon size={20} className={stat.color} />
@@ -428,6 +364,20 @@ function RecommendedJobsSection() {
 }
 
 function ApplicationTrackerSection() {
+  const { getApplicationCountByStatus } = useTracker();
+  
+  const applied = getApplicationCountByStatus("Applied");
+  const interviewing = getApplicationCountByStatus("Interviewing");
+  const offer = getApplicationCountByStatus("Offer");
+  const rejected = getApplicationCountByStatus("Rejected");
+
+  const applicationTracker = [
+    { status: "Applied", count: applied, color: "bg-[#3b82f6]" },
+    { status: "Interviewing", count: interviewing, color: "bg-[#f59e0b]" },
+    { status: "Offer", count: offer, color: "bg-[#10b981]" },
+    { status: "Rejected", count: rejected, color: "bg-[#ef4444]" },
+  ];
+
   return (
     <section className="relative">
       <div className="mx-auto max-w-6xl px-6">
@@ -466,6 +416,9 @@ function ApplicationTrackerSection() {
 }
 
 function UpcomingTasksSection() {
+  const { getPendingTodos, toggleTodo } = useTracker();
+  const pendingTodos = getPendingTodos().slice(0, 4);
+
   return (
     <section className="relative">
       <div className="mx-auto max-w-6xl px-6">
@@ -475,8 +428,8 @@ function UpcomingTasksSection() {
           description="Career tasks and deadlines to keep you on track."
         />
         <Stagger className="max-w-2xl">
-          {upcomingTasks.map((task, index) => (
-            <Reveal key={index}>
+          {pendingTodos.map((task) => (
+            <Reveal key={task.id}>
               <div className="flex items-center gap-4 rounded-2xl border border-[#e5e7eb] bg-white p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
                 <div className={`flex size-10 shrink-0 items-center justify-center rounded-full ${
                   task.priority === "high" ? "bg-red-100" :
@@ -493,16 +446,26 @@ function UpcomingTasksSection() {
                   <p className="text-sm font-bold text-black">{task.task}</p>
                   <p className="text-xs text-[#6b7280]">Due: {task.due}</p>
                 </div>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                  task.priority === "high" ? "bg-red-100 text-red-700" :
-                  task.priority === "medium" ? "bg-yellow-100 text-yellow-700" :
-                  "bg-gray-100 text-gray-700"
-                }`}>
-                  {task.priority}
-                </span>
+                <button
+                  onClick={() => toggleTodo(task.id)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+                    task.priority === "high" ? "bg-red-100 text-red-700 hover:bg-red-200" :
+                    task.priority === "medium" ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200" :
+                    "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  Complete
+                </button>
               </div>
             </Reveal>
           ))}
+          {pendingTodos.length === 0 && (
+            <Reveal>
+              <div className="flex items-center justify-center rounded-2xl border border-[#e5e7eb] bg-white p-8">
+                <p className="text-sm text-[#6b7280]">No pending tasks. Great job!</p>
+              </div>
+            </Reveal>
+          )}
         </Stagger>
       </div>
     </section>
@@ -510,6 +473,9 @@ function UpcomingTasksSection() {
 }
 
 function LearningRoadmapSection() {
+  const { state } = useTracker();
+  const { roadmap } = state;
+
   return (
     <section className="relative">
       <div className="mx-auto max-w-6xl px-6">
@@ -519,7 +485,7 @@ function LearningRoadmapSection() {
           description="CareerPilot builds your roadmap from CV gaps, target roles, and application progress."
         />
         <Stagger className="grid gap-5 md:grid-cols-2">
-          {roadmapProgress.map((week) => (
+          {roadmap.map((week) => (
             <Reveal key={week.week}>
               <div className="group relative rounded-2xl border border-[#e5e7eb] bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:shadow-[#1D4ED8]/5">
                 {/* Timeline dot */}
@@ -594,6 +560,41 @@ function LearningRoadmapSection() {
 }
 
 function AINudgesSection() {
+  const { state, getWeeklyStats } = useTracker();
+  const { applications, todos } = state;
+  const weeklyStats = getWeeklyStats();
+
+  // Generate dynamic AI nudges based on state
+  const aiNudges = [
+    {
+      type: weeklyStats.applicationsThisWeek === 0 ? "alert" : "success",
+      message: weeklyStats.applicationsThisWeek === 0
+        ? "You haven't applied to any jobs this week. Start applying to stay on track!"
+        : `Great progress! You've applied to ${weeklyStats.applicationsThisWeek} jobs this week.`,
+      icon: weeklyStats.applicationsThisWeek === 0 ? AlertCircle : CheckCircle2,
+      color: weeklyStats.applicationsThisWeek === 0 ? "text-[#ef4444]" : "text-[#10b981]",
+      bg: weeklyStats.applicationsThisWeek === 0 ? "bg-red-50" : "bg-green-50",
+    },
+    {
+      type: "suggestion",
+      message: applications.filter(a => a.status === "Rejected").length > 0
+        ? "Keep pushing! Each rejection brings you closer to the right opportunity."
+        : "You've received positive responses on some applications. Keep the momentum going!",
+      icon: Lightbulb,
+      color: "text-[#f59e0b]",
+      bg: "bg-amber-50",
+    },
+    {
+      type: "reminder",
+      message: weeklyStats.todosCompletedThisWeek < 3
+        ? `You have ${todos.filter(t => !t.completed).length} pending tasks. Complete them to stay on track!`
+        : "Excellent work on completing tasks this week! You're building strong habits.",
+      icon: Clock,
+      color: "text-[#3b82f6]",
+      bg: "bg-blue-50",
+    },
+  ];
+
   return (
     <section className="relative">
       <div className="mx-auto max-w-6xl px-6">
@@ -632,6 +633,22 @@ function AINudgesSection() {
 }
 
 function SkillsToImproveSection() {
+  const { state } = useTracker();
+  const { skills } = state;
+
+  // Map skills to display format - use default data if no skills added yet
+  const displaySkills = skills.length > 0 ? skills.map(skill => ({
+    id: skill.id,
+    name: skill.name,
+    proficiency: skill.level,
+    priority: skill.level < 40 ? "high" : skill.level < 70 ? "medium" : "low" as "high" | "medium" | "low",
+    category: "User Added",
+  })) : [
+    { id: "default-1", name: "System Design", proficiency: 45, priority: "high" as const, category: "Backend" },
+    { id: "default-2", name: "TypeScript", proficiency: 72, priority: "medium" as const, category: "Frontend" },
+    { id: "default-3", name: "GraphQL", proficiency: 38, priority: "high" as const, category: "API" },
+  ];
+
   return (
     <section className="relative">
       <div className="mx-auto max-w-6xl px-6">
@@ -640,32 +657,45 @@ function SkillsToImproveSection() {
           title="Skills to Develop"
           description="Based on your target roles, here is what to focus on."
         />
-        <div className="grid gap-4 md:grid-cols-3">
-          {skillsToImprove.map((skill) => (
-            <Reveal key={skill.name}>
-              <div className="group rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:shadow-[#1D4ED8]/5">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-base font-bold text-[#111827]">
-                    {skill.name}
-                  </span>
-                  <span className="text-sm font-semibold text-[#1D4ED8]">
-                    {skill.level}%
-                  </span>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {displaySkills.slice(0, 6).map((skill, index) => (
+            <motion.div
+              key={skill.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.5 }}
+              transition={{ delay: index * 0.1, duration: 0.5 }}
+              className="group relative overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-4 transition-all duration-300 hover:border-[#1d4ed8]/30 hover:shadow-lg hover:shadow-[#1d4ed8]/10"
+            >
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex size-9 items-center justify-center rounded-lg bg-[#1d4ed8]/10">
+                  <Target size={18} className="text-[#1d4ed8]" />
                 </div>
-                <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#F3F4F6]">
+                <div>
+                  <h3 className="text-sm font-bold text-black">{skill.name}</h3>
+                  <p className="text-xs text-[#6b7280]">{skill.category}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-[#6b7280]">Proficiency</span>
+                  <span className="font-semibold text-black">{skill.proficiency}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-[#f3f4f6]">
                   <motion.div
                     initial={{ width: 0 }}
-                    whileInView={{ width: `${skill.level}%` }}
-                    viewport={{ once: true, amount: 0.6 }}
-                    transition={{
-                      duration: 1,
-                      ease: [0.22, 1, 0.36, 1],
-                    }}
-                    className="h-full rounded-full bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6]"
+                    whileInView={{ width: `${skill.proficiency}%` }}
+                    viewport={{ once: true, amount: 0.5 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className={`h-full rounded-full ${
+                      skill.priority === "high" ? "bg-gradient-to-r from-[#ef4444] to-[#f87171]" :
+                      skill.priority === "medium" ? "bg-gradient-to-r from-[#f59e0b] to-[#fbbf24]" :
+                      "bg-gradient-to-r from-[#10b981] to-[#34d399]"
+                    }`}
                   />
                 </div>
               </div>
-            </Reveal>
+            </motion.div>
           ))}
         </div>
       </div>

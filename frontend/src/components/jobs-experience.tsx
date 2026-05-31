@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Search, MapPin, DollarSign, Calendar, Sparkles, Bookmark, Loader2, Briefcase, TrendingUp, AlertCircle, Lightbulb } from "lucide-react";
 import { GlassCard, Reveal, Stagger } from "./motion-shell";
+import { useTracker } from "./tracker-context";
 
 interface Job {
   id: string;
@@ -161,11 +162,13 @@ const getTypeBadgeColor = (type: string) => {
 };
 
 export function JobsExperience() {
+  const { addApplication } = useTracker();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [jobs] = useState<Job[]>(mockJobs);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
+  const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
   const [analyzedJobs, setAnalyzedJobs] = useState<Set<string>>(new Set());
   const [cvSkills] = useState<string[]>(loadCvSkills);
   const [hasCvUploaded, setHasCvUploaded] = useState(cvSkills.length > 0);
@@ -204,6 +207,23 @@ export function JobsExperience() {
       }
       return newSet;
     });
+  };
+
+  const handleApplyJob = (job: Job, fitScore: number) => {
+    // Add to tracker context
+    addApplication({
+      jobId: job.id,
+      role: job.role,
+      company: job.company,
+      location: job.location,
+      status: "Applied",
+      fitScore: fitScore,
+      jobUrl: "#",
+      deadline: job.deadline,
+      nextAction: "Follow up with recruiter in 1 week",
+    });
+    // Mark as applied locally
+    setAppliedJobs((prev) => new Set(prev).add(job.id));
   };
 
   return (
@@ -373,16 +393,21 @@ export function JobsExperience() {
               {/* Actions */}
               <div className="mt-auto flex gap-3 pt-5">
                 <button
-                  onClick={() => handleAnalyzeFit(job.id)}
-                  disabled={analyzingId === job.id || analyzedJobs.has(job.id)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1D4ED8] px-4 py-3 font-extrabold text-white transition-all hover:bg-[#1e40af] disabled:opacity-50"
+                  onClick={() => handleApplyJob(job, displayFitScore)}
+                  disabled={appliedJobs.has(job.id)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1D4ED8] px-4 py-3 font-extrabold text-white transition-all hover:bg-[#1e40af] disabled:opacity-50 disabled:bg-green-600"
                 >
-                  {analyzingId === job.id ? (
-                    <Loader2 className="animate-spin" size={18} />
+                  {appliedJobs.has(job.id) ? (
+                    <>
+                      <CheckCircle2 size={18} />
+                      Applied
+                    </>
                   ) : (
-                    <Sparkles size={18} />
+                    <>
+                      <Briefcase size={18} />
+                      Apply Now
+                    </>
                   )}
-                  {analyzedJobs.has(job.id) ? "Analyzed" : "Analyze Fit"}
                 </button>
                 <button
                   onClick={() => handleSaveJob(job.id)}
