@@ -1,26 +1,152 @@
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/inter/800.css";
+@import "@fontsource/manrope/500.css";
+@import "@fontsource/manrope/600.css";
+@import "@fontsource/manrope/700.css";
+@import "@fontsource/manrope/800.css";
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #FAF7F0;
+  --foreground: #111827;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: Arial, Helvetica, sans-serif;
+  --font-sans: Inter, Arial, Helvetica, sans-serif;
+  --font-display: Manrope, Inter, Arial, Helvetica, sans-serif;
   --font-mono: "Courier New", Courier, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #FFF8ED;
+    --foreground: #111827;
   }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: light;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, Arial, Helvetica, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  line-height: 1.8;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+h1,
+h2,
+h3 {
+  font-family: Manrope, Inter, Arial, Helvetica, sans-serif;
+  color: #111827;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+
+p,
+li,
+span,
+input,
+button {
+  text-rendering: optimizeLegibility;
+}
+
+.text-shadow-soft {
+  text-shadow: none;
+}
+
+.portfolio-noise {
+  background-image: radial-gradient(circle at 1px 1px, rgba(17, 24, 39, 0.05) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+::selection {
+  background: rgba(37, 99, 235, 0.35);
+  color: #ffffff;
+}
+
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: "";
+  position: absolute;
+  inset: auto auto 50% 50%;
+  width: 0;
+  height: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.32);
+  transform: translate(-50%, 50%);
+  transition:
+    width 0.42s ease,
+    height 0.42s ease;
+}
+
+.ripple:hover::after {
+  width: 220px;
+  height: 220px;
+}
+
+.typing::after {
+  content: "";
+  display: inline-block;
+  width: 1.25rem;
+  overflow: hidden;
+  vertical-align: bottom;
+  animation: typing-dots 1.2s steps(4, end) infinite;
+}
+
+@keyframes typing-dots {
+  0% {
+    content: "";
+  }
+  25% {
+    content: ".";
+  }
+  50% {
+    content: "..";
+  }
+  75%,
+  100% {
+    content: "...";
+  }
+}
+
+/* Dot grid background pattern */
+.dot-pattern {
+  background-image: radial-gradient(#000 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Progress bar width utilities */
+.progress-bar {
+  width: var(--progress, 0%);
+}
+
+.progress-bar-dynamic {
+  width: var(--progress-width, 0%);
+}
+
+/* Progress bar width utilities */
+.progress-20 { width: 20%; }
+.progress-40 { width: 40%; }
+.progress-60 { width: 60%; }
+.progress-80 { width: 80%; }
+.progress-100 { width: 100%; }
