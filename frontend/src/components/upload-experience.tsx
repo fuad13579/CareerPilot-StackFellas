@@ -101,11 +101,11 @@ export function UploadExperience() {
       const mockSummary: CVSummary = {
         filename: file.name,
         fileType: file.name.endsWith(".pdf") ? "PDF" : "DOCX",
-        extractedText: "CV extraction successful. The document contains standard resume sections including professional summary, work experience, education, and skills.",
-        profileSummary: "Experienced full-stack developer with 5+ years building scalable web applications.",
-        skills: ["TypeScript", "React", "Node.js", "Python", "PostgreSQL", "AWS"],
-        experience: ["Senior Developer at Tech Corp", "Full Stack Developer at StartupXYZ"],
-        education: ["B.S. Computer Science, State University"],
+        extractedText: "CV extraction successful. Document parsed into sections: Professional Summary, Skills, Work Experience, Education, and Projects.",
+        profileSummary: "Computer science student with experience in Python, FastAPI, React, TypeScript, database design, and AI-powered career tools. Passionate about building intelligent systems for job matching and career development.",
+        skills: ["Python", "FastAPI", "React", "TypeScript", "SQL", "Git/GitHub", "REST API", "Tailwind CSS", "AI/LLM Integration", "RAG Systems"],
+        experience: ["CareerPilot backend API - Built job matching and fit score logic with FastAPI and PostgreSQL", "CV parsing pipeline - Implemented resume extraction and skill detection using Python", "Application tracker system - Developed full-stack dashboard with React and TypeScript"],
+        education: ["Computer Science / Software Engineering student"],
       };
 
       setCvSummary(mockSummary);
@@ -189,15 +189,15 @@ export function UploadExperience() {
               </div>
 
               {/* Heading */}
-              <h2 className="text-[56px] font-extrabold tracking-tight text-gray-900 leading-[1.1]">
-                Resume intake
+              <h2 className="text-4xl font-bold tracking-tight text-gray-900">
+                Upload Your CV
               </h2>
-              <p className="mt-5 max-w-xl text-xl font-medium leading-relaxed text-gray-500">
-                Upload your resume or paste a job description to extract skills, experience, and requirements.
+              <p className="mt-4 max-w-xl text-base leading-relaxed text-gray-500">
+                CareerPilot extracts skills, experience, education, and projects from your CV to power job matching, AI assistant answers, cover letters, and skill gap analysis.
               </p>
 
               {/* Supported Formats - Premium Cards */}
-              <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
                 <div className="flex items-center gap-3 rounded-2xl bg-gray-50 border border-gray-100 px-5 py-3 shadow-sm">
                   <FileText size={20} className="text-blue-600" />
                   <span className="text-base font-semibold text-gray-700">PDF</span>
@@ -212,13 +212,13 @@ export function UploadExperience() {
               </div>
 
               {/* Drag & Drop Text */}
-              <p className="mt-8 text-lg font-medium text-gray-400">
+              <p className="mt-6 text-sm font-medium text-gray-400">
                 Drag & drop your file here, or
               </p>
 
               {/* Upload Button - Premium */}
-              <button className="mt-6 flex items-center gap-3 rounded-2xl bg-gray-900 px-10 py-4 text-lg font-bold text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:bg-blue-600 hover:shadow-xl">
-                <Upload size={20} />
+              <button className="mt-4 flex items-center gap-2 rounded-xl bg-gray-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-600 hover:shadow-xl">
+                <Upload size={16} />
                 Select file
               </button>
             </div>
@@ -234,10 +234,10 @@ export function UploadExperience() {
                 </div>
               </div>
               <h2 className="text-3xl font-bold text-gray-900">
-                Processing {selectedFile?.name}
+                Analyzing Your CV
               </h2>
               <p className="mt-4 max-w-lg text-xl font-medium text-gray-500">
-                Extracting text, analyzing content, and building your profile summary...
+                Extracting text, chunking by section, detecting skills and experience, and preparing your profile for RAG-based recommendations...
               </p>
               <div className="mt-10 h-2.5 w-80 overflow-hidden rounded-full bg-gray-100">
                 <div className="h-full animate-pulse rounded-full bg-gradient-to-r from-blue-600 to-blue-500 transition-all duration-500" style={{ width: "60%" }} />
@@ -254,7 +254,7 @@ export function UploadExperience() {
                     <FileCheck size={30} className="text-green-600" />
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-gray-900">Upload complete</p>
+                    <p className="text-xl font-bold text-gray-900">CV analyzed successfully</p>
                     <p className="text-lg font-medium text-gray-500">{cvSummary.filename}</p>
                   </div>
                 </div>
@@ -270,14 +270,14 @@ export function UploadExperience() {
               <div className="space-y-8">
                 {/* Profile Summary */}
                 {cvSummary.profileSummary && (
-                  <div className="rounded-2xl bg-gradient-to-r from-blue-50 to-blue-100/30 p-7 shadow-sm">
-                    <div className="mb-4 flex items-center gap-3">
-                      <Sparkles size={18} className="text-blue-600" />
-                      <p className="text-base font-bold uppercase tracking-widest text-blue-600">
+                  <div className="rounded-xl bg-gradient-to-r from-blue-50 to-blue-100/30 p-5 shadow-sm">
+                    <div className="mb-3 flex items-center gap-3">
+                      <Sparkles size={16} className="text-blue-600" />
+                      <p className="text-sm font-bold uppercase tracking-widest text-blue-600">
                         Profile Summary
                       </p>
                     </div>
-                    <p className="text-xl font-medium leading-relaxed text-gray-700">
+                    <p className="text-base leading-relaxed text-gray-700">
                       {cvSummary.profileSummary}
                     </p>
                   </div>
@@ -286,14 +286,14 @@ export function UploadExperience() {
                 {/* Skills */}
                 {cvSummary.skills && cvSummary.skills.length > 0 && (
                   <div>
-                    <p className="mb-5 text-sm font-bold uppercase tracking-wider text-gray-500">
+                    <p className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-500">
                       Skills Identified
                     </p>
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-2">
                       {cvSummary.skills.map((skill, i) => (
                         <span
                           key={i}
-                          className="rounded-xl bg-gray-100 px-4 py-2.5 text-base font-semibold text-gray-700"
+                          className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700"
                         >
                           {skill}
                         </span>
@@ -305,13 +305,13 @@ export function UploadExperience() {
                 {/* Experience */}
                 {cvSummary.experience && cvSummary.experience.length > 0 && (
                   <div>
-                    <p className="mb-5 text-sm font-bold uppercase tracking-wider text-gray-500">
+                    <p className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-500">
                       Experience
                     </p>
-                    <ul className="space-y-4">
+                    <ul className="space-y-3">
                       {cvSummary.experience.map((exp, i) => (
-                        <li key={i} className="flex items-start gap-4 text-lg text-gray-700">
-                          <span className="mt-2.5 size-2.5 shrink-0 rounded-full bg-blue-600" />
+                        <li key={i} className="flex items-start gap-3 text-base text-gray-700">
+                          <span className="mt-2 size-2 shrink-0 rounded-full bg-blue-600" />
                           {exp}
                         </li>
                       ))}
@@ -322,13 +322,13 @@ export function UploadExperience() {
                 {/* Education */}
                 {cvSummary.education && cvSummary.education.length > 0 && (
                   <div>
-                    <p className="mb-5 text-sm font-bold uppercase tracking-wider text-gray-500">
+                    <p className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-500">
                       Education
                     </p>
-                    <ul className="space-y-4">
+                    <ul className="space-y-3">
                       {cvSummary.education.map((edu, i) => (
-                        <li key={i} className="flex items-start gap-4 text-lg text-gray-700">
-                          <span className="mt-2.5 size-2.5 shrink-0 rounded-full bg-blue-600" />
+                        <li key={i} className="flex items-start gap-3 text-base text-gray-700">
+                          <span className="mt-2 size-2 shrink-0 rounded-full bg-blue-600" />
                           {edu}
                         </li>
                       ))}
@@ -348,17 +348,27 @@ export function UploadExperience() {
                   </div>
                 </details>
 
+                {/* RAG/Core Message */}
+                <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50/30 p-4 border border-blue-100">
+                  <p className="text-sm font-semibold text-blue-700">
+                    Your CV is now indexed for CareerPilot agents.
+                  </p>
+                  <p className="mt-1 text-xs text-gray-600">
+                    This profile will be used by the Job Hunter, AI Assistant, Cover Letter Generator, and Progress Dashboard.
+                  </p>
+                </div>
+
                 {/* Actions */}
-                <div className="flex flex-wrap items-center gap-5 pt-6">
+                <div className="flex flex-wrap items-center gap-4 pt-4">
                   <button
                     onClick={resetUpload}
-                    className="flex items-center gap-3 rounded-2xl bg-gray-900 px-8 py-4 text-lg font-bold text-white shadow-lg transition-all hover:-translate-y-1 hover:bg-blue-600"
+                    className="flex items-center gap-2 rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-blue-600"
                   >
-                    <Upload size={18} />
+                    <Upload size={14} />
                     Upload another
                   </button>
-                  <button className="flex items-center gap-3 rounded-2xl border-2 border-gray-200 bg-white px-8 py-4 text-lg font-bold text-gray-700 shadow-sm transition-all hover:-translate-y-1 hover:border-blue-600">
-                    <FileJson size={18} />
+                  <button className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-blue-600">
+                    <FileJson size={14} />
                     Use with Assistant
                   </button>
                 </div>
@@ -401,8 +411,8 @@ export function UploadExperience() {
           "bg-red-50 text-red-600"
         }`}>
           <span>
-            {status === "uploading" && "Processing your CV..."}
-            {status === "success" && "CV extracted and analyzed successfully"}
+            {status === "uploading" && "Extracting and analyzing your CV..."}
+            {status === "success" && "CareerPilot can now use your profile across all agents."}
             {status === "error" && "Something went wrong"}
           </span>
           {status === "uploading" && (

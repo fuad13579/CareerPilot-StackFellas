@@ -1,4 +1,4 @@
-import { PortfolioHome } from "@/components/portfolio";
+import { DashboardHome } from "@/components/dashboard";
 import { Navigation } from "@/components/navigation";
 import { AmbientBackground } from "@/components/motion-shell";
 
@@ -7,7 +7,7 @@ export default function DashboardPage() {
     <>
       <AmbientBackground />
       <Navigation />
-      <PortfolioHome />
+      <DashboardHome />
     </>
   );
 }

@@ -15,7 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full bg-[#FAFAFA] text-[#111827]">
+      <body className="min-h-full bg-[#FAF7F0] text-[#111827]">
         <AmbientBackground />
         <div className="min-h-screen">
           <Navigation />
