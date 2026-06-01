@@ -42,12 +42,15 @@ def generate_cover_letter(
     except HTTPException:
         raise
     except FileNotFoundError as exc:
+        print(f"[COVER LETTER] CV not found: {exc}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"CV not found. Please upload a CV first or build the RAG index. Error: {exc}",
+            detail="CV not found. Please upload a CV first or build the RAG index.",
         ) from exc
     except Exception as exc:
+        # Log server-side, but never leak provider errors or token info to users.
+        print(f"[COVER LETTER] Error: {exc}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error generating cover letter: {exc}",
+            detail="Error generating cover letter. Please try again in a moment.",
         ) from exc

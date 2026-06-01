@@ -1,0 +1,21 @@
+# Local environment files - never commit real secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+
+# Local database & storage
+*.db
+app/storage/vector_db/
+app/storage/processed_cvs/
+app/storage/uploaded_cvs/
+
+# Logs
+*.log
