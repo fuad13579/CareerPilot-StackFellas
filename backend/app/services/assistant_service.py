@@ -194,12 +194,12 @@ def generate_fallback_answer(context: str, question: str) -> str:
     """Generate a simple template-based answer when no LLM is available."""
     if not context.strip():
         return (
-            "I couldn't find relevant information in your CV to answer this question. "
-            "Please ensure you've uploaded a CV and built the RAG index before asking questions. "
-            "You can do this by:\n"
-            "1. Uploading your CV via POST /api/cv/upload\n"
-            "2. Building the RAG index via POST /api/rag/build\n"
-            "3. Then asking your question here"
+            "I'm ready to help with your career questions! However, I couldn't find your CV information in the search index. "
+            "This might happen if the RAG index is still building or if you just uploaded your CV.\n\n"
+            "To fix this:\n"
+            "1. Try refreshing the page and asking your question again\n"
+            "2. If the issue persists, re-upload your CV\n\n"
+            "Note: AI-powered answers require OPENAI_API_KEY or ANTHROPIC_API_KEY to be configured."
         )
 
     # Extract key information from context
@@ -207,11 +207,11 @@ def generate_fallback_answer(context: str, question: str) -> str:
     relevant_text = "\n".join(line.strip() for line in lines if line.strip())[:500]
 
     return (
-        f"Based on your CV context, I found relevant information:\n\n"
+        f"Based on your CV, I found relevant information:\n\n"
         f"{relevant_text}...\n\n"
-        f"To provide a more detailed answer about your career readiness, "
-        f"please configure an AI provider (OPENAI_API_KEY or ANTHROPIC_API_KEY) in your environment. "
-        f"The AI assistant will then provide personalized insights based on your full CV profile."
+        f"I found CV content but need an AI provider (OPENAI_API_KEY or ANTHROPIC_API_KEY) "
+        f"to provide detailed personalized answers. Once configured, I can give you deeper insights "
+        f"about your career readiness, skill gaps, and recommendations."
     )
 
 
@@ -219,11 +219,41 @@ def get_cv_context(cv_id: str, question: str) -> tuple[list[dict], str]:
     """Retrieve relevant CV chunks for a question using RAG."""
     try:
         chunks = retrieve_relevant_chunks(cv_id=cv_id, query=question, top_k=3)
-    except FileNotFoundError:
-        return [], ""
+        print(f"[RAG DEBUG] Retrieved {len(chunks)} chunks for cv_id={cv_id}, query='{question[:50]}...'")
+    except FileNotFoundError as exc:
+        print(f"[RAG DEBUG] Vector store not found for cv_id={cv_id}, attempting rebuild: {exc}")
+        # Attempt to rebuild RAG index from saved CV sections
+        chunks = _rebuild_rag_from_saved_cv(cv_id, question)
+        if chunks:
+            print(f"[RAG DEBUG] Rebuilt RAG with {len(chunks)} chunks")
+        else:
+            print(f"[RAG DEBUG] Could not rebuild RAG for cv_id={cv_id}")
+            return [], ""
 
     context = "\n\n".join(chunk["text"] for chunk in chunks)
     return chunks, context
+
+
+def _rebuild_rag_from_saved_cv(cv_id: str, question: str) -> list[dict]:
+    """Rebuild RAG index from saved CV sections if vector store is missing."""
+    try:
+        from app.services.cv_chunking_service import load_processed_cv_sections
+        from app.services.vector_store_service import build_cv_rag_index
+        
+        sections = load_processed_cv_sections(cv_id)
+        chunks = [
+            {"section": section_name, "text": section_content}
+            for section_name, section_content in sections.items()
+        ]
+        # Build RAG with proper chunk_id for each chunk
+        build_cv_rag_index(cv_id, chunks)
+        
+        # Now retrieve with the same query
+        from app.services.vector_store_service import retrieve_relevant_chunks
+        return retrieve_relevant_chunks(cv_id=cv_id, query=question, top_k=3)
+    except Exception as exc:
+        print(f"[RAG DEBUG] Failed to rebuild RAG: {exc}")
+        return []
 
 
 def process_assistant_query(cv_id: str, session_id: str, question: str, anonymous_user_id: str | None = None) -> AssistantQueryResponse:

@@ -15,6 +15,7 @@ from app.services.cv_extraction_service import (
 from app.services.cv_chunking_service import load_processed_cv_sections, save_processed_cv
 from app.services.fit_score import extract_skills
 from app.services.user_context_service import require_anonymous_user_id
+from app.services.vector_store_service import build_cv_rag_index
 
 
 router = APIRouter()
@@ -146,6 +147,18 @@ async def upload_cv(
             db.close()
     except Exception:
         # Don't fail upload if database save fails
+        pass
+
+    # Build RAG index automatically after CV upload
+    try:
+        sections = load_processed_cv_sections(cv_id)
+        chunks = [
+            {"section": section_name, "text": section_content}
+            for section_name, section_content in sections.items()
+        ]
+        build_cv_rag_index(cv_id, chunks)
+    except Exception:
+        # Don't fail upload if RAG build fails
         pass
 
     return CVUploadResponse(
