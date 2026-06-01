@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   AlertTriangle,
@@ -29,13 +30,20 @@ interface Message {
   timestamp: Date;
 }
 
+interface QuickAction {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  prompt?: string;
+  navigateTo?: string;
+}
+
 const NO_CV_MESSAGE = "Please upload your CV first.";
 
-const quickActions = [
+const quickActions: QuickAction[] = [
   { icon: Briefcase, label: "Job Readiness", prompt: "Am I ready for a frontend developer role?" },
   { icon: Lightbulb, label: "Skill Gaps", prompt: "What skills am I missing for my target roles?" },
   { icon: Map, label: "Learning Roadmap", prompt: "Build me a 3-month roadmap to become job-ready" },
-  { icon: FileText, label: "Cover Letter", prompt: "Draft a cover letter for a job I'm interested in" },
+  { icon: FileText, label: "Cover Letter", navigateTo: "/cover-letter" },
 ];
 
 function createMessage(role: Message["role"], content: string): Message {
@@ -84,6 +92,7 @@ function extractErrorMessage(payload: unknown, fallback: string): string {
 }
 
 export function AssistantExperience() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
     createMessage(
       "assistant",
@@ -288,7 +297,11 @@ export function AssistantExperience() {
               key={action.label}
               onClick={() => {
                 setInputValue("");
-                void sendQuestion(action.prompt);
+                if (action.navigateTo) {
+                  router.push(action.navigateTo);
+                } else if (action.prompt) {
+                  void sendQuestion(action.prompt);
+                }
               }}
               disabled={!hasCv || isLoading}
               className="flex items-center gap-2.5 rounded-xl border-2 border-gray-200 bg-white p-3.5 text-left transition hover:border-[#1D4ED8] hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
