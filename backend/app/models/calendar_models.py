@@ -8,6 +8,7 @@ class CalendarEventCreate(BaseModel):
     description: str | None = Field(None, description="Event description")
     event_date: str = Field(..., description="Event date")
     related_application_id: int | None = Field(None, description="Related application ID")
+    linked_type: str | None = Field(None, description="Link type: 'goal', 'application', or 'general'")
 
 
 class CalendarEventResponse(BaseModel):
@@ -17,4 +18,5 @@ class CalendarEventResponse(BaseModel):
     description: str | None
     event_date: str
     related_application_id: int | None
+    linked_type: str | None
     created_at: str

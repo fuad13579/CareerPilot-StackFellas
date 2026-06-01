@@ -18,6 +18,7 @@ def create_event(request: CalendarEventCreate, db: Session = Depends(get_db)) ->
         description=request.description,
         event_date=request.event_date,
         related_application_id=request.related_application_id,
+        linked_type=request.linked_type,
     )
     db.add(db_event)
     db.commit()
@@ -29,6 +30,7 @@ def create_event(request: CalendarEventCreate, db: Session = Depends(get_db)) ->
         description=db_event.description,
         event_date=db_event.event_date,
         related_application_id=db_event.related_application_id,
+        linked_type=db_event.linked_type,
         created_at=db_event.created_at.isoformat(),
     )
 
@@ -45,6 +47,7 @@ def get_events(db: Session = Depends(get_db)) -> list[CalendarEventResponse]:
             description=event.description,
             event_date=event.event_date,
             related_application_id=event.related_application_id,
+            linked_type=event.linked_type,
             created_at=event.created_at.isoformat(),
         )
         for event in events

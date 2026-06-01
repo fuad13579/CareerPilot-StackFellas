@@ -1,0 +1,54 @@
+
+> frontend@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.103:3000
+✓ Ready in 20.8s
+Creating turbopack project {
+  dir: 'C:\\Users\\Md. Imtiaz Alam\\projects\\CareerPilot-StackFellas\\frontend',
+  testMode: true
+}
+
+○ Compiling /tracker ...
+○ Compiling /_not-found/page ...
+✓ Finished filesystem cache database compaction in 50s
+ GET /tracker 404 in 8.0s (next.js: 4.7s, application-code: 3.3s)
+○ Compiling /assistant ...
+ GET /tracker 404 in 9.2s (next.js: 786ms, application-code: 8.4s)
+ GET /assistant 404 in 431ms (next.js: 149ms, application-code: 282ms)
+ GET /assistant 404 in 3.7s (next.js: 726ms, application-code: 3.0s)
+ GET /assistant 200 in 1512ms (next.js: 841ms, application-code: 671ms)
+ HEAD /tracker 200 in 4.8s (next.js: 579ms, application-code: 4.2s)
+ GET /assistant 200 in 728ms (next.js: 57ms, application-code: 670ms)
+ GET /tracker 200 in 9.3s (next.js: 549ms, application-code: 8.8s)
+ GET /assistant 200 in 471ms (next.js: 52ms, application-code: 419ms)
+○ Compiling /jobs ...
+ GET /jobs 200 in 8.0s (next.js: 7.5s, application-code: 508ms)
+○ Compiling /upload ...
+ GET /upload 200 in 10.6s (next.js: 9.9s, application-code: 603ms)
+✓ Finished filesystem cache database compaction in 17.3s
+ GET /dashboard 200 in 5.5s (next.js: 2.3s, application-code: 3.2s)
+ GET /dashboard 200 in 2.7s (next.js: 196ms, application-code: 2.5s)
+ GET /tracker 200 in 2.4s (next.js: 1185ms, application-code: 1181ms)
+ GET /tracker 200 in 216ms (next.js: 12ms, application-code: 204ms)
+ GET /tracker 200 in 1312ms (next.js: 35ms, application-code: 1277ms)
+ GET /tracker 200 in 1039ms (next.js: 54ms, application-code: 984ms)
+ GET /assistant 200 in 118ms (next.js: 22ms, application-code: 96ms)
+ GET /jobs 200 in 131ms (next.js: 13ms, application-code: 118ms)
+ GET /assistant 200 in 122ms (next.js: 13ms, application-code: 109ms)
+✓ Finished writing to filesystem cache in 17.5s
+✓ Finished writing to filesystem cache in 11.1s
+✓ Compiled in 10.9s
+✓ Finished filesystem cache database compaction in 27.2s
+ GET /assistant 200 in 8.7s (next.js: 4.1s, application-code: 4.7s)
+○ Compiling /productivity ...
+ GET /productivity 200 in 22.6s (next.js: 22.2s, application-code: 476ms)
+ GET / 307 in 1336ms (next.js: 916ms, application-code: 419ms)
+ GET /dashboard 200 in 4.6s (next.js: 3.7s, application-code: 888ms)
+ GET /productivity 200 in 153ms (next.js: 15ms, application-code: 139ms)
+ GET /productivity 200 in 1170ms (next.js: 395ms, application-code: 775ms)
+ GET /dashboard 200 in 155ms (next.js: 71ms, application-code: 84ms)
+ GET /productivity?id=f5cd3d75-4bf4-4ba8-8ea2-935f6cef093f&vscodeBrowserReqId=1780257805018 200 in 199ms (next.js: 12ms, application-code: 187ms)
+ GET /tracker 200 in 1153ms (next.js: 976ms, application-code: 177ms)

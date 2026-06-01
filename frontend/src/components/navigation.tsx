@@ -9,6 +9,7 @@ const navItems = [
   { href: "/jobs", label: "Jobs" },
   { href: "/assistant", label: "Assistant" },
   { href: "/tracker", label: "Tracker" },
+  { href: "/productivity", label: "Productivity" },
 ];
 
 export function Navigation() {
