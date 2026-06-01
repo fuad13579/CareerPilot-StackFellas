@@ -23,15 +23,22 @@ def ask_assistant(
     Uses RAG to retrieve relevant CV chunks and session memory to maintain
     conversation context across multiple queries.
     """
+    print(f"[ASSISTANT DEBUG] Received request: cv_id={request.cv_id}, session_id={request.session_id}, user_id={x_careerpilot_user_id}")
+    print(f"[ASSISTANT DEBUG] Question: '{request.question[:100]}...'")
+    
     try:
         anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
-        require_cv_for_user(db, request.cv_id, anonymous_user_id)
-        return process_assistant_query(
+        profile = require_cv_for_user(db, request.cv_id, anonymous_user_id)
+        print(f"[ASSISTANT DEBUG] CV found in DB: cv_id={request.cv_id}, filename={profile.filename}")
+        
+        result = process_assistant_query(
             cv_id=request.cv_id,
             session_id=request.session_id,
             question=request.question,
             anonymous_user_id=anonymous_user_id,
         )
+        print(f"[ASSISTANT DEBUG] Response: answer_length={len(result.answer)}, sources={len(result.sources)}")
+        return result
     except HTTPException:
         raise
     except FileNotFoundError as exc:
@@ -40,6 +47,7 @@ def ask_assistant(
             detail=f"CV not found. Please upload a CV first or build the RAG index. Error: {exc}",
         ) from exc
     except Exception as exc:
+        print(f"[ASSISTANT DEBUG] Error: {exc}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing assistant query: {exc}",

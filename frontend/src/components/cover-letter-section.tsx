@@ -329,23 +329,162 @@ export function CoverLetterSection() {
     );
   }
 
+  // Step indicator for UX clarity
+  const currentStep = status === "success" ? 3 : selectedApplication ? 2 : 1;
+
   return (
     <div className="space-y-8">
-      {applications.length === 0 && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-          <div className="flex items-start gap-3">
-            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-            <div>
-              <p>{NO_APPLICATIONS_MESSAGE}</p>
-              <p className="mt-1 text-xs text-amber-700">
-                Save a job from the Jobs page or add one in Tracker, then come back here.
-              </p>
-            </div>
+      {/* Step Indicator */}
+      {applications.length > 0 && (
+        <div className="mb-6 flex items-center justify-center gap-2">
+          <div className={`flex items-center gap-2 ${currentStep >= 1 ? "text-blue-600" : "text-gray-400"}`}>
+            <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+              currentStep >= 1 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+            }`}>1</span>
+            <span className="font-semibold">Select Job</span>
+          </div>
+          <div className={`h-8 w-8 border-b-2 ${currentStep >= 2 ? "border-blue-600" : "border-gray-300"}`} />
+          <div className={`flex items-center gap-2 ${currentStep >= 2 ? "text-blue-600" : "text-gray-400"}`}>
+            <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+              currentStep >= 2 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+            }`}>2</span>
+            <span className="font-semibold">Generate</span>
+          </div>
+          <div className={`h-8 w-8 border-b-2 ${currentStep >= 3 ? "border-blue-600" : "border-gray-300"}`} />
+          <div className={`flex items-center gap-2 ${currentStep >= 3 ? "text-blue-600" : "text-gray-400"}`}>
+            <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+              currentStep >= 3 ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+            }`}>3</span>
+            <span className="font-semibold">Copy & Use</span>
           </div>
         </div>
       )}
 
-      {selectedApplication && (
+      {/* No Applications Empty State */}
+      {applications.length === 0 && (
+        <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-12 text-center shadow-xl">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-amber-100">
+            <Briefcase size={36} className="text-amber-600" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900">No Saved Applications Yet</h3>
+          <p className="mx-auto mt-3 max-w-md text-base text-gray-600">
+            {NO_APPLICATIONS_MESSAGE}
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <Link
+              href="/jobs"
+              className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 text-base font-bold text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-blue-700"
+            >
+              <Briefcase size={18} /> Find Jobs
+            </Link>
+            <Link
+              href="/tracker"
+              className="flex items-center gap-2 rounded-2xl border-2 border-gray-300 bg-white px-6 py-3 text-base font-bold text-gray-700 transition-colors hover:border-blue-600 hover:text-blue-600"
+            >
+              Go to Tracker
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Application Selection Grid */}
+      {applications.length > 0 && (
+        <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-xl">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-100">
+                <Briefcase size={22} className="text-purple-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {selectedApplication ? "Job Selected" : "Select a Job"}
+                </h3>
+                <p className="text-sm font-medium text-gray-500">
+                  {selectedApplication
+                    ? `${selectedApplication.role} at ${selectedApplication.company}`
+                    : "Choose one job from your tracker to generate a cover letter"}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={refreshApplications}
+              disabled={isRefreshing}
+              className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:border-blue-600 disabled:opacity-50"
+            >
+              <Loader2 size={16} className={isRefreshing ? "animate-spin" : ""} />
+              Refresh
+            </button>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {applications.map((application) => {
+              const isSelected = application.id === selectedApplicationId;
+              return (
+                <button
+                  key={application.id}
+                  onClick={() => setSelectedApplicationId(application.id)}
+                  className={`rounded-2xl border-2 p-5 text-left transition-all ${
+                    isSelected
+                      ? "border-blue-600 bg-blue-50 ring-2 ring-blue-600 ring-offset-2"
+                      : "border-gray-200 bg-white hover:border-blue-400 hover:shadow-md"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-bold text-gray-900">{application.role}</p>
+                      <p className="text-sm font-medium text-blue-600">{application.company}</p>
+                    </div>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                      isSelected ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
+                    }`}>
+                      {application.status}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 space-y-2 text-sm text-gray-600">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium text-gray-500">Location</span>
+                      <span className="font-semibold text-gray-700">{application.location || "Not specified"}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium text-gray-500">Fit score</span>
+                      <span className="font-semibold text-gray-700">
+                        {typeof application.fitScore === "number" ? `${application.fitScore}%` : "Not scored"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {application.requiredSkills.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-1.5">
+                      {application.requiredSkills.slice(0, 3).map((skill) => (
+                        <span key={skill} className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                          {skill}
+                        </span>
+                      ))}
+                      {application.requiredSkills.length > 3 && (
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                          +{application.requiredSkills.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {isSelected && (
+                    <div className="mt-4">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">
+                        <Check size={12} /> Selected
+                      </span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Selected Application Details & Generate Button */}
+      {selectedApplication && applications.length > 0 && (
         <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-xl">
           <div className="p-8">
             <div className="mb-6 flex items-center justify-between gap-4">
@@ -354,230 +493,42 @@ export function CoverLetterSection() {
                   <PenTool size={22} className="text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Your Personalized Cover Letter</h3>
+                  <h3 className="text-xl font-bold text-gray-900">Ready to Generate</h3>
                   <p className="text-sm font-medium text-gray-500">
                     {selectedApplication.role} at {selectedApplication.company}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                {status === "success" && (
+              <button
+                onClick={generateCoverLetter}
+                disabled={isGenerating}
+                className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-4 text-lg font-bold text-white shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isGenerating ? (
                   <>
-                    <button
-                      onClick={handleEditToggle}
-                      className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:border-blue-600"
-                    >
-                      {isEditing ? (
-                        <>
-                          <Check size={16} /> Save
-                        </>
-                      ) : (
-                        <>
-                          <PenTool size={16} /> Edit
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={copyToClipboard}
-                      className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
-                    >
-                      {copied ? (
-                        <>
-                          <Check size={16} /> Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={16} /> Copy
-                        </>
-                      )}
-                    </button>
+                    <Loader2 size={20} className="animate-spin" /> Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={20} /> Generate Cover Letter
                   </>
                 )}
-                {status === "error" && (
-                  <button
-                    onClick={() => setStatus("idle")}
-                    className="flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-bold text-white"
-                  >
-                    <RefreshCw size={16} /> Try Again
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {status === "success" && (
-              <div className="mb-4 flex flex-wrap gap-3">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-                  <FileText size={12} /> Based on saved tracker application
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                  <Briefcase size={12} /> Uses selected job data
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700">
-                  <TrendingUp size={12} /> Uses tracker history
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
-                  <Sparkles size={12} /> Personalized draft
-                </span>
-              </div>
-            )}
-
-            {status === "generating" && (
-              <div className="py-12 text-center">
-                <div className="mb-6 flex justify-center">
-                  <div className="relative">
-                    <div className="absolute -inset-4 animate-ping rounded-full bg-blue-500/20" />
-                    <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-blue-600">
-                      <Loader2 size={28} className="animate-spin text-white" />
-                    </div>
-                  </div>
-                </div>
-                <h4 className="text-xl font-bold text-gray-900">Generating your personalized cover letter</h4>
-                <p className="mt-2 text-base font-medium text-gray-500">
-                  Analyzing your CV, tracker record, and selected job requirements...
-                </p>
-                <div className="mx-auto mt-6 h-2.5 w-full max-w-md overflow-hidden rounded-full bg-gray-100">
-                  <div className="progress-bar-70 h-full animate-pulse rounded-full bg-gradient-to-r from-blue-600 to-blue-400" />
-                </div>
-              </div>
-            )}
-
-            {status === "success" && coverLetter && (
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-                {isEditing ? (
-                  <textarea
-                    value={editedLetter}
-                    onChange={(e) => setEditedLetter(e.target.value)}
-                    aria-label="Edit cover letter"
-                    placeholder="Edit your cover letter here..."
-                    className="min-h-80 w-full resize-none rounded-xl border border-gray-300 p-4 text-base leading-relaxed text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                ) : (
-                  <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed text-gray-700">
-                    {coverLetter}
-                  </pre>
-                )}
-              </div>
-            )}
-
-            {status === "error" && (
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
-                <div className="flex items-start gap-4">
-                  <AlertTriangle size={24} className="mt-1 shrink-0 text-red-600" />
-                  <div>
-                    <h4 className="text-lg font-bold text-red-800">Generation Failed</h4>
-                    <p className="mt-1 text-base font-medium text-red-600">{error}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-xl">
-        <div className="mb-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-100">
-              <Briefcase size={22} className="text-purple-600" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">Select a saved application</h3>
-              <p className="text-sm font-medium text-gray-500">
-                Choose one job from your tracker to generate a tailored cover letter.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={refreshApplications}
-            disabled={isRefreshing}
-            className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:border-blue-600 disabled:opacity-50"
-          >
-            <Loader2 size={16} className={isRefreshing ? "animate-spin" : ""} />
-            Refresh
-          </button>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {applications.map((application) => {
-            const isSelected = application.id === selectedApplicationId;
-            return (
-              <button
-                key={application.id}
-                onClick={() => setSelectedApplicationId(application.id)}
-                className={`rounded-2xl border-2 p-5 text-left transition-all ${
-                  isSelected
-                    ? "border-blue-600 bg-blue-50"
-                    : "border-gray-200 bg-white hover:border-blue-400"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-bold text-gray-900">{application.role}</p>
-                    <p className="text-sm font-medium text-blue-600">{application.company}</p>
-                  </div>
-                  <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-bold text-gray-600">
-                    {application.status}
-                  </span>
-                </div>
-
-                <div className="mt-4 space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium text-gray-500">Location</span>
-                    <span className="font-semibold text-gray-700">{application.location || "Not specified"}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium text-gray-500">Fit score</span>
-                    <span className="font-semibold text-gray-700">
-                      {typeof application.fitScore === "number" ? `${application.fitScore}%` : "Not scored"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium text-gray-500">Deadline</span>
-                    <span className="font-semibold text-gray-700">{application.deadline || "Not set"}</span>
-                  </div>
-                </div>
-
-                {(application.requiredSkills.length > 0 || application.jobUrl) && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {application.requiredSkills.slice(0, 3).map((skill) => (
-                      <span key={skill} className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                        {skill}
-                      </span>
-                    ))}
-                    {application.jobUrl && (
-                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                        Apply URL saved
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {selectedApplicationId === application.id && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                      Selected
-                    </span>
-                  </div>
-                )}
               </button>
-            );
-          })}
-        </div>
+            </div>
 
-        {selectedApplication && (
-          <div className="mt-6 rounded-2xl bg-gray-50 p-6">
-            <div className="mb-4 flex flex-wrap items-start gap-6">
-              <div className="min-w-[220px] flex-1">
+            {/* Job Details Preview */}
+            <div className="mb-6 flex flex-wrap items-start gap-6 rounded-2xl bg-gray-50 p-6">
+              <div className="min-w-[200px] flex-1">
                 <p className="text-sm font-bold text-gray-700">Job Description</p>
-                <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-600">
                   {selectedApplication.jobDescription || "No job description was saved with this application."}
                 </p>
               </div>
-              <div className="min-w-[220px] flex-1">
+              <div className="min-w-[180px] flex-1">
                 <p className="text-sm font-bold text-gray-700">Required Skills</p>
                 <div className="mt-2 flex flex-wrap gap-1">
                   {selectedApplication.requiredSkills.length > 0 ? (
-                    selectedApplication.requiredSkills.map((skill) => (
+                    selectedApplication.requiredSkills.slice(0, 5).map((skill) => (
                       <span key={skill} className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                         {skill}
                       </span>
@@ -587,32 +538,126 @@ export function CoverLetterSection() {
                   )}
                 </div>
               </div>
-              <div className="min-w-[220px] flex-1">
-                <p className="text-sm font-bold text-gray-700">Apply URL</p>
-                <p className="mt-2 break-all text-sm text-gray-600">
-                  {selectedApplication.jobUrl || "Not available"}
+              <div className="min-w-[180px] flex-1">
+                <p className="text-sm font-bold text-gray-700">Location</p>
+                <p className="mt-2 text-sm font-semibold text-gray-700">
+                  {selectedApplication.location || "Not specified"}
                 </p>
+                {selectedApplication.deadline && (
+                  <>
+                    <p className="mt-3 text-sm font-bold text-gray-700">Deadline</p>
+                    <p className="mt-1 text-sm font-semibold text-amber-600">{selectedApplication.deadline}</p>
+                  </>
+                )}
               </div>
             </div>
 
-            <button
-              onClick={generateCoverLetter}
-              disabled={isGenerating}
-              className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-4 text-lg font-bold text-white shadow-lg hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 size={20} className="animate-spin" /> Generating...
-                </>
-              ) : (
-                <>
-                  <PenTool size={20} /> Generate Cover Letter
-                </>
-              )}
-            </button>
+            {/* Generation Progress */}
+            {status === "generating" && (
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-8">
+                <div className="mb-6 flex justify-center">
+                  <div className="relative">
+                    <div className="absolute -inset-4 animate-ping rounded-full bg-blue-500/20" />
+                    <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-blue-600">
+                      <Loader2 size={28} className="animate-spin text-white" />
+                    </div>
+                  </div>
+                </div>
+                <h4 className="text-xl font-bold text-gray-900 text-center">Generating your personalized cover letter</h4>
+                <p className="mt-2 text-base font-medium text-gray-600 text-center">
+                  Analyzing your CV, job requirements, and skills...
+                </p>
+                <div className="mx-auto mt-6 h-2.5 w-full max-w-md overflow-hidden rounded-full bg-gray-200">
+                  <div className="h-full w-2/3 animate-pulse rounded-full bg-gradient-to-r from-blue-600 to-blue-400" />
+                </div>
+              </div>
+            )}
+
+            {/* Generated Cover Letter */}
+            {status === "success" && coverLetter && (
+              <div className="space-y-4">
+                <div className="mb-4 flex flex-wrap gap-3">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+                    <FileText size={12} /> Based on your CV
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                    <Briefcase size={12} /> Tailored to job
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700">
+                    <Sparkles size={12} /> AI-generated draft
+                  </span>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+                  {isEditing ? (
+                    <textarea
+                      value={editedLetter}
+                      onChange={(e) => setEditedLetter(e.target.value)}
+                      aria-label="Edit cover letter"
+                      placeholder="Edit your cover letter here..."
+                      className="min-h-80 w-full resize-none rounded-xl border border-gray-300 p-4 text-base leading-relaxed text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  ) : (
+                    <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed text-gray-700">
+                      {coverLetter}
+                    </pre>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-3">
+                  <button
+                    onClick={handleEditToggle}
+                    className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 hover:border-blue-600 hover:text-blue-600"
+                  >
+                    {isEditing ? (
+                      <>
+                        <Check size={16} /> Save Changes
+                      </>
+                    ) : (
+                      <>
+                        <PenTool size={16} /> Edit Letter
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={copyToClipboard}
+                    className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-blue-700"
+                  >
+                    {copied ? (
+                      <>
+                        <Check size={16} /> Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={16} /> Copy to Clipboard
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Error State */}
+            {status === "error" && (
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+                <div className="flex items-start gap-4">
+                  <AlertTriangle size={24} className="mt-1 shrink-0 text-red-600" />
+                  <div>
+                    <h4 className="text-lg font-bold text-red-800">Generation Failed</h4>
+                    <p className="mt-1 text-base font-medium text-red-600">{error}</p>
+                    <button
+                      onClick={() => setStatus("idle")}
+                      className="mt-3 flex items-center gap-2 rounded-lg bg-red-100 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-200"
+                    >
+                      <RefreshCw size={14} /> Try Again
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
