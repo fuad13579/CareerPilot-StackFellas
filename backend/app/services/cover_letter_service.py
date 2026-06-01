@@ -2,6 +2,7 @@
 import os
 
 from app.models.cover_letter_models import CoverLetterResponse
+from app.services.llm_provider import generate_chat_completion
 from app.services.vector_store_service import retrieve_relevant_chunks
 
 
@@ -26,59 +27,13 @@ def generate_cover_letter_with_llm(
     required_skills: list[str] | None = None,
     job_url: str | None = None,
 ) -> str | None:
-    """Generate cover letter using OpenAI or Anthropic LLM API."""
-    # Try OpenAI first
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if openai_key:
-        try:
-            return _generate_with_openai(
-                openai_key,
-                cv_context,
-                job_title,
-                company,
-                job_description,
-                location=location,
-                required_skills=required_skills,
-                job_url=job_url,
-            )
-        except Exception:
-            pass
+    """Generate a cover letter using the configured LLM provider chain.
 
-    # Try Anthropic
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-    if anthropic_key:
-        try:
-            return _generate_with_anthropic(
-                anthropic_key,
-                cv_context,
-                job_title,
-                company,
-                job_description,
-                location=location,
-                required_skills=required_skills,
-                job_url=job_url,
-            )
-        except Exception:
-            pass
-
-    return None
-
-
-def _generate_with_openai(
-    api_key: str,
-    cv_context: str,
-    job_title: str,
-    company: str,
-    job_description: str,
-    location: str | None = None,
-    required_skills: list[str] | None = None,
-    job_url: str | None = None,
-) -> str:
-    """Generate cover letter using OpenAI API."""
-    from openai import OpenAI
-
-    client = OpenAI(api_key=api_key)
-
+    Provider priority is handled by ``app.services.llm_provider``:
+    1. GitHub Models (GITHUB_MODELS_TOKEN)
+    2. OpenRouter (OPENROUTER_API_KEY)
+    3. None (caller falls back to rule-based letter)
+    """
     prompt = f"""Write a personalized cover letter for the following job application.
 
 Company: {company}
@@ -101,67 +56,15 @@ Requirements:
 
 Write only the cover letter, no extra explanation."""
 
-    response = client.chat.completions.create(
-        model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
-        messages=[
-            {
-                "role": "system",
-                "content": "You are a professional career advisor writing personalized cover letters.",
-            },
-            {"role": "user", "content": prompt},
-        ],
-        max_tokens=800,
-        temperature=0.7,
-    )
+    messages = [
+        {
+            "role": "system",
+            "content": "You are a professional career advisor writing personalized cover letters.",
+        },
+        {"role": "user", "content": prompt},
+    ]
 
-    return response.choices[0].message.content.strip()
-
-
-def _generate_with_anthropic(
-    api_key: str,
-    cv_context: str,
-    job_title: str,
-    company: str,
-    job_description: str,
-    location: str | None = None,
-    required_skills: list[str] | None = None,
-    job_url: str | None = None,
-) -> str:
-    """Generate cover letter using Anthropic API."""
-    import anthropic
-
-    client = anthropic.Anthropic(api_key=api_key)
-
-    prompt = f"""Write a personalized cover letter for the following job application.
-
-Company: {company}
-Job Title: {job_title}
-Location: {location or "Not specified"}
-Job Description: {job_description}
-Required Skills: {", ".join(required_skills or []) or "Not specified"}
-Job URL: {job_url or "Not provided"}
-
-Based on the candidate's CV:
-{cv_context}
-
-Requirements:
-- Mention the company name ({company})
-- Mention the job title ({job_title})
-- Only use real skills, projects, education, or experience from the CV
-- Do NOT invent or assume qualifications not in the CV
-- Keep it professional, concise, and around 300 words
-- If CV context is limited, acknowledge it and still write a strong letter
-
-Write only the cover letter, no extra explanation."""
-
-    response = client.messages.create(
-        model=os.getenv("ANTHROPIC_MODEL", "claude-3-haiku-20240307"),
-        system="You are a professional career advisor writing personalized cover letters.",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=800,
-    )
-
-    return response.content[0].text.strip()
+    return generate_chat_completion(messages, max_tokens=800, temperature=0.7)
 
 
 def generate_fallback_cover_letter(
@@ -178,8 +81,8 @@ def generate_fallback_cover_letter(
         return (
             "I could not find enough relevant CV context to create a strongly personalized cover letter. "
             "Please upload a more detailed CV or add more project/experience information. "
-            "To generate a fully personalized letter, configure an AI provider (OPENAI_API_KEY or ANTHROPIC_API_KEY) "
-            "in your environment."
+            "To generate a fully personalized letter, configure an AI provider (GITHUB_MODELS_TOKEN or "
+            "OPENROUTER_API_KEY) on the backend."
         )
 
     # Extract skills from context

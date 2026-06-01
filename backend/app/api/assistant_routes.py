@@ -30,7 +30,7 @@ def ask_assistant(
         anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
         profile = require_cv_for_user(db, request.cv_id, anonymous_user_id)
         print(f"[ASSISTANT DEBUG] CV found in DB: cv_id={request.cv_id}, filename={profile.filename}")
-        
+
         result = process_assistant_query(
             cv_id=request.cv_id,
             session_id=request.session_id,
@@ -42,13 +42,16 @@ def ask_assistant(
     except HTTPException:
         raise
     except FileNotFoundError as exc:
+        print(f"[ASSISTANT DEBUG] CV not found: {exc}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"CV not found. Please upload a CV first or build the RAG index. Error: {exc}",
+            detail="CV not found. Please upload a CV first or build the RAG index.",
         ) from exc
     except Exception as exc:
+        # Log full error server-side, but never expose it (may include provider
+        # errors, stack traces, or token hints) to the end user.
         print(f"[ASSISTANT DEBUG] Error: {exc}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing assistant query: {exc}",
+            detail="Error processing assistant query. Please try again in a moment.",
         ) from exc

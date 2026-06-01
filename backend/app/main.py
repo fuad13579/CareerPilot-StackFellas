@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app.api import assistant_routes, cover_letter_routes, cv_routes, fit_routes, job_routes, rag_routes, skills_fit_routes, tracker_routes, todo_routes, calendar_routes
 from app.database import Base, engine
 from app.models.database_models import CVProfile, Application, Todo, CalendarEvent, AssistantSession
+from app.services.llm_provider import provider_status
 from app.services.schema_migration_service import ensure_anonymous_user_columns
 
 load_dotenv()
@@ -76,3 +77,9 @@ def health_check() -> HealthResponse:
         "status": "success",
         "message": "CareerPilot backend is healthy",
     }
+
+
+@app.get("/api/health/providers")
+def health_providers() -> dict:
+    """Return the LLM provider chain status (no secrets leaked)."""
+    return provider_status()

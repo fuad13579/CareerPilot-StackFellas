@@ -2,6 +2,7 @@
 import os
 
 from app.models.assistant_models import AssistantQueryResponse, AssistantSource
+from app.services.llm_provider import generate_chat_completion
 from app.services.vector_store_service import retrieve_relevant_chunks
 from app.models.database_models import AssistantSession
 from app.database import SessionLocal
@@ -101,93 +102,37 @@ def add_to_conversation(session_id: str, cv_id: str | None, role: str, content: 
 
 
 def generate_answer_with_llm(context: str, question: str, history: list[dict]) -> str | None:
-    """Generate answer using OpenAI or Anthropic LLM API."""
-    # Try OpenAI first
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if openai_key:
-        try:
-            return _generate_with_openai(openai_key, context, question, history)
-        except Exception:
-            pass
+    """Generate answer using the configured LLM provider chain.
 
-    # Try Anthropic
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-    if anthropic_key:
-        try:
-            return _generate_with_anthropic(anthropic_key, context, question, history)
-        except Exception:
-            pass
-
-    return None
-
-
-def _generate_with_openai(api_key: str, context: str, question: str, history: list[dict]) -> str:
-    """Generate answer using OpenAI API."""
-    from openai import OpenAI
-
-    client = OpenAI(api_key=api_key)
-
-    # Build messages with history
+    Provider priority is handled by ``app.services.llm_provider``:
+    1. GitHub Models (GITHUB_MODELS_TOKEN)
+    2. OpenRouter (OPENROUTER_API_KEY)
+    3. None (caller falls back to rule-based answer)
+    """
     messages = [
         {
             "role": "system",
-            "content": f"""You are a helpful career assistant. Answer questions based ONLY on the provided CV context.
-Do not invent or assume skills, experience, or qualifications that are not mentioned in the context.
-If the context doesn't contain enough information, say so clearly.
-Keep answers helpful, concise, and career-focused.""",
+            "content": (
+                "You are a helpful career assistant. Answer questions based ONLY on the "
+                "provided CV context. Do not invent or assume skills, experience, or "
+                "qualifications that are not mentioned in the context. If the context "
+                "doesn't contain enough information, say so clearly. Keep answers helpful, "
+                "concise, and career-focused."
+            ),
         }
     ]
 
-    # Add conversation history
     for msg in history:
         messages.append({"role": msg["role"], "content": msg["content"]})
 
-    # Add current question with context
     messages.append(
         {
             "role": "user",
-            "content": f"""CV Context:
-{context}
-
-Question: {question}""",
+            "content": f"CV Context:\n{context}\n\nQuestion: {question}",
         }
     )
 
-    response = client.chat.completions.create(
-        model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
-        messages=messages,
-        max_tokens=500,
-        temperature=0.7,
-    )
-
-    return response.choices[0].message.content.strip()
-
-
-def _generate_with_anthropic(api_key: str, context: str, question: str, history: list[dict]) -> str:
-    """Generate answer using Anthropic API."""
-    import anthropic
-
-    client = anthropic.Anthropic(api_key=api_key)
-
-    system_prompt = """You are a helpful career assistant. Answer questions based ONLY on the provided CV context.
-Do not invent or assume skills, experience, or qualifications that are not mentioned in the context.
-If the context doesn't contain enough information, say so clearly.
-Keep answers helpful, concise, and career-focused."""
-
-    # Build conversation for Anthropic
-    conversation = []
-    for msg in history:
-        conversation.append({"role": msg["role"], "content": msg["content"]})
-    conversation.append({"role": "user", "content": f"CV Context:\n{context}\n\nQuestion: {question}"})
-
-    response = client.messages.create(
-        model=os.getenv("ANTHROPIC_MODEL", "claude-3-haiku-20240307"),
-        system=system_prompt,
-        messages=conversation,
-        max_tokens=500,
-    )
-
-    return response.content[0].text.strip()
+    return generate_chat_completion(messages, max_tokens=500, temperature=0.7)
 
 
 def generate_fallback_answer(context: str, question: str) -> str:
@@ -199,7 +144,8 @@ def generate_fallback_answer(context: str, question: str) -> str:
             "To fix this:\n"
             "1. Try refreshing the page and asking your question again\n"
             "2. If the issue persists, re-upload your CV\n\n"
-            "Note: AI-powered answers require OPENAI_API_KEY or ANTHROPIC_API_KEY to be configured."
+            "Note: AI-powered answers require GITHUB_MODELS_TOKEN or OPENROUTER_API_KEY "
+            "to be configured on the backend."
         )
 
     # Extract key information from context
@@ -209,7 +155,7 @@ def generate_fallback_answer(context: str, question: str) -> str:
     return (
         f"Based on your CV, I found relevant information:\n\n"
         f"{relevant_text}...\n\n"
-        f"I found CV content but need an AI provider (OPENAI_API_KEY or ANTHROPIC_API_KEY) "
+        f"I found CV content but need an AI provider (GITHUB_MODELS_TOKEN or OPENROUTER_API_KEY) "
         f"to provide detailed personalized answers. Once configured, I can give you deeper insights "
         f"about your career readiness, skill gaps, and recommendations."
     )
