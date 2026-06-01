@@ -13,6 +13,7 @@ class ApplicationCreate(BaseModel):
     job_description: str | None = Field(None, description="Saved job description")
     required_skills: list[str] | None = Field(None, description="Required skills for the job")
     status: str = Field(default="Saved", description="Application status")
+    status: str = Field(default="Applied", description="Application status: Applied, Interviewing, Offer, or Rejected")
     fit_score: float | None = Field(None, description="Fit score percentage")
     job_url: str | None = Field(None, description="URL to job posting")
     notes: str | None = Field(None, description="Additional notes")
