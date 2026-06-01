@@ -8,6 +8,11 @@ class ApplicationCreate(BaseModel):
     role: str = Field(..., description="Job title/role")
     company: str = Field(..., description="Company name")
     location: str | None = Field(None, description="Job location")
+    deadline: str | None = Field(None, description="Application deadline")
+    next_action: str | None = Field(None, description="Next action")
+    job_description: str | None = Field(None, description="Saved job description")
+    required_skills: list[str] | None = Field(None, description="Required skills for the job")
+    status: str = Field(default="Saved", description="Application status")
     status: str = Field(default="Applied", description="Application status: Applied, Interviewing, Offer, or Rejected")
     fit_score: float | None = Field(None, description="Fit score percentage")
     job_url: str | None = Field(None, description="URL to job posting")
@@ -21,6 +26,10 @@ class ApplicationResponse(BaseModel):
     role: str
     company: str
     location: str | None
+    deadline: str | None
+    next_action: str | None
+    job_description: str | None
+    required_skills: list[str]
     status: str
     fit_score: float | None
     job_url: str | None

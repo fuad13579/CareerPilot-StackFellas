@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, MapPin, DollarSign, Calendar, Sparkles, Bookmark, Loader2, Briefcase, TrendingUp, AlertCircle, Lightbulb, CheckCircle2, FileText } from "lucide-react";
 import { GlassCard, Reveal, Stagger } from "./motion-shell";
 import { useTracker } from "./tracker-context";
+import { getPersistedCvId, getPersistedCvSkills, hasPersistedCv } from "./cv-storage";
+import { getCareerPilotHeaders } from "./user-storage";
 
 interface Job {
   id: string;
@@ -18,6 +20,8 @@ interface Job {
   missingSkills: string[];
   matchingSkills: string[];
   requiredSkills?: string[];
+  jobUrl?: string;
+  description?: string;
 }
 
 interface FitScoreResponse {
@@ -54,6 +58,8 @@ function mapApiJobToJob(apiJob: any): Job {
     missingSkills: apiJob.missing_skills || [],
     matchingSkills: apiJob.matched_skills || [],
     requiredSkills: apiJob.required_skills || [...(apiJob.matched_skills || []), ...(apiJob.missing_skills || [])],
+    jobUrl: apiJob.job_url || "",
+    description: apiJob.description || "",
   };
 }
 
@@ -90,15 +96,7 @@ const calculateFitScore = (userSkills: string[], jobSkills: string[]): FitScoreR
 
 // Load CV skills from localStorage
 const loadCvSkills = (): string[] => {
-  try {
-    const stored = localStorage.getItem("careerpilot_cv_skills");
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch {
-    // Ignore localStorage errors
-  }
-  return [];
+  return getPersistedCvSkills();
 };
 
 const getMatchColor = (fitScore: number) => {
@@ -125,13 +123,13 @@ export function JobsExperience() {
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
   const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
   const [analyzedJobs, setAnalyzedJobs] = useState<Set<string>>(new Set());
-  const [cvSkills, setCvSkills] = useState<string[]>(loadCvSkills);
-  const [hasCvUploaded, setHasCvUploaded] = useState(cvSkills.length > 0);
+  const [cvSkills, setCvSkills] = useState<string[]>(loadCvSkills());
+  const [hasCvUploaded, setHasCvUploaded] = useState(hasPersistedCv());
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Reusable refresh function for live jobs only
   const refreshJobs = useCallback(async (overrideQuery?: string) => {
-    const currentCvId = localStorage.getItem("careerpilot_cv_id") || "";
+    const currentCvId = getPersistedCvId();
     const query = overrideQuery !== undefined ? overrideQuery : searchQuery;
     
     setIsSearching(true);
@@ -147,7 +145,9 @@ export function JobsExperience() {
         params.set("query", query.trim());
       }
       
-      const response = await fetch(`/api/jobs/search?${params.toString()}`);
+      const response = await fetch(`/api/jobs/search?${params.toString()}`, {
+        headers: getCareerPilotHeaders(),
+      });
       const data: LiveJobSearchResponse = await response.json();
       
       // Handle requires_cv response
@@ -186,7 +186,7 @@ export function JobsExperience() {
     const handleCvUpdated = () => {
       const skills = loadCvSkills();
       setCvSkills(skills);
-      setHasCvUploaded(skills.length > 0);
+      setHasCvUploaded(hasPersistedCv());
       refreshJobs();
     };
     
@@ -195,7 +195,7 @@ export function JobsExperience() {
       if (e.key === "careerpilot_cv_skills" || e.key === "careerpilot_cv_id") {
         const skills = loadCvSkills();
         setCvSkills(skills);
-        setHasCvUploaded(skills.length > 0);
+        setHasCvUploaded(hasPersistedCv());
         refreshJobs();
       }
     };
@@ -251,6 +251,9 @@ export function JobsExperience() {
       fitScore: fitScore,
       deadline: job.deadline,
       nextAction: "Follow up with recruiter in 1 week",
+      jobDescription: job.description || job.matchReason,
+      requiredSkills: job.requiredSkills || [],
+      jobUrl: job.jobUrl || job.id,
     });
     setAppliedJobs((prev) => new Set(prev).add(job.id));
   };
@@ -360,7 +363,7 @@ export function JobsExperience() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex gap-4">
                   <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-[#F3F6FB] text-xl font-extrabold text-[#1D4ED8]">
-                    {job.company[0]}
+                    {job.company?.[0] || "?"}
                   </div>
                   <div>
                     <h2 className="text-xl font-extrabold text-gray-900">{job.role}</h2>

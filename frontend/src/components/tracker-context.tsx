@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { ensureCareerPilotUserId, getCareerPilotHeaders } from "./user-storage";
 
 // Types
 export interface Application {
@@ -8,9 +9,12 @@ export interface Application {
   role: string;
   company: string;
   location: string;
+  jobDescription: string;
   fitScore: number;
   deadline: string;
   nextAction: string;
+  requiredSkills: string[];
+  jobUrl: string;
   status: "Applied" | "Interviewing" | "Offer" | "Rejected";
   appliedDate: string;
 }
@@ -77,17 +81,16 @@ interface TrackerContextType {
   };
 }
 
-const STORAGE_KEY = "careerpilot_tracker_state";
+const STORAGE_KEY_PREFIX = "careerpilot_tracker_state";
+
+function getTrackerStorageKey(userId: string): string {
+  return `${STORAGE_KEY_PREFIX}:${userId}`;
+}
 
 // Default state
 const defaultState: TrackerState = {
   applications: [],
-  todos: [
-    { id: "1", task: "Apply to saved Frontend Developer role", priority: "high", completed: false, due: "Tomorrow", createdAt: new Date().toISOString() },
-    { id: "2", task: "Update CV project section", priority: "medium", completed: false, due: "In 2 days", createdAt: new Date().toISOString() },
-    { id: "3", task: "Finish DSA practice module", priority: "medium", completed: false, due: "In 3 days", createdAt: new Date().toISOString() },
-    { id: "4", task: "Follow up with TechCorp recruiter", priority: "low", completed: false, due: "In 4 days", createdAt: new Date().toISOString() },
-  ],
+  todos: [],
   skills: [],
   roadmap: [
     { week: "Week 1", title: "Resume Improvement", progress: 100, status: "completed", description: "Improve CV structure, project descriptions, and skill keywords." },
@@ -104,31 +107,82 @@ const TrackerContext = createContext<TrackerContextType | undefined>(undefined);
 export function TrackerProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<TrackerState>(defaultState);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [anonymousUserId, setAnonymousUserId] = useState("");
 
-  // Load from localStorage on mount
+  // Load the anonymous user, then hydrate from backend and local cache.
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setState({ ...defaultState, ...parsed });
+    const userId = ensureCareerPilotUserId();
+    setAnonymousUserId(userId);
+
+    const hydrate = async () => {
+      try {
+        const headers = getCareerPilotHeaders();
+        const [applicationsResponse, todosResponse] = await Promise.all([
+          fetch("/api/tracker/applications", { headers }),
+          fetch("/api/todos", { headers }),
+        ]);
+
+        const applications = applicationsResponse.ok ? await applicationsResponse.json() : [];
+        const todos = todosResponse.ok ? await todosResponse.json() : [];
+
+        setState((prev) => ({
+          ...prev,
+          applications: Array.isArray(applications)
+            ? applications.map((app: any) => ({
+                id: String(app.id),
+                role: app.role,
+                company: app.company,
+                location: app.location || "",
+                jobDescription: app.job_description || "",
+                fitScore: Number(app.fit_score || 0),
+                deadline: app.deadline || "",
+                nextAction: app.next_action || app.notes || "Follow up with recruiter",
+                requiredSkills: Array.isArray(app.required_skills) ? app.required_skills : [],
+                jobUrl: app.job_url || "",
+                status: app.status,
+                appliedDate: app.created_at || new Date().toISOString(),
+              }))
+            : [],
+          todos: Array.isArray(todos)
+            ? todos.map((todo: any) => ({
+                id: String(todo.id),
+                task: todo.title,
+                priority: "medium",
+                completed: Boolean(todo.is_completed),
+                due: todo.due_date || "",
+                createdAt: todo.created_at || new Date().toISOString(),
+              }))
+            : [],
+        }));
+      } catch (error) {
+        console.error("Failed to hydrate tracker state:", error);
+      } finally {
+        try {
+          const stored = localStorage.getItem(getTrackerStorageKey(userId));
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            setState((prev) => ({ ...prev, ...parsed }));
+          }
+        } catch (error) {
+          console.error("Failed to load tracker cache:", error);
+        }
+        setIsInitialized(true);
       }
-    } catch (error) {
-      console.error("Failed to load tracker state:", error);
-    }
-    setIsInitialized(true);
+    };
+
+    void hydrate();
   }, []);
 
   // Save to localStorage on state change
   useEffect(() => {
-    if (isInitialized) {
+    if (isInitialized && anonymousUserId) {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        localStorage.setItem(getTrackerStorageKey(anonymousUserId), JSON.stringify(state));
       } catch (error) {
         console.error("Failed to save tracker state:", error);
       }
     }
-  }, [state, isInitialized]);
+  }, [state, isInitialized, anonymousUserId]);
 
   // Helper to generate IDs
   const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -141,6 +195,42 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
       appliedDate: new Date().toISOString(),
     };
     setState((prev) => ({ ...prev, applications: [...prev.applications, newApp] }));
+
+    void fetch("/api/tracker/applications", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...getCareerPilotHeaders(),
+      },
+      body: JSON.stringify({
+        job_id: newApp.id,
+        role: newApp.role,
+        company: newApp.company,
+        location: newApp.location,
+        deadline: newApp.deadline,
+        next_action: newApp.nextAction,
+        job_description: newApp.jobDescription,
+        required_skills: newApp.requiredSkills,
+        status: newApp.status,
+        fit_score: newApp.fitScore,
+        job_url: newApp.jobUrl || newApp.deadline,
+        notes: newApp.nextAction,
+      }),
+    })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const created = await response.json().catch(() => null);
+        if (!created?.id) return null;
+
+        setState((prev) => ({
+          ...prev,
+          applications: prev.applications.map((item) =>
+            item.id === newApp.id ? { ...item, id: String(created.id) } : item
+          ),
+        }));
+        return created;
+      })
+      .catch((error) => console.error("Failed to persist application:", error));
   }, []);
 
   const updateApplicationStatus = useCallback((id: string, status: Application["status"]) => {
@@ -150,6 +240,15 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         app.id === id ? { ...app, status } : app
       ),
     }));
+
+    void fetch(`/api/tracker/applications/${encodeURIComponent(id)}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...getCareerPilotHeaders(),
+      },
+      body: JSON.stringify({ status }),
+    }).catch((error) => console.error("Failed to persist application status:", error));
   }, []);
 
   const removeApplication = useCallback((id: string) => {
@@ -157,6 +256,13 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
       ...prev,
       applications: prev.applications.filter((app) => app.id !== id),
     }));
+
+    void fetch(`/api/tracker/applications/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: {
+        ...getCareerPilotHeaders(),
+      },
+    }).catch((error) => console.error("Failed to delete application:", error));
   }, []);
 
   const getApplicationCount = useCallback(() => state.applications.length, [state.applications]);
@@ -177,6 +283,33 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
     };
     setState((prev) => ({ ...prev, todos: [...prev.todos, newTodo] }));
+
+    void fetch("/api/todos", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...getCareerPilotHeaders(),
+      },
+      body: JSON.stringify({
+        title: task,
+        description: priority,
+        due_date: due,
+      }),
+    })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const created = await response.json().catch(() => null);
+        if (!created?.id) return null;
+
+        setState((prev) => ({
+          ...prev,
+          todos: prev.todos.map((item) =>
+            item.id === newTodo.id ? { ...item, id: String(created.id) } : item
+          ),
+        }));
+        return created;
+      })
+      .catch((error) => console.error("Failed to persist todo:", error));
   }, []);
 
   const toggleTodo = useCallback((id: string) => {
@@ -186,10 +319,34 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       ),
     }));
+
+    const currentTodo = state.todos.find((todo) => todo.id === id);
+    if (currentTodo) {
+      void fetch(`/api/todos/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...getCareerPilotHeaders(),
+        },
+        body: JSON.stringify({
+          title: currentTodo.task,
+          description: currentTodo.priority,
+          is_completed: !currentTodo.completed,
+          due_date: currentTodo.due,
+        }),
+      }).catch((error) => console.error("Failed to persist todo completion:", error));
+    }
   }, []);
 
   const removeTodo = useCallback((id: string) => {
     setState((prev) => ({ ...prev, todos: prev.todos.filter((todo) => todo.id !== id) }));
+
+    void fetch(`/api/todos/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: {
+        ...getCareerPilotHeaders(),
+      },
+    }).catch((error) => console.error("Failed to delete todo:", error));
   }, []);
 
   const getCompletedTodos = useCallback(

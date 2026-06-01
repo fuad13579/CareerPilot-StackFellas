@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app.api import assistant_routes, cover_letter_routes, cv_routes, fit_routes, job_routes, rag_routes, skills_fit_routes, tracker_routes, todo_routes, calendar_routes
 from app.database import Base, engine
 from app.models.database_models import CVProfile, Application, Todo, CalendarEvent, AssistantSession
+from app.services.schema_migration_service import ensure_anonymous_user_columns
 
 load_dotenv()
 
@@ -61,6 +62,7 @@ app.include_router(calendar_routes.router, prefix="/api/calendar", tags=["Calend
 def on_startup():
     """Initialize database tables on startup."""
     Base.metadata.create_all(bind=engine)
+    ensure_anonymous_user_columns(engine)
 
 
 @app.get("/", response_model=RootResponse)

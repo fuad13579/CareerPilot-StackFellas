@@ -1,0 +1,52 @@
+Araf Rahman
+Computer Science Student | Backend & Full-Stack Developer
+Dhaka, Bangladesh | araf.rahman@example.com | +880 1712-345678 | github.com/araf-dev | linkedin.com/in/arafrahman
+PROFILE SUMMARY
+Computer science student with hands-on experience building full-stack web applications, REST APIs, CV parsing
+pipelines, job matching logic, and AI-powered career tools. Strong foundation in Python, FastAPI, React, TypeScript, SQL,
+Git/GitHub, and Tailwind CSS. Interested in backend engineering, frontend development, and AI-assisted productivity
+platforms.
+TECHNICAL SKILLS
+Languages
+Python, TypeScript, JavaScript, C, SQL
+Backend
+FastAPI, REST API, SQLAlchemy, SQLite, API routing, validation, error handling
+Frontend
+React, Next.js, Tailwind CSS, HTML, CSS, responsive UI, component-based design
+AI / Data
+RAG concepts, embeddings, vector search, CV parsing, skill extraction, fit score calculation
+Tools
+Git, GitHub, VS Code, WSL Ubuntu, pytest, npm, Vercel basics
+PROJECT EXPERIENCE
+CareerPilot - AI Career Co-pilot | Full-Stack Project
+Built a hackathon-style career platform that uploads CVs, extracts skills, searches jobs, calculates fit scores, drafts cover
+letters, and tracks applications.
+- Implemented FastAPI backend routes for CV upload, profile metadata, assistant query, cover letter generation, and tracker
+ workflows.
+- Designed CV processing flow for PDF/DOCX text extraction, section chunking, skill extraction, and RAG-ready profile storage.
+ 
+- Created job fit scoring logic using user skills and job required skills to calculate match percentage, matched skills, and missing
+ skills.
+- Worked with React/Next.js frontend pages for upload, jobs, AI assistant, cover letter generation, dashboard, and Kanban
+ tracker.
+- Added SQLite/SQLAlchemy models for CV profiles, applications, todos, calendar events, and assistant session persistence.
+ 
+Task Manager API | Backend Project
+- Developed REST API endpoints for creating, updating, deleting, and listing tasks with FastAPI and SQLite.
+ 
+- Practiced request validation, structured responses, modular routing, and pytest-based API testing.
+ 
+EDUCATION
+B.Sc. in Computer Science and Engineering - Example University, Dhaka
+Relevant coursework: Data Structures, Algorithms, Database Systems, Software Engineering, Discrete Mathematics, Web
+Development
+EXPERIENCE
+Student Developer / Team Lead - StackFellas
+- Led a 3-member team to build CareerPilot for CodeSprint 2026 with clear backend/frontend issue tracking and GitHub
+ workflow.
+- Reviewed pull requests, planned demo flow, and coordinated integration between CV upload, job search, fit score, assistant,
+ and tracker features.
+ACHIEVEMENTS & INTERESTS
+- Built multiple academic and hackathon projects using Python, C, React, and FastAPI.
+ 
+- Interested in backend development, AI tools, graph theory, system design basics, and practical software engineering.

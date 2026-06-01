@@ -1,25 +1,37 @@
 """Tracker routes for job application management."""
+import json
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.database_models import Application
 from app.models.tracker_models import ApplicationCreate, ApplicationResponse, StatusUpdate
+from app.services.user_context_service import require_anonymous_user_id
 
 
 router = APIRouter()
 
 
 @router.post("/applications", response_model=ApplicationResponse)
-def create_application(request: ApplicationCreate, db: Session = Depends(get_db)) -> ApplicationResponse:
+def create_application(
+    request: ApplicationCreate,
+    db: Session = Depends(get_db),
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+) -> ApplicationResponse:
     """Create a new job application tracker entry."""
+    anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
     db_app = Application(
+        anonymous_user_id=anonymous_user_id,
         job_id=request.job_id,
         role=request.role,
         company=request.company,
         location=request.location,
+        deadline=request.deadline,
+        next_action=request.next_action,
+        job_description=request.job_description,
+        required_skills=json.dumps(request.required_skills or []),
         status=request.status,
         fit_score=request.fit_score,
         job_url=request.job_url,
@@ -35,6 +47,10 @@ def create_application(request: ApplicationCreate, db: Session = Depends(get_db)
         role=db_app.role,
         company=db_app.company,
         location=db_app.location,
+        deadline=db_app.deadline,
+        next_action=db_app.next_action,
+        job_description=db_app.job_description,
+        required_skills=json.loads(db_app.required_skills) if db_app.required_skills else [],
         status=db_app.status,
         fit_score=db_app.fit_score,
         job_url=db_app.job_url,
@@ -45,9 +61,18 @@ def create_application(request: ApplicationCreate, db: Session = Depends(get_db)
 
 
 @router.get("/applications", response_model=list[ApplicationResponse])
-def get_applications(db: Session = Depends(get_db)) -> list[ApplicationResponse]:
+def get_applications(
+    db: Session = Depends(get_db),
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+) -> list[ApplicationResponse]:
     """Get all saved job applications."""
-    apps = db.query(Application).order_by(Application.created_at.desc()).all()
+    anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
+    apps = (
+        db.query(Application)
+        .filter(Application.anonymous_user_id == anonymous_user_id)
+        .order_by(Application.created_at.desc())
+        .all()
+    )
 
     return [
         ApplicationResponse(
@@ -56,6 +81,10 @@ def get_applications(db: Session = Depends(get_db)) -> list[ApplicationResponse]
             role=app.role,
             company=app.company,
             location=app.location,
+            deadline=app.deadline,
+            next_action=app.next_action,
+            job_description=app.job_description,
+            required_skills=json.loads(app.required_skills) if app.required_skills else [],
             status=app.status,
             fit_score=app.fit_score,
             job_url=app.job_url,
@@ -68,9 +97,19 @@ def get_applications(db: Session = Depends(get_db)) -> list[ApplicationResponse]
 
 
 @router.patch("/applications/{application_id}/status", response_model=ApplicationResponse)
-def update_application_status(application_id: int, request: StatusUpdate, db: Session = Depends(get_db)) -> ApplicationResponse:
+def update_application_status(
+    application_id: int,
+    request: StatusUpdate,
+    db: Session = Depends(get_db),
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+) -> ApplicationResponse:
     """Update the status of an application."""
-    app = db.query(Application).filter(Application.id == application_id).first()
+    anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
+    app = (
+        db.query(Application)
+        .filter(Application.id == application_id, Application.anonymous_user_id == anonymous_user_id)
+        .first()
+    )
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
 
@@ -85,6 +124,10 @@ def update_application_status(application_id: int, request: StatusUpdate, db: Se
         role=app.role,
         company=app.company,
         location=app.location,
+        deadline=app.deadline,
+        next_action=app.next_action,
+        job_description=app.job_description,
+        required_skills=json.loads(app.required_skills) if app.required_skills else [],
         status=app.status,
         fit_score=app.fit_score,
         job_url=app.job_url,
@@ -95,9 +138,18 @@ def update_application_status(application_id: int, request: StatusUpdate, db: Se
 
 
 @router.delete("/applications/{application_id}")
-def delete_application(application_id: int, db: Session = Depends(get_db)) -> dict:
+def delete_application(
+    application_id: int,
+    db: Session = Depends(get_db),
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+) -> dict:
     """Delete an application."""
-    app = db.query(Application).filter(Application.id == application_id).first()
+    anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
+    app = (
+        db.query(Application)
+        .filter(Application.id == application_id, Application.anonymous_user_id == anonymous_user_id)
+        .first()
+    )
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
 

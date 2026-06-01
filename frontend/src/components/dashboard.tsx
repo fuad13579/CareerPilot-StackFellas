@@ -26,6 +26,18 @@ import {
 } from "lucide-react";
 import { Reveal, Stagger } from "./motion-shell";
 import { useTracker } from "./tracker-context";
+import { getPersistedCvId, getPersistedCvSummary } from "./cv-storage";
+import { getCareerPilotHeaders } from "./user-storage";
+
+interface CvSnapshot {
+  filename: string;
+  fileType: string;
+  extractedText: string;
+  profileSummary?: string;
+  skills?: string[];
+  experience?: string[];
+  education?: string[];
+}
 
 interface RecommendedJob {
   id: string;
@@ -40,7 +52,7 @@ interface RecommendedJob {
 }
 
 interface LiveJobSearchResponse {
-  jobs: any[];
+  jobs: any[]; 
   total: number;
   is_live: boolean;
   source: string | null;
@@ -49,13 +61,74 @@ interface LiveJobSearchResponse {
   message?: string | null;
 }
 
+interface TrackerApplicationResponse {
+  id: number;
+  status: string;
+  created_at: string;
+}
+
+interface TrackerTodoResponse {
+  id: number;
+  is_completed: boolean;
+  created_at: string;
+}
+
 export function DashboardHome() {
+  const [cvSnapshot, setCvSnapshot] = useState<CvSnapshot | null>(null);
+
+  useEffect(() => {
+    const loadSnapshot = () => {
+      setCvSnapshot(getPersistedCvSummary());
+    };
+
+    loadSnapshot();
+
+    window.addEventListener("careerpilot_cv_updated", loadSnapshot);
+    window.addEventListener("storage", loadSnapshot);
+
+    return () => {
+      window.removeEventListener("careerpilot_cv_updated", loadSnapshot);
+      window.removeEventListener("storage", loadSnapshot);
+    };
+  }, []);
+
+  useEffect(() => {
+    const cvId = getPersistedCvId();
+    if (!cvId) return;
+
+    const loadSections = async () => {
+      try {
+        const response = await fetch(`/api/cv/${encodeURIComponent(cvId)}/sections`, {
+          headers: getCareerPilotHeaders(),
+        });
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const summary = getPersistedCvSummary();
+        if (!summary) return;
+
+        const experience = extractSectionEntries(data?.sections?.experience);
+        const education = extractSectionEntries(data?.sections?.education);
+
+        setCvSnapshot({
+          ...summary,
+          experience: experience.length > 0 ? experience : summary.experience || [],
+          education: education.length > 0 ? education : summary.education || [],
+        });
+      } catch (error) {
+        console.error("Failed to load CV sections:", error);
+      }
+    };
+
+    loadSections();
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <WelcomeHero />
+      <WelcomeHero cvSnapshot={cvSnapshot} />
       <main className="space-y-16 pb-16">
-        <CVStatusSection />
-        <QuickStatsSection />
+        <CVStatusSection cvSnapshot={cvSnapshot} />
+        <QuickStatsSection cvSnapshot={cvSnapshot} />
         <RecommendedJobsSection />
         <ApplicationTrackerSection />
         <UpcomingTasksSection />
@@ -66,20 +139,6 @@ export function DashboardHome() {
     </div>
   );
 }
-
-const welcomeInfo = {
-  greeting: "Welcome back!",
-  message: "Your CV has been analyzed and CareerPilot is ready to help you apply smarter.",
-  lastActive: "Last active: Today",
-};
-
-const cvStatus = {
-  uploaded: true,
-  lastAnalyzed: "May 30, 2026",
-  skillsDetected: 12,
-  experienceSections: 3,
-  overallScore: 85,
-};
 
 const defaultRecommendedJobs: RecommendedJob[] = [
   {
@@ -143,7 +202,20 @@ function SectionHeader({
   );
 }
 
-function WelcomeHero() {
+function WelcomeHero({
+  cvSnapshot,
+}: {
+  cvSnapshot: CvSnapshot | null;
+}) {
+  const hasCvUploaded = Boolean(cvSnapshot);
+  const welcomeInfo = {
+    greeting: hasCvUploaded ? "Welcome back!" : "Welcome to CareerPilot",
+    message: hasCvUploaded
+      ? "Your CV has been analyzed and CareerPilot is ready to help you apply smarter."
+      : "Upload your CV to unlock job matching, fit scores, AI answers, and cover letters.",
+    lastActive: hasCvUploaded ? "Last active: Today" : "Last active: Not uploaded",
+  };
+
   return (
     <section className="relative flex min-h-[50vh] items-center px-6 py-16 lg:px-16">
       <div 
@@ -153,7 +225,9 @@ function WelcomeHero() {
         <Reveal>
           <div className="mb-4 flex items-center gap-2">
             <Sparkles className="text-[#1d4ed8]" size={20} />
-            <span className="text-sm font-semibold text-[#1d4ed8]">CareerPilot Active</span>
+            <span className="text-sm font-semibold text-[#1d4ed8]">
+              {hasCvUploaded ? "CareerPilot Active" : "CareerPilot Ready"}
+            </span>
           </div>
         </Reveal>
         <Reveal>
@@ -166,6 +240,14 @@ function WelcomeHero() {
             {welcomeInfo.message}
           </p>
         </Reveal>
+        {cvSnapshot && (
+          <Reveal>
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-medium text-[#374151] shadow-sm">
+              <FileText size={14} className="text-[#1d4ed8]" />
+              <span>{cvSnapshot.filename}</span>
+            </div>
+          </Reveal>
+        )}
         <Reveal>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -199,7 +281,19 @@ function WelcomeHero() {
   );
 }
 
-function CVStatusSection() {
+function CVStatusSection({
+  cvSnapshot,
+}: {
+  cvSnapshot: CvSnapshot | null;
+}) {
+  const cvStatus = {
+    uploaded: Boolean(cvSnapshot),
+    lastAnalyzed: cvSnapshot ? "Just now" : "Not analyzed yet",
+    skillsDetected: cvSnapshot?.skills?.length || 0,
+    experienceSections: cvSnapshot?.experience?.length || 0,
+    overallScore: cvSnapshot ? Math.min(100, 60 + (cvSnapshot.skills?.length || 0) * 2) : 0,
+  };
+
   return (
     <section className="relative">
       <div className="mx-auto max-w-6xl px-6">
@@ -215,7 +309,9 @@ function CVStatusSection() {
                 <CheckCircle2 className="text-[#059669]" size={24} />
               </div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#9ca3af]">Status</p>
-              <p className="mt-1 text-lg font-bold text-black">Uploaded</p>
+              <p className="mt-1 text-lg font-bold text-black">
+                {cvStatus.uploaded ? "Uploaded" : "Not uploaded"}
+              </p>
             </div>
           </Reveal>
           <Reveal>
@@ -224,7 +320,9 @@ function CVStatusSection() {
                 <FileText className="text-[#1d4ed8]" size={24} />
               </div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#9ca3af]">Skills Detected</p>
-              <p className="mt-1 text-lg font-bold text-black">{cvStatus.skillsDetected} skills</p>
+              <p className="mt-1 text-lg font-bold text-black">
+                {cvStatus.skillsDetected} skills
+              </p>
             </div>
           </Reveal>
           <Reveal>
@@ -233,7 +331,9 @@ function CVStatusSection() {
                 <BookOpen className="text-[#6b7280]" size={24} />
               </div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#9ca3af]">Experience</p>
-              <p className="mt-1 text-lg font-bold text-black">{cvStatus.experienceSections} sections</p>
+              <p className="mt-1 text-lg font-bold text-black">
+                {cvStatus.experienceSections} sections
+              </p>
             </div>
           </Reveal>
           <Reveal>
@@ -256,20 +356,100 @@ function CVStatusSection() {
   );
 }
 
-function QuickStatsSection() {
-  const { getApplicationCount, getRoadmapProgress, getCompletedTodos, getSkillsCount, getWeeklyStats } = useTracker();
-  
-  const appCount = getApplicationCount();
-  const roadmapProgress = getRoadmapProgress();
-  const completedTodos = getCompletedTodos().length;
-  const skillsCount = getSkillsCount();
-  const weeklyStats = getWeeklyStats();
+function QuickStatsSection({
+  cvSnapshot,
+}: {
+  cvSnapshot: CvSnapshot | null;
+}) {
+  const [applicationCount, setApplicationCount] = useState(0);
+  const [completedTodosCount, setCompletedTodosCount] = useState(0);
+  const [totalTodosCount, setTotalTodosCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const skillsCount = cvSnapshot?.skills?.length || 0;
+  const experienceSections = cvSnapshot?.experience?.length || 0;
+
+  useEffect(() => {
+    const loadTrackerCounts = async () => {
+      try {
+        const headers = getCareerPilotHeaders();
+        const [applicationsResponse, todosResponse] = await Promise.all([
+          fetch("/api/tracker/applications", { headers }),
+          fetch("/api/todos", { headers }),
+        ]);
+
+        const applicationsData: TrackerApplicationResponse[] = applicationsResponse.ok
+          ? await applicationsResponse.json()
+          : [];
+        const todosData: TrackerTodoResponse[] = todosResponse.ok
+          ? await todosResponse.json()
+          : [];
+
+        setApplicationCount(applicationsData.length);
+        setTotalTodosCount(todosData.length);
+        setCompletedTodosCount(todosData.filter((todo) => todo.is_completed).length);
+      } catch (error) {
+        console.error("Failed to load quick stats:", error);
+        setApplicationCount(0);
+        setCompletedTodosCount(0);
+        setTotalTodosCount(0);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTrackerCounts();
+
+    const handleTrackerUpdate = () => {
+      loadTrackerCounts();
+    };
+
+    window.addEventListener("careerpilot_tracker_updated", handleTrackerUpdate);
+    window.addEventListener("storage", handleTrackerUpdate);
+
+    return () => {
+      window.removeEventListener("careerpilot_tracker_updated", handleTrackerUpdate);
+      window.removeEventListener("storage", handleTrackerUpdate);
+    };
+  }, []);
+
+  const roadmapProgress = calculateRoadmapProgress({
+    applicationCount,
+    completedTodosCount,
+    totalTodosCount,
+    skillsCount,
+    experienceSections,
+  });
 
   const quickStats = [
-    { value: String(appCount), label: "Applications Sent", icon: Send, color: "text-[#1d4ed8]", subLabel: `${weeklyStats.applicationsThisWeek} this week` },
-    { value: `${completedTodos}`, label: "Completed Todos", icon: CheckCircle2, color: "text-[#059669]", subLabel: `${weeklyStats.todosCompletedThisWeek} this week` },
-    { value: String(skillsCount), label: "Skills Added", icon: Plus, color: "text-[#7c3aed]", subLabel: `${weeklyStats.skillsAddedThisWeek} this week` },
-    { value: `${roadmapProgress}%`, label: "Roadmap Progress", icon: TrendingUp, color: "text-[#d97706]", subLabel: "Career path" },
+    {
+      value: isLoading ? "..." : String(applicationCount),
+      label: "Applications Sent",
+      icon: Send,
+      color: "text-[#1d4ed8]",
+      subLabel: cvSnapshot ? "from backend tracker" : "no CV uploaded yet",
+    },
+    {
+      value: isLoading ? "..." : String(completedTodosCount),
+      label: "Completed Todos",
+      icon: CheckCircle2,
+      color: "text-[#059669]",
+      subLabel: isLoading ? "loading backend data" : `${totalTodosCount} total tasks`,
+    },
+    {
+      value: cvSnapshot ? String(skillsCount) : "0",
+      label: "Skills Added",
+      icon: Plus,
+      color: "text-[#7c3aed]",
+      subLabel: cvSnapshot ? "from uploaded CV" : "upload a CV to begin",
+    },
+    {
+      value: `${roadmapProgress}%`,
+      label: "Roadmap Progress",
+      icon: TrendingUp,
+      color: "text-[#d97706]",
+      subLabel: cvSnapshot ? "derived from CV + tracker activity" : "no profile yet",
+    },
   ];
 
   return (
@@ -303,18 +483,102 @@ function QuickStatsSection() {
   );
 }
 
+function calculateRoadmapProgress({
+  applicationCount,
+  completedTodosCount,
+  totalTodosCount,
+  skillsCount,
+  experienceSections,
+}: {
+  applicationCount: number;
+  completedTodosCount: number;
+  totalTodosCount: number;
+  skillsCount: number;
+  experienceSections: number;
+}): number {
+  const applicationScore = Math.min(applicationCount, 5) / 5;
+  const todoScore = totalTodosCount > 0 ? completedTodosCount / totalTodosCount : 0;
+  const profileScore = Math.min(skillsCount + experienceSections, 12) / 12;
+
+  return Math.max(
+    0,
+    Math.min(100, Math.round((applicationScore * 40) + (todoScore * 30) + (profileScore * 30)))
+  );
+}
+
+function extractSectionEntries(value: unknown): string[] {
+  if (typeof value !== "string") return [];
+
+  const text = value.replace(/\r\n/g, "\n").trim();
+  if (!text) return [];
+
+  const paragraphBlocks = text
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .filter((block) => !/^experience$/i.test(block) && !/^education$/i.test(block));
+
+  if (paragraphBlocks.length > 1) {
+    return paragraphBlocks;
+  }
+
+  const lines = text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^experience$/i.test(line) && !/^education$/i.test(line));
+
+  const entries: string[] = [];
+  let currentEntry: string[] = [];
+
+  for (const line of lines) {
+    const startsNewEntry = isExperienceHeader(line) && currentEntry.length > 0;
+
+    if (startsNewEntry) {
+      entries.push(currentEntry.join("\n").trim());
+      currentEntry = [line];
+      continue;
+    }
+
+    currentEntry.push(line);
+  }
+
+  if (currentEntry.length > 0) {
+    entries.push(currentEntry.join("\n").trim());
+  }
+
+  return entries.length > 0 ? entries : lines;
+}
+
+function isExperienceHeader(line: string): boolean {
+  const normalized = line.toLowerCase();
+  const hasDateRange =
+    /\b(?:19|20)\d{2}\b/.test(line) ||
+    /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\b/.test(normalized) ||
+    /\bpresent\b/.test(normalized);
+
+  const looksLikeRoleLine =
+    normalized.includes(" at ") ||
+    normalized.includes(" | ") ||
+    normalized.includes(" - ");
+
+  return hasDateRange || looksLikeRoleLine;
+}
+
 function RecommendedJobsSection() {
   const [recommendedJobs, setRecommendedJobs] = useState<RecommendedJob[]>(defaultRecommendedJobs);
 
   useEffect(() => {
     const fetchRecommendedJobs = async () => {
       try {
-        const cvId = typeof window !== 'undefined' ? localStorage.getItem("careerpilot_cv_id") || "" : "";
+        const cvId = getPersistedCvId();
         
         // If no CV uploaded, don't fetch jobs (will show upload prompt)
         if (!cvId) return;
         
-        const response = await fetch(`/api/jobs/search?cv_id=${encodeURIComponent(cvId)}&limit=3`);
+        const response = await fetch(`/api/jobs/search?cv_id=${encodeURIComponent(cvId)}&limit=3`, {
+          headers: getCareerPilotHeaders(),
+        });
         const data: LiveJobSearchResponse = await response.json();
         
         // Handle requires_cv response or empty results
@@ -357,7 +621,7 @@ function RecommendedJobsSection() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex gap-4">
                     <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[#F3F6FB] text-lg font-extrabold text-[#1D4ED8]">
-                      {job.company[0]}
+                      {job.company?.[0] || "?"}
                     </div>
                     <div>
                       <h3 className="text-lg font-extrabold text-black">{job.role}</h3>

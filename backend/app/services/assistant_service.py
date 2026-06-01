@@ -7,12 +7,16 @@ from app.models.database_models import AssistantSession
 from app.database import SessionLocal
 
 
-# In-memory session storage: session_id -> list of messages
+# In-memory session storage: anonymous_user_id:session_id -> list of messages
 SESSION_MEMORY: dict[str, list[dict[str, str]]] = {}
 MAX_HISTORY_MESSAGES = 10
 
 
-def get_conversation_history(session_id: str, db=None) -> list[dict[str, str]]:
+def _session_key(anonymous_user_id: str | None, session_id: str) -> str:
+    return f"{anonymous_user_id or 'anonymous'}:{session_id}"
+
+
+def get_conversation_history(session_id: str, anonymous_user_id: str | None = None, db=None) -> list[dict[str, str]]:
     """Get conversation history for a session from database.
     
     Queries AssistantSession rows by session_id and returns a list of
@@ -23,18 +27,17 @@ def get_conversation_history(session_id: str, db=None) -> list[dict[str, str]]:
         should_close = db is None
         db = db or SessionLocal()
         try:
-            sessions = (
-                db.query(AssistantSession)
-                .filter(AssistantSession.session_id == session_id)
-                .order_by(AssistantSession.created_at.asc())
-                .all()
-            )
+            query = db.query(AssistantSession).filter(AssistantSession.session_id == session_id)
+            if anonymous_user_id:
+                query = query.filter(AssistantSession.anonymous_user_id == anonymous_user_id)
+
+            sessions = query.order_by(AssistantSession.created_at.asc()).all()
             if sessions:
                 # Sync to memory for consistency
                 history = [{"role": s.role, "content": s.content} for s in sessions]
                 # Keep only last MAX_HISTORY_MESSAGES
                 history = history[-MAX_HISTORY_MESSAGES:]
-                SESSION_MEMORY[session_id] = history
+                SESSION_MEMORY[_session_key(anonymous_user_id, session_id)] = history
                 return history
         finally:
             if should_close:
@@ -43,14 +46,15 @@ def get_conversation_history(session_id: str, db=None) -> list[dict[str, str]]:
         pass
 
     # Fall back to in-memory
-    return SESSION_MEMORY.get(session_id, [])
+    return SESSION_MEMORY.get(_session_key(anonymous_user_id, session_id), [])
 
 
-def add_message_to_conversation(
+def _persist_message_to_conversation(
     session_id: str,
     cv_id: str | None,
     role: str,
     content: str,
+    anonymous_user_id: str | None = None,
     db=None
 ) -> None:
     """Add a message row to the conversation history in the database.
@@ -64,6 +68,7 @@ def add_message_to_conversation(
         try:
             # Insert new message row
             session = AssistantSession(
+                anonymous_user_id=anonymous_user_id,
                 session_id=session_id,
                 cv_id=cv_id,
                 role=role,
@@ -79,19 +84,20 @@ def add_message_to_conversation(
         pass
 
 
-def add_to_conversation(session_id: str, cv_id: str | None, role: str, content: str) -> None:
+def add_to_conversation(session_id: str, cv_id: str | None, role: str, content: str, anonymous_user_id: str | None = None) -> None:
     """Add a message to the conversation history (both memory and database)."""
-    if session_id not in SESSION_MEMORY:
-        SESSION_MEMORY[session_id] = []
+    session_key = _session_key(anonymous_user_id, session_id)
+    if session_key not in SESSION_MEMORY:
+        SESSION_MEMORY[session_key] = []
 
-    SESSION_MEMORY[session_id].append({"role": role, "content": content})
+    SESSION_MEMORY[session_key].append({"role": role, "content": content})
 
     # Keep only the last MAX_HISTORY_MESSAGES to avoid memory bloat
-    if len(SESSION_MEMORY[session_id]) > MAX_HISTORY_MESSAGES:
-        SESSION_MEMORY[session_id] = SESSION_MEMORY[session_id][-MAX_HISTORY_MESSAGES:]
+    if len(SESSION_MEMORY[session_key]) > MAX_HISTORY_MESSAGES:
+        SESSION_MEMORY[session_key] = SESSION_MEMORY[session_key][-MAX_HISTORY_MESSAGES:]
 
     # Also save to database for persistence
-    add_message_to_conversation(session_id, cv_id, role, content)
+    _persist_message_to_conversation(session_id, cv_id, role, content, anonymous_user_id=anonymous_user_id)
 
 
 def generate_answer_with_llm(context: str, question: str, history: list[dict]) -> str | None:
@@ -220,13 +226,13 @@ def get_cv_context(cv_id: str, question: str) -> tuple[list[dict], str]:
     return chunks, context
 
 
-def process_assistant_query(cv_id: str, session_id: str, question: str) -> AssistantQueryResponse:
+def process_assistant_query(cv_id: str, session_id: str, question: str, anonymous_user_id: str | None = None) -> AssistantQueryResponse:
     """Process an AI assistant query with RAG context and session memory."""
     # Add user message to history
-    add_to_conversation(session_id, cv_id, "user", question)
+    add_to_conversation(session_id, cv_id, "user", question, anonymous_user_id=anonymous_user_id)
 
     # Get conversation history
-    history = get_conversation_history(session_id)
+    history = get_conversation_history(session_id, anonymous_user_id=anonymous_user_id)
 
     # Retrieve relevant CV chunks
     chunks, context = get_cv_context(cv_id, question)
@@ -237,7 +243,7 @@ def process_assistant_query(cv_id: str, session_id: str, question: str) -> Assis
         answer = generate_fallback_answer(context, question)
 
     # Add assistant response to history
-    add_to_conversation(session_id, cv_id, "assistant", answer)
+    add_to_conversation(session_id, cv_id, "assistant", answer, anonymous_user_id=anonymous_user_id)
 
     # Build response
     sources = [
