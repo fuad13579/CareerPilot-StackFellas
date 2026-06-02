@@ -52,13 +52,15 @@ interface RecommendedJob {
 }
 
 interface LiveJobSearchResponse {
-  jobs: any[]; 
+  jobs: any[];
   total: number;
   is_live: boolean;
   source: string | null;
   error: string | null;
   requires_cv?: boolean;
   message?: string | null;
+  personalized?: boolean;
+  fit_scores_enabled?: boolean;
 }
 
 interface TrackerApplicationResponse {
@@ -140,7 +142,11 @@ export function DashboardHome() {
   );
 }
 
-const defaultRecommendedJobs: RecommendedJob[] = [
+// Dev/test fallback only. NOT used in normal runtime rendering — see
+// RecommendedJobsSection, which always tries the live API first.
+// Kept here so unit tests and Storybook-style previews have something
+// to render when there is no backend available.
+const DEV_FALLBACK_RECOMMENDED_JOBS: RecommendedJob[] = [
   {
     id: "1",
     role: "Frontend Developer",
@@ -565,45 +571,122 @@ function isExperienceHeader(line: string): boolean {
   return hasDateRange || looksLikeRoleLine;
 }
 
+// Map a backend JobCard to the dashboard's RecommendedJob shape. Defined
+// here (not inside the component) so it stays referentially stable and
+// can be reused if we ever call the same endpoint from a second place.
+//
+// Field names follow the backend JobCard model in
+// backend/app/models/job_models.py (role/company, not title/company_name).
+const mapApiJobToRecommendedJob = (job: any): RecommendedJob => ({
+  id: job.job_id,
+  role: job.role ?? job.title ?? "",
+  company: job.company ?? job.company_name ?? "",
+  location: job.location || "Remote",
+  salary: job.salary || "Not specified",
+  // Backend returns fit_score=null when not personalized. Don't fall
+  // back to 0 — that would silently re-introduce the fabrication we
+  // just removed. The card gates the badge on > 0 so 0 means "no score".
+  fitScore: typeof job.fit_score === "number" ? Math.round(job.fit_score) : 0,
+  matchReason: job.reason || "Based on your skills",
+  type: job.source === "Remotive" ? "Remote" : job.type ?? "Remote",
+  deadline: job.deadline || new Date().toISOString().split("T")[0],
+});
+
 function RecommendedJobsSection() {
-  const [recommendedJobs, setRecommendedJobs] = useState<RecommendedJob[]>(defaultRecommendedJobs);
+  const [recommendedJobs, setRecommendedJobs] = useState<RecommendedJob[]>([]);
+  const [recommendMessage, setRecommendMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchRecommendedJobs = async () => {
+      setIsLoading(true);
       try {
         const cvId = getPersistedCvId();
-        
-        // If no CV uploaded, don't fetch jobs (will show upload prompt)
-        if (!cvId) return;
-        
-        const response = await fetch(`/api/jobs/search?cv_id=${encodeURIComponent(cvId)}&limit=3`, {
-          headers: getCareerPilotHeaders(),
-        });
-        const data: LiveJobSearchResponse = await response.json();
-        
-        // Handle requires_cv response or empty results
-        if (data.requires_cv || !data.jobs || data.jobs.length === 0) {
-          return; // Keep default jobs or empty
+
+        // No CV uploaded: show live general jobs (no fake fit scores).
+        // The /search endpoint is happy without a cv_id — it just
+        // returns fit_score=null and personalized=false. We treat the
+        // results as "general" cards and surface a clear message.
+        if (!cvId) {
+          const response = await fetch(
+            `/api/jobs/search?limit=3`,
+            { headers: getCareerPilotHeaders() },
+          );
+          const data: LiveJobSearchResponse = await response.json();
+
+          if (cancelled) return;
+
+          if (!data.jobs || data.jobs.length === 0) {
+            setRecommendedJobs([]);
+            setRecommendMessage(
+              data.message ||
+                "No live jobs available right now. Check back soon.",
+            );
+            return;
+          }
+
+          setRecommendMessage(
+            data.message ||
+              "Showing general live jobs. Upload your CV to get personalized fit scores.",
+          );
+          setRecommendedJobs(data.jobs.map(mapApiJobToRecommendedJob));
+          return;
         }
-        
-        const mappedJobs: RecommendedJob[] = data.jobs.map((job: any) => ({
-          id: job.job_id,
-          role: job.title,
-          company: job.company_name,
-          location: job.candidate_required_location || job.location || "Remote",
-          salary: job.salary || "Not specified",
-          fitScore: Math.round(job.fit_score || 0),
-          matchReason: job.reason || "Based on your skills",
-          type: job.job_type || "Remote",
-          deadline: job.publication_date || new Date().toISOString().split('T')[0],
-        }));
-        setRecommendedJobs(mappedJobs);
+
+        // With a CV: hit /recommend for real, sorted, fit-scored jobs.
+        const response = await fetch(
+          `/api/jobs/recommend?cv_id=${encodeURIComponent(cvId)}&limit=3`,
+          { headers: getCareerPilotHeaders() },
+        );
+        const data: LiveJobSearchResponse = await response.json();
+
+        if (cancelled) return;
+
+        // /recommend refuses cleanly with requires_cv when the CV is
+        // missing/empty/wrong-user. We already checked for cvId above,
+        // but the backend may still reject (e.g. CV doesn't belong to
+        // this anonymous user). Show the backend's message and an empty
+        // list rather than fabricating cards.
+        if (data.requires_cv || !data.jobs || data.jobs.length === 0) {
+          setRecommendedJobs([]);
+          setRecommendMessage(
+            data.message ||
+              "Upload your CV to get personalized job recommendations.",
+          );
+          return;
+        }
+
+        setRecommendMessage(null);
+        setRecommendedJobs(data.jobs.map(mapApiJobToRecommendedJob));
       } catch (err) {
         console.error("Failed to fetch recommended jobs:", err);
+        // Network/backend failure: keep the existing UI stable. Don't
+        // blow away the user's view of their recommendations.
+        if (!cancelled) {
+          setRecommendMessage("Couldn't refresh recommendations right now.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
-    
+
     fetchRecommendedJobs();
+
+    // Refresh when the user uploads/updates/removes their CV so the
+    // section flips between personalized and general automatically.
+    const handleCvUpdated = () => {
+      fetchRecommendedJobs();
+    };
+    window.addEventListener("careerpilot_cv_updated", handleCvUpdated);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("careerpilot_cv_updated", handleCvUpdated);
+    };
   }, []);
 
   return (
@@ -612,10 +695,28 @@ function RecommendedJobsSection() {
         <SectionHeader
           eyebrow="Job Matches"
           title="Recommended For You"
-          description="Jobs that match your skills and preferences."
+          description={
+            recommendMessage ??
+            "Jobs that match your skills and preferences."
+          }
         />
         <Stagger className="grid gap-5 lg:grid-cols-3">
-          {recommendedJobs.slice(0, 3).map((job) => (
+          {isLoading && recommendedJobs.length === 0 ? (
+            <Reveal>
+              <div className="col-span-full flex items-center justify-center rounded-2xl border border-dashed border-[#e5e7eb] bg-white p-10">
+                <p className="text-sm text-[#6b7280]">Loading recommendations…</p>
+              </div>
+            </Reveal>
+          ) : recommendedJobs.length === 0 ? (
+            <Reveal>
+              <div className="col-span-full flex items-center justify-center rounded-2xl border border-dashed border-[#e5e7eb] bg-white p-10">
+                <p className="text-sm text-[#6b7280]">
+                  {recommendMessage ?? "No live jobs available right now. Check back soon."}
+                </p>
+              </div>
+            </Reveal>
+          ) : (
+            recommendedJobs.slice(0, 3).map((job) => (
             <Reveal key={job.id}>
               <div className="group flex flex-col rounded-2xl border border-[#e5e7eb] bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                 <div className="flex items-start justify-between gap-4">
@@ -628,13 +729,19 @@ function RecommendedJobsSection() {
                       <p className="text-sm font-bold text-[#1D4ED8]">{job.company}</p>
                     </div>
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-sm font-extrabold ${
-                    job.fitScore >= 90 ? "bg-green-100 text-green-700" :
-                    job.fitScore >= 80 ? "bg-blue-100 text-blue-700" :
-                    "bg-yellow-100 text-yellow-700"
-                  }`}>
-                    {job.fitScore}%
-                  </span>
+                  {job.fitScore > 0 ? (
+                    <span className={`rounded-full px-3 py-1 text-sm font-extrabold ${
+                      job.fitScore >= 90 ? "bg-green-100 text-green-700" :
+                      job.fitScore >= 80 ? "bg-blue-100 text-blue-700" :
+                      "bg-yellow-100 text-yellow-700"
+                    }`}>
+                      {job.fitScore}%
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-extrabold text-gray-500">
+                      General
+                    </span>
+                  )}
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 rounded-xl bg-gray-50 p-3">
@@ -667,7 +774,8 @@ function RecommendedJobsSection() {
                 </Link>
               </div>
             </Reveal>
-          ))}
+            ))
+          )}
         </Stagger>
         <Reveal>
           <div className="mt-6 flex justify-center">

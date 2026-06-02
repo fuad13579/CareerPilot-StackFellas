@@ -1,12 +1,12 @@
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.job_models import JobSearchRequest, JobSearchResponse
+from app.models.job_models import JobSearchResponse
 from app.models.database_models import CVProfile
 from app.services.job_search_service import fetch_live_jobs
 from app.services.job_recommendation_service import (
@@ -50,7 +50,7 @@ async def get_cv_skills(cv_id: str, anonymous_user_id: str, db: Session) -> list
 
 @router.get("/search", response_model=JobSearchResponse)
 async def search_jobs(
-    cv_id: str,
+    cv_id: Optional[str] = None,
     query: str = "software internship",
     location: str = "remote",
     limit: int = 10,
@@ -58,17 +58,18 @@ async def search_jobs(
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     """
-    Search for live jobs and calculate fit scores based on CV skills.
-    
-    Args:
-        cv_id: Required. CV profile ID to match skills against.
-        query: Job search query (default: "software internship")
-        location: Location filter (default: "remote")
-        limit: Max results (default: 10, max: 50)
-    
-    Returns:
-        JobSearchResponse with live jobs, fit scores, and sorted by match.
-        If cv_id is missing/invalid, returns empty jobs with requires_cv=true.
+    Search for live jobs.
+
+    cv_id is OPTIONAL here. When a valid CV is supplied, results are
+    personalized and per-job fit scores are calculated. When cv_id is
+    missing or empty, we still return live jobs (so the search bar is
+    useful before the user uploads a CV) but fit scores are not
+    calculated and ``personalized=False`` / ``fit_scores_enabled=False``
+    are set on the response. The frontend must not display a fit score
+    in that case.
+
+    For CV-required personalized recommendations, use ``GET /recommend``
+    instead.
     """
     try:
         anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
@@ -81,36 +82,40 @@ async def search_jobs(
             "error": None,
             "requires_cv": True,
             "message": "Anonymous user ID is missing. Please refresh CareerPilot and try again.",
+            "personalized": False,
+            "fit_scores_enabled": False,
         }
 
-    if not cv_id or cv_id.strip() == "":
-        return {
-            "jobs": [],
-            "total": 0,
-            "is_live": False,
-            "source": None,
-            "error": None,
-            "requires_cv": True,
-            "message": "Please upload your CV first to get personalized job recommendations.",
-        }
+    # cv_id is optional. If missing/empty we still return live jobs but
+    # skip skill-based fit scoring — this makes the search bar useful
+    # before the user uploads a CV.
+    cv_skills: list[str] = []
+    personalized = False
+    if cv_id and cv_id.strip():
+        cv_skills = await get_cv_skills(cv_id, anonymous_user_id, db)
+        if not cv_skills:
+            # CV ID was provided but doesn't belong to this user / has no skills
+            return {
+                "jobs": [],
+                "total": 0,
+                "is_live": False,
+                "source": None,
+                "error": None,
+                "requires_cv": True,
+                "message": "This CV does not belong to the current CareerPilot profile.",
+                "personalized": False,
+                "fit_scores_enabled": False,
+            }
+        personalized = True
 
-    cv_skills = await get_cv_skills(cv_id, anonymous_user_id, db)
-    if not cv_skills:
-        return {
-            "jobs": [],
-            "total": 0,
-            "is_live": False,
-            "source": None,
-            "error": None,
-            "requires_cv": True,
-            "message": "This CV does not belong to the current CareerPilot profile.",
-        }
-    
-    logger.info(f"Searching jobs: query='{query}', location='{location}', limit={limit}, cv_skills={cv_skills}")
-    
+    logger.info(
+        f"Searching jobs: query='{query}', location='{location}', limit={limit}, "
+        f"has_cv={'yes' if cv_skills else 'no'}"
+    )
+
     # Fetch live jobs
     source, jobs, error = await fetch_live_jobs(query, location, min(limit, 50))
-    
+
     # If no live jobs available, return empty response
     if not jobs:
         return {
@@ -120,17 +125,26 @@ async def search_jobs(
             "source": source,
             "error": error or "No jobs found matching your criteria. Try a different search.",
             "requires_cv": False,
+            "message": (
+                "Showing general live jobs. Upload a CV to get personalized fit scores."
+                if not personalized
+                else None
+            ),
+            "personalized": personalized,
+            "fit_scores_enabled": personalized,
         }
-    
-    # Build response with fit scores
-    enriched_jobs = []
-    for job in jobs:
-        enriched = enrich_job_with_fit_score(job, cv_skills)
-        enriched_jobs.append(enriched)
-    
-    # Sort by fit score
-    sorted_jobs = sort_jobs_by_fit_score(enriched_jobs)
-    
+
+    # Build response. Only enrich with fit scores when we actually have CV
+    # skills — never fabricate a fit score. Jobs are returned in their
+    # normalized form (fit_score=None) when there's no CV.
+    if cv_skills:
+        enriched_jobs = [
+            enrich_job_with_fit_score(job, cv_skills) for job in jobs
+        ]
+        sorted_jobs = sort_jobs_by_fit_score(enriched_jobs)
+    else:
+        sorted_jobs = list(jobs)
+
     return {
         "jobs": sorted_jobs,
         "total": len(sorted_jobs),
@@ -138,4 +152,111 @@ async def search_jobs(
         "source": source,
         "error": error,
         "requires_cv": False,
+        "message": (
+            "Showing general live jobs. Upload a CV to get personalized fit scores."
+            if not personalized
+            else None
+        ),
+        "personalized": personalized,
+        "fit_scores_enabled": personalized,
+    }
+
+
+@router.get("/recommend", response_model=JobSearchResponse)
+async def recommend_jobs(
+    cv_id: Optional[str] = None,
+    query: str = "software internship",
+    location: str = "remote",
+    limit: int = 10,
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """
+    Personalized job recommendations based on a CV.
+
+    This endpoint REQUIRES a valid cv_id. If cv_id is missing, empty,
+    or does not belong to the current anonymous user, the response
+    contains ``requires_cv=True`` and a clear error message — no jobs
+    are returned and no fit scores are fabricated.
+
+    On success, jobs are enriched with real fit scores and sorted by
+    match (best first).
+    """
+    cv_id_clean = (cv_id or "").strip()
+
+    if not cv_id_clean:
+        return {
+            "jobs": [],
+            "total": 0,
+            "is_live": False,
+            "source": None,
+            "error": "Please upload your CV first to get personalized job recommendations.",
+            "requires_cv": True,
+            "message": "Please upload your CV first to get personalized job recommendations.",
+            "personalized": False,
+            "fit_scores_enabled": False,
+        }
+
+    try:
+        anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
+    except HTTPException:
+        return {
+            "jobs": [],
+            "total": 0,
+            "is_live": False,
+            "source": None,
+            "error": "Anonymous user ID is missing. Please refresh CareerPilot and try again.",
+            "requires_cv": True,
+            "message": "Anonymous user ID is missing. Please refresh CareerPilot and try again.",
+            "personalized": False,
+            "fit_scores_enabled": False,
+        }
+
+    cv_skills = await get_cv_skills(cv_id_clean, anonymous_user_id, db)
+    if not cv_skills:
+        return {
+            "jobs": [],
+            "total": 0,
+            "is_live": False,
+            "source": None,
+            "error": "This CV does not belong to the current CareerPilot profile.",
+            "requires_cv": True,
+            "message": "This CV does not belong to the current CareerPilot profile.",
+            "personalized": False,
+            "fit_scores_enabled": False,
+        }
+
+    logger.info(
+        f"Recommending jobs: query='{query}', location='{location}', "
+        f"limit={limit}, cv_id={cv_id_clean}"
+    )
+
+    source, jobs, error = await fetch_live_jobs(query, location, min(limit, 50))
+
+    if not jobs:
+        return {
+            "jobs": [],
+            "total": 0,
+            "is_live": False,
+            "source": source,
+            "error": error or "No jobs found matching your criteria. Try a different search.",
+            "requires_cv": False,
+            "message": None,
+            "personalized": True,
+            "fit_scores_enabled": True,
+        }
+
+    enriched_jobs = [enrich_job_with_fit_score(job, cv_skills) for job in jobs]
+    sorted_jobs = sort_jobs_by_fit_score(enriched_jobs)
+
+    return {
+        "jobs": sorted_jobs,
+        "total": len(sorted_jobs),
+        "is_live": error is None,
+        "source": source,
+        "error": error,
+        "requires_cv": False,
+        "message": None,
+        "personalized": True,
+        "fit_scores_enabled": True,
     }
