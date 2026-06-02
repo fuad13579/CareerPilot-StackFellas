@@ -70,10 +70,9 @@ def _normalize_job(raw_job: dict[str, Any]) -> JobCard | None:
             source=raw_job.get("source") or REMOTIVE_SOURCE,
             is_live=True,
             fetched_at=datetime.utcnow(),
-            fit_score=0.0,
-            matched_skills=[],
-            missing_skills=[],
-            reason=None,
+            # fit_score, matched_skills, missing_skills, reason default to None / []
+            # here. They are filled in by the recommendation service only when
+            # a CV is in play — see enrich_job_with_fit_score.
         )
     except Exception:
         return None
