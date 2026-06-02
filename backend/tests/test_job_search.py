@@ -140,10 +140,17 @@ class TestLiveJobSearch:
 
     @pytest.mark.asyncio
     async def test_fetch_live_jobs_returns_source(self):
-        """Should return source name along with jobs."""
+        """Should return source label(s) along with jobs. With Adzuna
+        configured, the priority order is Adzuna -> Arbeitnow -> Remotive,
+        and the result is interleaved across all sources, so the label
+        can be any subset joined with '+' (e.g. ``Adzuna+Arbeitnow+Remotive``)
+        — but must never be the literal ``"None"`` placeholder or empty."""
         source, jobs, error = await fetch_live_jobs("python", "remote", 5)
-        assert source == "Remotive"
+        assert source and source != "None"
         assert isinstance(jobs, list)
+        # When at least one source is configured, label should mention a
+        # real provider.
+        assert any(name in source for name in ("Adzuna", "Arbeitnow", "Remotive"))
 
     @pytest.mark.asyncio
     async def test_live_jobs_have_is_live_true(self):

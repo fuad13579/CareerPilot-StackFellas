@@ -12,7 +12,11 @@ from app.models.database_models import CVProfile, Application, Todo, CalendarEve
 from app.services.llm_provider import provider_status
 from app.services.schema_migration_service import ensure_anonymous_user_columns
 
-load_dotenv()
+# Load .env from this file's directory (backend/.env) so the backend works
+# regardless of the CWD the uvicorn process was started with. The default
+# load_dotenv() walks up from CWD and can miss the file.
+_ENV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env")
+load_dotenv(dotenv_path=os.path.abspath(_ENV_PATH), override=False)
 
 
 class RootResponse(BaseModel):

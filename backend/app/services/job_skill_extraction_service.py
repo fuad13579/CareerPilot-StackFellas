@@ -104,8 +104,17 @@ def extract_skills_from_job(job_data: dict) -> list[str]:
             parts.append(" ".join(tags))
     
     # Add category if available
-    if job_data.get("category"):
-        parts.append(job_data["category"])
-    
+    category = job_data.get("category")
+    if category:
+        if isinstance(category, str):
+            parts.append(category)
+        elif isinstance(category, dict):
+            # Adzuna returns category as {"label": "IT Jobs", "tag": "it-jobs", ...}
+            label = category.get("label") or category.get("tag") or ""
+            if label:
+                parts.append(str(label))
+        else:
+            parts.append(str(category))
+
     combined_text = " ".join(parts)
     return extract_skills(combined_text)
