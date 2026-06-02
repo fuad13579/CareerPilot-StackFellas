@@ -2,8 +2,12 @@
 import os
 
 from app.models.assistant_models import AssistantQueryResponse, AssistantSource
-from app.services.llm_provider import generate_chat_completion
+from app.services.llm_provider import generate_chat_completion, active_provider_name
 from app.services.vector_store_service import retrieve_relevant_chunks
+from app.services.fallback_response_service import (
+    generate_rule_based_response,
+    extract_basic_skills_from_context,
+)
 from app.models.database_models import AssistantSession
 from app.database import SessionLocal
 
@@ -161,6 +165,49 @@ def generate_fallback_answer(context: str, question: str) -> str:
     )
 
 
+def generate_ai_response(
+    prompt: str,
+    cv_context: str,
+    task: str = "assistant",
+    detected_skills: list[str] | None = None,
+    experience_chunks: list[str] | None = None,
+    project_chunks: list[str] | None = None,
+    job_data: dict | None = None,
+    history: list[dict] | None = None,
+) -> tuple[str, str | None, bool]:
+    """Generate an AI response, falling back to rule-based on any LLM failure.
+
+    Returns ``(answer, provider, fallback_used)``. When the LLM is used,
+    ``provider`` is the active provider name (``"github_models"`` or
+    ``"openrouter"``) and ``fallback_used`` is False. On fallback,
+    ``provider`` is ``"rule_based_fallback"`` and ``fallback_used`` is True.
+    Raw API errors are never raised to the caller.
+    """
+    provider = active_provider_name() or "rule_based_fallback"
+    history = history or []
+
+    answer: str | None = None
+    if task == "assistant" and provider != "rule_based_fallback":
+        try:
+            answer = generate_answer_with_llm(cv_context, prompt, history)
+        except Exception:  # noqa: BLE001
+            answer = None
+
+    if answer:
+        return answer, provider, False
+
+    fallback_answer = generate_rule_based_response(
+        question=prompt,
+        cv_context=cv_context,
+        detected_skills=detected_skills,
+        experience_chunks=experience_chunks,
+        project_chunks=project_chunks,
+        job_data=job_data,
+        task=task,
+    )
+    return fallback_answer, "rule_based_fallback", True
+
+
 def get_cv_context(cv_id: str, question: str) -> tuple[list[dict], str]:
     """Retrieve relevant CV chunks for a question using RAG."""
     try:
@@ -202,7 +249,49 @@ def _rebuild_rag_from_saved_cv(cv_id: str, question: str) -> list[dict]:
         return []
 
 
-def process_assistant_query(cv_id: str, session_id: str, question: str, anonymous_user_id: str | None = None) -> AssistantQueryResponse:
+def _load_job_data(job_id: str | None, anonymous_user_id: str | None) -> dict | None:
+    """Best-effort load of tracked-job data for readiness/skill-gap answers."""
+    if not job_id or not anonymous_user_id:
+        return None
+    try:
+        from app.models.database_models import JobApplication
+        db = SessionLocal()
+        try:
+            app = (
+                db.query(JobApplication)
+                .filter(JobApplication.id == job_id)
+                .filter(JobApplication.anonymous_user_id == anonymous_user_id)
+                .first()
+            )
+            if not app:
+                return None
+            import json as _json
+            required = _json.loads(app.required_skills) if app.required_skills else []
+            # Estimate matched/missing from fit_score + required skills.
+            matched: list[str] = []
+            missing: list[str] = list(required)
+            return {
+                "role": app.role,
+                "company": app.company,
+                "description": app.notes or "",
+                "fit_score": app.fit_score,
+                "required_skills": required,
+                "matched_skills": matched,
+                "missing_skills": missing,
+            }
+        finally:
+            db.close()
+    except Exception:
+        return None
+
+
+def process_assistant_query(
+    cv_id: str,
+    session_id: str,
+    question: str,
+    anonymous_user_id: str | None = None,
+    job_id: str | None = None,
+) -> AssistantQueryResponse:
     """Process an AI assistant query with RAG context and session memory."""
     # Add user message to history
     add_to_conversation(session_id, cv_id, "user", question, anonymous_user_id=anonymous_user_id)
@@ -213,10 +302,19 @@ def process_assistant_query(cv_id: str, session_id: str, question: str, anonymou
     # Retrieve relevant CV chunks
     chunks, context = get_cv_context(cv_id, question)
 
-    # Generate answer (try LLM, fallback to template)
-    answer = generate_answer_with_llm(context, question, history)
-    if answer is None:
-        answer = generate_fallback_answer(context, question)
+    # Build optional job_data from a tracked job (best-effort; ignored if missing).
+    job_data = _load_job_data(job_id, anonymous_user_id)
+
+    # Generate answer (try LLM, fallback to rule-based response)
+    detected_skills = extract_basic_skills_from_context(context)
+    answer, provider, fallback_used = generate_ai_response(
+        prompt=question,
+        cv_context=context,
+        task="assistant",
+        detected_skills=detected_skills,
+        job_data=job_data,
+        history=history,
+    )
 
     # Add assistant response to history
     add_to_conversation(session_id, cv_id, "assistant", answer, anonymous_user_id=anonymous_user_id)
@@ -236,4 +334,6 @@ def process_assistant_query(cv_id: str, session_id: str, question: str, anonymou
         answer=answer,
         retrieved_context=context,
         sources=sources,
+        provider=provider,
+        fallback_used=fallback_used,
     )
