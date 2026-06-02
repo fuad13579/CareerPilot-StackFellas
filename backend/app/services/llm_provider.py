@@ -26,6 +26,13 @@ logger = logging.getLogger(__name__)
 GITHUB_MODELS_URL = "https://models.github.ai/inference/chat/completions"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
+# Default model identifiers (used when the corresponding env var is unset/empty).
+# Override per-environment via GITHUB_MODELS_MODEL / OPENROUTER_MODEL in backend/.env.
+DEFAULT_GITHUB_MODELS_MODEL = "openai/gpt-4o"
+# OpenRouter "free" router: routes only to models with `:free` pricing on OpenRouter.
+# See https://openrouter.ai/models?max_price=0 for the current list.
+DEFAULT_OPENROUTER_MODEL = "openrouter/auto:free"
+
 
 class LLMUnavailableError(Exception):
     """Raised when neither configured LLM provider can satisfy a request."""
@@ -98,7 +105,7 @@ def _generate_with_github_models(
     temperature: float,
 ) -> str:
     token = os.getenv("GITHUB_MODELS_TOKEN", "").strip()
-    model = os.getenv("GITHUB_MODELS_MODEL", "openai/gpt-4o").strip() or "openai/gpt-4o"
+    model = os.getenv("GITHUB_MODELS_MODEL", DEFAULT_GITHUB_MODELS_MODEL).strip() or DEFAULT_GITHUB_MODELS_MODEL
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
@@ -114,7 +121,7 @@ def _generate_with_openrouter(
     temperature: float,
 ) -> str:
     api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
-    model = os.getenv("OPENROUTER_MODEL", "openrouter/auto").strip() or "openrouter/auto"
+    model = os.getenv("OPENROUTER_MODEL", DEFAULT_OPENROUTER_MODEL).strip() or DEFAULT_OPENROUTER_MODEL
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -171,7 +178,7 @@ def provider_status() -> dict:
     return {
         "active": active_provider_name(),
         "github_models_configured": _github_models_configured(),
-        "github_models_model": os.getenv("GITHUB_MODELS_MODEL", "openai/gpt-4o").strip() or "openai/gpt-4o",
+        "github_models_model": os.getenv("GITHUB_MODELS_MODEL", DEFAULT_GITHUB_MODELS_MODEL).strip() or DEFAULT_GITHUB_MODELS_MODEL,
         "openrouter_configured": _openrouter_configured(),
-        "openrouter_model": os.getenv("OPENROUTER_MODEL", "openrouter/auto").strip() or "openrouter/auto",
+        "openrouter_model": os.getenv("OPENROUTER_MODEL", DEFAULT_OPENROUTER_MODEL).strip() or DEFAULT_OPENROUTER_MODEL,
     }

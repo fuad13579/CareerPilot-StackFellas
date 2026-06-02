@@ -4,6 +4,10 @@ import os
 from app.models.cover_letter_models import CoverLetterResponse
 from app.services.llm_provider import generate_chat_completion
 from app.services.vector_store_service import retrieve_relevant_chunks
+from app.services.fallback_response_service import (
+    extract_basic_skills_from_context,
+    generate_fallback_cover_letter as _generate_fallback_cover_letter,
+)
 
 
 def get_cv_context_for_job(cv_id: str, job_title: str, job_description: str) -> tuple[list[dict], str]:
@@ -137,14 +141,16 @@ def process_cover_letter_request(
         job_url=job_url,
     )
     if cover_letter is None:
-        cover_letter = generate_fallback_cover_letter(
-            cv_context,
-            job_title,
-            company,
-            job_description,
-            location=location,
-            required_skills=required_skills,
-            job_url=job_url,
+        job_data = {
+            "role": job_title,
+            "company": company,
+            "description": job_description,
+            "required_skills": list(required_skills or []),
+        }
+        cover_letter = _generate_fallback_cover_letter(
+            cv_context=cv_context,
+            detected_skills=extract_basic_skills_from_context(cv_context),
+            job_data=job_data,
         )
 
     return CoverLetterResponse(
