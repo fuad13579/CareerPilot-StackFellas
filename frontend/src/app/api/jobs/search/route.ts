@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         'Content-Type': 'application/json',
         ...(userId ? { 'x-careerpilot-user-id': userId } : {}),
       },
-      next: { revalidate: 60 }, // Cache for 60 seconds
+      cache: 'no-store', // Don't cache — each query must hit the backend live
     });
 
     if (!response.ok) {
