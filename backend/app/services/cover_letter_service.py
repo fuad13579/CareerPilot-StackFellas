@@ -2,7 +2,12 @@
 import os
 
 from app.models.cover_letter_models import CoverLetterResponse
+from app.services.llm_provider import generate_chat_completion
 from app.services.vector_store_service import retrieve_relevant_chunks
+from app.services.fallback_response_service import (
+    extract_basic_skills_from_context,
+    generate_fallback_cover_letter as _generate_fallback_cover_letter,
+)
 
 
 def get_cv_context_for_job(cv_id: str, job_title: str, job_description: str) -> tuple[list[dict], str]:
@@ -22,38 +27,25 @@ def generate_cover_letter_with_llm(
     job_title: str,
     company: str,
     job_description: str,
+    location: str | None = None,
+    required_skills: list[str] | None = None,
+    job_url: str | None = None,
 ) -> str | None:
-    """Generate cover letter using OpenAI or Anthropic LLM API."""
-    # Try OpenAI first
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if openai_key:
-        try:
-            return _generate_with_openai(openai_key, cv_context, job_title, company, job_description)
-        except Exception:
-            pass
+    """Generate a cover letter using the configured LLM provider chain.
 
-    # Try Anthropic
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-    if anthropic_key:
-        try:
-            return _generate_with_anthropic(anthropic_key, cv_context, job_title, company, job_description)
-        except Exception:
-            pass
-
-    return None
-
-
-def _generate_with_openai(api_key: str, cv_context: str, job_title: str, company: str, job_description: str) -> str:
-    """Generate cover letter using OpenAI API."""
-    from openai import OpenAI
-
-    client = OpenAI(api_key=api_key)
-
+    Provider priority is handled by ``app.services.llm_provider``:
+    1. GitHub Models (GITHUB_MODELS_TOKEN)
+    2. OpenRouter (OPENROUTER_API_KEY)
+    3. None (caller falls back to rule-based letter)
+    """
     prompt = f"""Write a personalized cover letter for the following job application.
 
 Company: {company}
 Job Title: {job_title}
+Location: {location or "Not specified"}
 Job Description: {job_description}
+Required Skills: {", ".join(required_skills or []) or "Not specified"}
+Job URL: {job_url or "Not provided"}
 
 Based on the candidate's CV:
 {cv_context}
@@ -68,55 +60,15 @@ Requirements:
 
 Write only the cover letter, no extra explanation."""
 
-    response = client.chat.completions.create(
-        model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
-        messages=[
-            {
-                "role": "system",
-                "content": "You are a professional career advisor writing personalized cover letters.",
-            },
-            {"role": "user", "content": prompt},
-        ],
-        max_tokens=800,
-        temperature=0.7,
-    )
+    messages = [
+        {
+            "role": "system",
+            "content": "You are a professional career advisor writing personalized cover letters.",
+        },
+        {"role": "user", "content": prompt},
+    ]
 
-    return response.choices[0].message.content.strip()
-
-
-def _generate_with_anthropic(api_key: str, cv_context: str, job_title: str, company: str, job_description: str) -> str:
-    """Generate cover letter using Anthropic API."""
-    import anthropic
-
-    client = anthropic.Anthropic(api_key=api_key)
-
-    prompt = f"""Write a personalized cover letter for the following job application.
-
-Company: {company}
-Job Title: {job_title}
-Job Description: {job_description}
-
-Based on the candidate's CV:
-{cv_context}
-
-Requirements:
-- Mention the company name ({company})
-- Mention the job title ({job_title})
-- Only use real skills, projects, education, or experience from the CV
-- Do NOT invent or assume qualifications not in the CV
-- Keep it professional, concise, and around 300 words
-- If CV context is limited, acknowledge it and still write a strong letter
-
-Write only the cover letter, no extra explanation."""
-
-    response = client.messages.create(
-        model=os.getenv("ANTHROPIC_MODEL", "claude-3-haiku-20240307"),
-        system="You are a professional career advisor writing personalized cover letters.",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=800,
-    )
-
-    return response.content[0].text.strip()
+    return generate_chat_completion(messages, max_tokens=800, temperature=0.7)
 
 
 def generate_fallback_cover_letter(
@@ -124,14 +76,17 @@ def generate_fallback_cover_letter(
     job_title: str,
     company: str,
     job_description: str,
+    location: str | None = None,
+    required_skills: list[str] | None = None,
+    job_url: str | None = None,
 ) -> str:
     """Generate a template-based cover letter when no LLM is available."""
     if not cv_context.strip():
         return (
             "I could not find enough relevant CV context to create a strongly personalized cover letter. "
             "Please upload a more detailed CV or add more project/experience information. "
-            "To generate a fully personalized letter, configure an AI provider (OPENAI_API_KEY or ANTHROPIC_API_KEY) "
-            "in your environment."
+            "To generate a fully personalized letter, configure an AI provider (GITHUB_MODELS_TOKEN or "
+            "OPENROUTER_API_KEY) on the backend."
         )
 
     # Extract skills from context
@@ -142,6 +97,8 @@ def generate_fallback_cover_letter(
 
     skills_text = skills_mentioned[0] if skills_mentioned else "various technical skills and relevant project experience"
 
+    required_skills_text = ", ".join(required_skills or []) or "the role requirements"
+
     return f"""Dear Hiring Manager,
 
 I am excited to apply for the {job_title} role at {company}. This position aligns with my career goals and technical background.
@@ -149,6 +106,8 @@ I am excited to apply for the {job_title} role at {company}. This position align
 Based on my CV, I have experience with {skills_text}. I am particularly drawn to this opportunity because the role requirements match my skill set in Python, API development, and modern software engineering practices.
 
 {job_description[:200]}... (showing alignment with my background).
+
+I also noted the following requirements for this role: {required_skills_text}.
 
 My CV demonstrates practical experience in software development, problem-solving, and collaborative team environments. I am confident that this background will help me contribute effectively to your team.
 
@@ -163,15 +122,36 @@ def process_cover_letter_request(
     job_title: str,
     company: str,
     job_description: str,
+    location: str | None = None,
+    required_skills: list[str] | None = None,
+    job_url: str | None = None,
 ) -> CoverLetterResponse:
     """Process a cover letter generation request."""
     # Retrieve relevant CV context
     chunks, cv_context = get_cv_context_for_job(cv_id, job_title, job_description)
 
     # Generate cover letter (try LLM, fallback to template)
-    cover_letter = generate_cover_letter_with_llm(cv_context, job_title, company, job_description)
+    cover_letter = generate_cover_letter_with_llm(
+        cv_context,
+        job_title,
+        company,
+        job_description,
+        location=location,
+        required_skills=required_skills,
+        job_url=job_url,
+    )
     if cover_letter is None:
-        cover_letter = generate_fallback_cover_letter(cv_context, job_title, company, job_description)
+        job_data = {
+            "role": job_title,
+            "company": company,
+            "description": job_description,
+            "required_skills": list(required_skills or []),
+        }
+        cover_letter = _generate_fallback_cover_letter(
+            cv_context=cv_context,
+            detected_skills=extract_basic_skills_from_context(cv_context),
+            job_data=job_data,
+        )
 
     return CoverLetterResponse(
         cover_letter=cover_letter,

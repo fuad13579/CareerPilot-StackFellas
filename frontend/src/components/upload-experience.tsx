@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { 
   FileText, 
   Upload,
@@ -12,6 +13,13 @@ import {
   Loader2,
   FileCheck
 } from "lucide-react";
+import {
+  clearPersistedCvSnapshot,
+  getPersistedCvSummary,
+  persistCvSnapshot,
+  type PersistedCvSummary,
+} from "./cv-storage";
+import { getCareerPilotHeaders } from "./user-storage";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error";
 
@@ -35,14 +43,15 @@ interface JobDetails {
   description: string;
 }
 
-const ACCEPTED_TYPES = [
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-];
-const ACCEPTED_EXTENSIONS = [".pdf", ".docx"];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ACCEPTED_MIME_BY_EXTENSION: Record<string, string> = {
+  ".pdf": "application/pdf",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+};
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const INVALID_CV_FILE_MESSAGE = "Please upload a valid CV file in PDF or DOCX format.";
 
 export function UploadExperience() {
+  const router = useRouter();
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [cvSummary, setCvSummary] = useState<CVSummary | null>(null);
@@ -50,13 +59,28 @@ export function UploadExperience() {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    try {
+      const storedSummary = getPersistedCvSummary();
+      if (!storedSummary) return;
+
+      setCvSummary(storedSummary);
+      setStatus("success");
+    } catch {
+      // Ignore storage hydration errors and keep the page usable.
+    }
+  }, []);
+
   const validateFile = (file: File): string | null => {
     const extension = "." + file.name.split(".").pop()?.toLowerCase();
-    if (!ACCEPTED_EXTENSIONS.includes(extension)) {
-      return `Unsupported file type. Please upload ${ACCEPTED_EXTENSIONS.join(" or ")}`;
+    const expectedMimeType = ACCEPTED_MIME_BY_EXTENSION[extension];
+    const mimeType = (file.type || "").toLowerCase();
+
+    if (!expectedMimeType || mimeType !== expectedMimeType) {
+      return INVALID_CV_FILE_MESSAGE;
     }
     if (file.size > MAX_FILE_SIZE) {
-      return `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`;
+      return "Uploaded CV file is too large. Maximum size is 5 MB.";
     }
     return null;
   };
@@ -80,21 +104,47 @@ export function UploadExperience() {
 
       const response = await fetch("/api/cv/upload", {
         method: "POST",
+        headers: getCareerPilotHeaders(),
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error("Upload failed");
+        let errorMessage = "Failed to upload and analyze the CV.";
+        try {
+          const errorData = await response.json();
+          if (errorData?.detail) {
+            errorMessage = Array.isArray(errorData.detail)
+              ? errorData.detail.map((item: { msg?: string }) => item.msg).filter(Boolean).join(", ")
+              : String(errorData.detail);
+          }
+        } catch {
+          const errorText = await response.text().catch(() => "");
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      const sectionsResponse = await fetch(`/api/cv/${encodeURIComponent(String(data.cv_id))}/sections`, {
+        headers: getCareerPilotHeaders(),
+      });
+      const sectionsData = sectionsResponse.ok ? await sectionsResponse.json() : null;
+      const experienceSections = extractSectionEntries(sectionsData?.sections?.experience);
+      const educationSections = extractSectionEntries(sectionsData?.sections?.education);
 
       // Save CV skills and ID to localStorage for Jobs page
-      localStorage.setItem("careerpilot_cv_id", String(data.cv_id));
-      localStorage.setItem(
-        "careerpilot_cv_skills",
-        JSON.stringify(data.skills ?? data.extracted_skills ?? [])
-      );
+      const snapshot: PersistedCvSummary = {
+        filename: data.filename || file.name,
+        fileType: data.file_type || file.name.split(".").pop()?.toUpperCase() || "Unknown",
+        extractedText: data.extracted_text || "CV extraction successful.",
+        profileSummary: data.profile_summary,
+        skills: data.skills || data.extracted_skills || [],
+        experience: experienceSections.length > 0 ? experienceSections : data.experience || [],
+        education: educationSections.length > 0 ? educationSections : data.education || [],
+      };
+      persistCvSnapshot(snapshot, String(data.cv_id));
 
       // Notify jobs page of CV update for real-time refresh
       window.dispatchEvent(new Event("careerpilot_cv_updated"));
@@ -105,35 +155,81 @@ export function UploadExperience() {
         extractedText: data.extracted_text || "CV extraction successful.",
         profileSummary: data.profile_summary,
         skills: data.skills || [],
-        experience: data.experience || [],
-        education: data.education || [],
+        experience: experienceSections.length > 0 ? experienceSections : data.experience || [],
+        education: educationSections.length > 0 ? educationSections : data.education || [],
       };
 
       setCvSummary(cvSummary);
       setStatus("success");
     } catch (err) {
-      // Fallback to mock for demo purposes
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const mockSummary: CVSummary = {
-        filename: file.name,
-        fileType: file.name.endsWith(".pdf") ? "PDF" : "DOCX",
-        extractedText: "CV extraction successful. Document parsed into sections: Professional Summary, Skills, Work Experience, Education, and Projects.",
-        profileSummary: "Computer science student with experience in Python, FastAPI, React, TypeScript, database design, and AI-powered career tools. Passionate about building intelligent systems for job matching and career development.",
-        skills: ["Python", "FastAPI", "React", "TypeScript", "SQL", "Git/GitHub", "REST API", "Tailwind CSS", "AI/LLM Integration", "RAG Systems"],
-        experience: ["CareerPilot backend API - Built job matching and fit score logic with FastAPI and PostgreSQL", "CV parsing pipeline - Implemented resume extraction and skill detection using Python", "Application tracker system - Developed full-stack dashboard with React and TypeScript"],
-        education: ["Computer Science / Software Engineering student"],
-      };
-
-      // Save mock skills to localStorage for demo
-      localStorage.setItem("careerpilot_cv_skills", JSON.stringify(mockSummary.skills));
-      localStorage.setItem("careerpilot_cv_id", "mock-cv-id");
-      
-      // Notify jobs page of CV update for real-time refresh
-      window.dispatchEvent(new Event("careerpilot_cv_updated"));
-
-      setCvSummary(mockSummary);
-      setStatus("success");
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Failed to upload and analyze the CV. Please try again.";
+      setError(message);
+      clearPersistedCvSnapshot();
+      setCvSummary(null);
+      setStatus("error");
     }
+  };
+
+  const extractSectionEntries = (value: unknown): string[] => {
+    if (typeof value !== "string") return [];
+
+    const text = value.replace(/\r\n/g, "\n").trim();
+    if (!text) return [];
+
+    const paragraphBlocks = text
+      .split(/\n\s*\n/)
+      .map((block) => block.trim())
+      .filter(Boolean)
+      .filter((block) => !/^experience$/i.test(block) && !/^education$/i.test(block));
+
+    if (paragraphBlocks.length > 1) {
+      return paragraphBlocks;
+    }
+
+    const lines = text
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .filter((line) => !/^experience$/i.test(line) && !/^education$/i.test(line));
+
+    const entries: string[] = [];
+    let currentEntry: string[] = [];
+
+    for (const line of lines) {
+      const startsNewEntry = isExperienceHeader(line) && currentEntry.length > 0;
+
+      if (startsNewEntry) {
+        entries.push(currentEntry.join("\n").trim());
+        currentEntry = [line];
+        continue;
+      }
+
+      currentEntry.push(line);
+    }
+
+    if (currentEntry.length > 0) {
+      entries.push(currentEntry.join("\n").trim());
+    }
+
+    return entries.length > 0 ? entries : lines;
+  };
+
+  const isExperienceHeader = (line: string): boolean => {
+    const normalized = line.toLowerCase();
+    const hasDateRange =
+      /\b(?:19|20)\d{2}\b/.test(line) ||
+      /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\b/.test(normalized) ||
+      /\bpresent\b/.test(normalized);
+
+    const looksLikeRoleLine =
+      normalized.includes(" at ") ||
+      normalized.includes(" | ") ||
+      normalized.includes(" - ");
+
+    return hasDateRange || looksLikeRoleLine;
   };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -163,6 +259,7 @@ export function UploadExperience() {
     setSelectedFile(null);
     setCvSummary(null);
     setError("");
+    clearPersistedCvSnapshot();
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -192,7 +289,7 @@ export function UploadExperience() {
           <input
             ref={fileInputRef}
             type="file"
-            accept={[...ACCEPTED_TYPES, ...ACCEPTED_EXTENSIONS].join(",")}
+            accept={".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
             onChange={handleFileSelect}
             className="hidden"
             aria-label="Upload CV file"
@@ -390,7 +487,10 @@ export function UploadExperience() {
                     <Upload size={14} />
                     Upload another
                   </button>
-                  <button className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-blue-600">
+                  <button
+                    onClick={() => router.push("/assistant")}
+                    className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-blue-600"
+                  >
                     <FileJson size={14} />
                     Use with Assistant
                   </button>

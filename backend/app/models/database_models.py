@@ -12,6 +12,7 @@ class CVProfile(Base):
     __tablename__ = "cv_profiles"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    anonymous_user_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
     cv_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     filename: Mapped[str] = mapped_column(String(255))
     file_type: Mapped[str] = mapped_column(String(50))
@@ -25,10 +26,16 @@ class Application(Base):
     __tablename__ = "applications"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    anonymous_user_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
     job_id: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(255))
     company: Mapped[str] = mapped_column(String(255))
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    deadline: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    next_action: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    job_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    required_skills: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(50), default="Saved")
     status: Mapped[str] = mapped_column(String(50), default="Applied")
     fit_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     job_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -42,6 +49,7 @@ class Todo(Base):
     __tablename__ = "todos"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    anonymous_user_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -56,6 +64,7 @@ class CalendarEvent(Base):
     __tablename__ = "calendar_events"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    anonymous_user_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     event_date: Mapped[str] = mapped_column(String(50))
@@ -69,6 +78,7 @@ class AssistantSession(Base):
     __tablename__ = "assistant_sessions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    anonymous_user_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
     session_id: Mapped[str] = mapped_column(String(255), index=True)
     cv_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     role: Mapped[str] = mapped_column(String(50))  # "user" or "assistant"

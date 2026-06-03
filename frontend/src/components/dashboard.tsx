@@ -26,6 +26,18 @@ import {
 } from "lucide-react";
 import { Reveal, Stagger } from "./motion-shell";
 import { useTracker } from "./tracker-context";
+import { getPersistedCvId, getPersistedCvSummary } from "./cv-storage";
+import { getCareerPilotHeaders } from "./user-storage";
+
+interface CvSnapshot {
+  filename: string;
+  fileType: string;
+  extractedText: string;
+  profileSummary?: string;
+  skills?: string[];
+  experience?: string[];
+  education?: string[];
+}
 
 interface RecommendedJob {
   id: string;
@@ -47,15 +59,78 @@ interface LiveJobSearchResponse {
   error: string | null;
   requires_cv?: boolean;
   message?: string | null;
+  personalized?: boolean;
+  fit_scores_enabled?: boolean;
+}
+
+interface TrackerApplicationResponse {
+  id: number;
+  status: string;
+  created_at: string;
+}
+
+interface TrackerTodoResponse {
+  id: number;
+  is_completed: boolean;
+  created_at: string;
 }
 
 export function DashboardHome() {
+  const [cvSnapshot, setCvSnapshot] = useState<CvSnapshot | null>(null);
+
+  useEffect(() => {
+    const loadSnapshot = () => {
+      setCvSnapshot(getPersistedCvSummary());
+    };
+
+    loadSnapshot();
+
+    window.addEventListener("careerpilot_cv_updated", loadSnapshot);
+    window.addEventListener("storage", loadSnapshot);
+
+    return () => {
+      window.removeEventListener("careerpilot_cv_updated", loadSnapshot);
+      window.removeEventListener("storage", loadSnapshot);
+    };
+  }, []);
+
+  useEffect(() => {
+    const cvId = getPersistedCvId();
+    if (!cvId) return;
+
+    const loadSections = async () => {
+      try {
+        const response = await fetch(`/api/cv/${encodeURIComponent(cvId)}/sections`, {
+          headers: getCareerPilotHeaders(),
+        });
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const summary = getPersistedCvSummary();
+        if (!summary) return;
+
+        const experience = extractSectionEntries(data?.sections?.experience);
+        const education = extractSectionEntries(data?.sections?.education);
+
+        setCvSnapshot({
+          ...summary,
+          experience: experience.length > 0 ? experience : summary.experience || [],
+          education: education.length > 0 ? education : summary.education || [],
+        });
+      } catch (error) {
+        console.error("Failed to load CV sections:", error);
+      }
+    };
+
+    loadSections();
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <WelcomeHero />
+      <WelcomeHero cvSnapshot={cvSnapshot} />
       <main className="space-y-16 pb-16">
-        <CVStatusSection />
-        <QuickStatsSection />
+        <CVStatusSection cvSnapshot={cvSnapshot} />
+        <QuickStatsSection cvSnapshot={cvSnapshot} />
         <RecommendedJobsSection />
         <ApplicationTrackerSection />
         <UpcomingTasksSection />
@@ -67,21 +142,11 @@ export function DashboardHome() {
   );
 }
 
-const welcomeInfo = {
-  greeting: "Welcome back!",
-  message: "Your CV has been analyzed and CareerPilot is ready to help you apply smarter.",
-  lastActive: "Last active: Today",
-};
-
-const cvStatus = {
-  uploaded: true,
-  lastAnalyzed: "May 30, 2026",
-  skillsDetected: 12,
-  experienceSections: 3,
-  overallScore: 85,
-};
-
-const defaultRecommendedJobs: RecommendedJob[] = [
+// Dev/test fallback only. NOT used in normal runtime rendering — see
+// RecommendedJobsSection, which always tries the live API first.
+// Kept here so unit tests and Storybook-style previews have something
+// to render when there is no backend available.
+const DEV_FALLBACK_RECOMMENDED_JOBS: RecommendedJob[] = [
   {
     id: "1",
     role: "Frontend Developer",
@@ -143,7 +208,20 @@ function SectionHeader({
   );
 }
 
-function WelcomeHero() {
+function WelcomeHero({
+  cvSnapshot,
+}: {
+  cvSnapshot: CvSnapshot | null;
+}) {
+  const hasCvUploaded = Boolean(cvSnapshot);
+  const welcomeInfo = {
+    greeting: hasCvUploaded ? "Welcome back!" : "Welcome to CareerPilot",
+    message: hasCvUploaded
+      ? "Your CV has been analyzed and CareerPilot is ready to help you apply smarter."
+      : "Upload your CV to unlock job matching, fit scores, AI answers, and cover letters.",
+    lastActive: hasCvUploaded ? "Last active: Today" : "Last active: Not uploaded",
+  };
+
   return (
     <section className="relative flex min-h-[50vh] items-center px-6 py-16 lg:px-16">
       <div 
@@ -153,7 +231,9 @@ function WelcomeHero() {
         <Reveal>
           <div className="mb-4 flex items-center gap-2">
             <Sparkles className="text-[#1d4ed8]" size={20} />
-            <span className="text-sm font-semibold text-[#1d4ed8]">CareerPilot Active</span>
+            <span className="text-sm font-semibold text-[#1d4ed8]">
+              {hasCvUploaded ? "CareerPilot Active" : "CareerPilot Ready"}
+            </span>
           </div>
         </Reveal>
         <Reveal>
@@ -166,6 +246,14 @@ function WelcomeHero() {
             {welcomeInfo.message}
           </p>
         </Reveal>
+        {cvSnapshot && (
+          <Reveal>
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-medium text-[#374151] shadow-sm">
+              <FileText size={14} className="text-[#1d4ed8]" />
+              <span>{cvSnapshot.filename}</span>
+            </div>
+          </Reveal>
+        )}
         <Reveal>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -199,7 +287,19 @@ function WelcomeHero() {
   );
 }
 
-function CVStatusSection() {
+function CVStatusSection({
+  cvSnapshot,
+}: {
+  cvSnapshot: CvSnapshot | null;
+}) {
+  const cvStatus = {
+    uploaded: Boolean(cvSnapshot),
+    lastAnalyzed: cvSnapshot ? "Just now" : "Not analyzed yet",
+    skillsDetected: cvSnapshot?.skills?.length || 0,
+    experienceSections: cvSnapshot?.experience?.length || 0,
+    overallScore: cvSnapshot ? Math.min(100, 60 + (cvSnapshot.skills?.length || 0) * 2) : 0,
+  };
+
   return (
     <section className="relative">
       <div className="mx-auto max-w-6xl px-6">
@@ -215,7 +315,9 @@ function CVStatusSection() {
                 <CheckCircle2 className="text-[#059669]" size={24} />
               </div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#9ca3af]">Status</p>
-              <p className="mt-1 text-lg font-bold text-black">Uploaded</p>
+              <p className="mt-1 text-lg font-bold text-black">
+                {cvStatus.uploaded ? "Uploaded" : "Not uploaded"}
+              </p>
             </div>
           </Reveal>
           <Reveal>
@@ -224,7 +326,9 @@ function CVStatusSection() {
                 <FileText className="text-[#1d4ed8]" size={24} />
               </div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#9ca3af]">Skills Detected</p>
-              <p className="mt-1 text-lg font-bold text-black">{cvStatus.skillsDetected} skills</p>
+              <p className="mt-1 text-lg font-bold text-black">
+                {cvStatus.skillsDetected} skills
+              </p>
             </div>
           </Reveal>
           <Reveal>
@@ -233,7 +337,9 @@ function CVStatusSection() {
                 <BookOpen className="text-[#6b7280]" size={24} />
               </div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#9ca3af]">Experience</p>
-              <p className="mt-1 text-lg font-bold text-black">{cvStatus.experienceSections} sections</p>
+              <p className="mt-1 text-lg font-bold text-black">
+                {cvStatus.experienceSections} sections
+              </p>
             </div>
           </Reveal>
           <Reveal>
@@ -256,20 +362,100 @@ function CVStatusSection() {
   );
 }
 
-function QuickStatsSection() {
-  const { getApplicationCount, getRoadmapProgress, getCompletedTodos, getSkillsCount, getWeeklyStats } = useTracker();
-  
-  const appCount = getApplicationCount();
-  const roadmapProgress = getRoadmapProgress();
-  const completedTodos = getCompletedTodos().length;
-  const skillsCount = getSkillsCount();
-  const weeklyStats = getWeeklyStats();
+function QuickStatsSection({
+  cvSnapshot,
+}: {
+  cvSnapshot: CvSnapshot | null;
+}) {
+  const [applicationCount, setApplicationCount] = useState(0);
+  const [completedTodosCount, setCompletedTodosCount] = useState(0);
+  const [totalTodosCount, setTotalTodosCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const skillsCount = cvSnapshot?.skills?.length || 0;
+  const experienceSections = cvSnapshot?.experience?.length || 0;
+
+  useEffect(() => {
+    const loadTrackerCounts = async () => {
+      try {
+        const headers = getCareerPilotHeaders();
+        const [applicationsResponse, todosResponse] = await Promise.all([
+          fetch("/api/tracker/applications", { headers }),
+          fetch("/api/todos", { headers }),
+        ]);
+
+        const applicationsData: TrackerApplicationResponse[] = applicationsResponse.ok
+          ? await applicationsResponse.json()
+          : [];
+        const todosData: TrackerTodoResponse[] = todosResponse.ok
+          ? await todosResponse.json()
+          : [];
+
+        setApplicationCount(applicationsData.length);
+        setTotalTodosCount(todosData.length);
+        setCompletedTodosCount(todosData.filter((todo) => todo.is_completed).length);
+      } catch (error) {
+        console.error("Failed to load quick stats:", error);
+        setApplicationCount(0);
+        setCompletedTodosCount(0);
+        setTotalTodosCount(0);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTrackerCounts();
+
+    const handleTrackerUpdate = () => {
+      loadTrackerCounts();
+    };
+
+    window.addEventListener("careerpilot_tracker_updated", handleTrackerUpdate);
+    window.addEventListener("storage", handleTrackerUpdate);
+
+    return () => {
+      window.removeEventListener("careerpilot_tracker_updated", handleTrackerUpdate);
+      window.removeEventListener("storage", handleTrackerUpdate);
+    };
+  }, []);
+
+  const roadmapProgress = calculateRoadmapProgress({
+    applicationCount,
+    completedTodosCount,
+    totalTodosCount,
+    skillsCount,
+    experienceSections,
+  });
 
   const quickStats = [
-    { value: String(appCount), label: "Applications Sent", icon: Send, color: "text-[#1d4ed8]", subLabel: `${weeklyStats.applicationsThisWeek} this week` },
-    { value: `${completedTodos}`, label: "Completed Todos", icon: CheckCircle2, color: "text-[#059669]", subLabel: `${weeklyStats.todosCompletedThisWeek} this week` },
-    { value: String(skillsCount), label: "Skills Added", icon: Plus, color: "text-[#7c3aed]", subLabel: `${weeklyStats.skillsAddedThisWeek} this week` },
-    { value: `${roadmapProgress}%`, label: "Roadmap Progress", icon: TrendingUp, color: "text-[#d97706]", subLabel: "Career path" },
+    {
+      value: isLoading ? "..." : String(applicationCount),
+      label: "Applications Sent",
+      icon: Send,
+      color: "text-[#1d4ed8]",
+      subLabel: cvSnapshot ? "from backend tracker" : "no CV uploaded yet",
+    },
+    {
+      value: isLoading ? "..." : String(completedTodosCount),
+      label: "Completed Todos",
+      icon: CheckCircle2,
+      color: "text-[#059669]",
+      subLabel: isLoading ? "loading backend data" : `${totalTodosCount} total tasks`,
+    },
+    {
+      value: cvSnapshot ? String(skillsCount) : "0",
+      label: "Skills Added",
+      icon: Plus,
+      color: "text-[#7c3aed]",
+      subLabel: cvSnapshot ? "from uploaded CV" : "upload a CV to begin",
+    },
+    {
+      value: `${roadmapProgress}%`,
+      label: "Roadmap Progress",
+      icon: TrendingUp,
+      color: "text-[#d97706]",
+      subLabel: cvSnapshot ? "derived from CV + tracker activity" : "no profile yet",
+    },
   ];
 
   return (
@@ -303,43 +489,204 @@ function QuickStatsSection() {
   );
 }
 
+function calculateRoadmapProgress({
+  applicationCount,
+  completedTodosCount,
+  totalTodosCount,
+  skillsCount,
+  experienceSections,
+}: {
+  applicationCount: number;
+  completedTodosCount: number;
+  totalTodosCount: number;
+  skillsCount: number;
+  experienceSections: number;
+}): number {
+  const applicationScore = Math.min(applicationCount, 5) / 5;
+  const todoScore = totalTodosCount > 0 ? completedTodosCount / totalTodosCount : 0;
+  const profileScore = Math.min(skillsCount + experienceSections, 12) / 12;
+
+  return Math.max(
+    0,
+    Math.min(100, Math.round((applicationScore * 40) + (todoScore * 30) + (profileScore * 30)))
+  );
+}
+
+function extractSectionEntries(value: unknown): string[] {
+  if (typeof value !== "string") return [];
+
+  const text = value.replace(/\r\n/g, "\n").trim();
+  if (!text) return [];
+
+  const paragraphBlocks = text
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .filter((block) => !/^experience$/i.test(block) && !/^education$/i.test(block));
+
+  if (paragraphBlocks.length > 1) {
+    return paragraphBlocks;
+  }
+
+  const lines = text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^experience$/i.test(line) && !/^education$/i.test(line));
+
+  const entries: string[] = [];
+  let currentEntry: string[] = [];
+
+  for (const line of lines) {
+    const startsNewEntry = isExperienceHeader(line) && currentEntry.length > 0;
+
+    if (startsNewEntry) {
+      entries.push(currentEntry.join("\n").trim());
+      currentEntry = [line];
+      continue;
+    }
+
+    currentEntry.push(line);
+  }
+
+  if (currentEntry.length > 0) {
+    entries.push(currentEntry.join("\n").trim());
+  }
+
+  return entries.length > 0 ? entries : lines;
+}
+
+function isExperienceHeader(line: string): boolean {
+  const normalized = line.toLowerCase();
+  const hasDateRange =
+    /\b(?:19|20)\d{2}\b/.test(line) ||
+    /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\b/.test(normalized) ||
+    /\bpresent\b/.test(normalized);
+
+  const looksLikeRoleLine =
+    normalized.includes(" at ") ||
+    normalized.includes(" | ") ||
+    normalized.includes(" - ");
+
+  return hasDateRange || looksLikeRoleLine;
+}
+
+// Map a backend JobCard to the dashboard's RecommendedJob shape. Defined
+// here (not inside the component) so it stays referentially stable and
+// can be reused if we ever call the same endpoint from a second place.
+//
+// Field names follow the backend JobCard model in
+// backend/app/models/job_models.py (role/company, not title/company_name).
+const mapApiJobToRecommendedJob = (job: any): RecommendedJob => ({
+  id: job.job_id,
+  role: job.role ?? job.title ?? "",
+  company: job.company ?? job.company_name ?? "",
+  location: job.location || "Remote",
+  salary: job.salary || "Not specified",
+  // Backend returns fit_score=null when not personalized. Don't fall
+  // back to 0 — that would silently re-introduce the fabrication we
+  // just removed. The card gates the badge on > 0 so 0 means "no score".
+  fitScore: typeof job.fit_score === "number" ? Math.round(job.fit_score) : 0,
+  matchReason: job.reason || "Based on your skills",
+  type: job.source === "Remotive" ? "Remote" : job.type ?? "Remote",
+  deadline: job.deadline || new Date().toISOString().split("T")[0],
+});
+
 function RecommendedJobsSection() {
-  const [recommendedJobs, setRecommendedJobs] = useState<RecommendedJob[]>(defaultRecommendedJobs);
+  const [recommendedJobs, setRecommendedJobs] = useState<RecommendedJob[]>([]);
+  const [recommendMessage, setRecommendMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchRecommendedJobs = async () => {
+      setIsLoading(true);
       try {
-        const cvId = typeof window !== 'undefined' ? localStorage.getItem("careerpilot_cv_id") || "" : "";
-        
-        // If no CV uploaded, don't fetch jobs (will show upload prompt)
-        if (!cvId) return;
-        
-        const response = await fetch(`/api/jobs/search?cv_id=${encodeURIComponent(cvId)}&limit=3`);
-        const data: LiveJobSearchResponse = await response.json();
-        
-        // Handle requires_cv response or empty results
-        if (data.requires_cv || !data.jobs || data.jobs.length === 0) {
-          return; // Keep default jobs or empty
+        const cvId = getPersistedCvId();
+
+        // No CV uploaded: show live general jobs (no fake fit scores).
+        // The /search endpoint is happy without a cv_id — it just
+        // returns fit_score=null and personalized=false. We treat the
+        // results as "general" cards and surface a clear message.
+        if (!cvId) {
+          const response = await fetch(
+            `/api/jobs/search?limit=3`,
+            { headers: getCareerPilotHeaders() },
+          );
+          const data: LiveJobSearchResponse = await response.json();
+
+          if (cancelled) return;
+
+          if (!data.jobs || data.jobs.length === 0) {
+            setRecommendedJobs([]);
+            setRecommendMessage(
+              data.message ||
+                "No live jobs available right now. Check back soon.",
+            );
+            return;
+          }
+
+          setRecommendMessage(
+            data.message ||
+              "Showing general live jobs. Upload your CV to get personalized fit scores.",
+          );
+          setRecommendedJobs(data.jobs.map(mapApiJobToRecommendedJob));
+          return;
         }
-        
-        const mappedJobs: RecommendedJob[] = data.jobs.map((job: any) => ({
-          id: job.job_id,
-          role: job.title,
-          company: job.company_name,
-          location: job.candidate_required_location || job.location || "Remote",
-          salary: job.salary || "Not specified",
-          fitScore: Math.round(job.fit_score || 0),
-          matchReason: job.reason || "Based on your skills",
-          type: job.job_type || "Remote",
-          deadline: job.publication_date || new Date().toISOString().split('T')[0],
-        }));
-        setRecommendedJobs(mappedJobs);
+
+        // With a CV: hit /recommend for real, sorted, fit-scored jobs.
+        const response = await fetch(
+          `/api/jobs/recommend?cv_id=${encodeURIComponent(cvId)}&limit=3`,
+          { headers: getCareerPilotHeaders() },
+        );
+        const data: LiveJobSearchResponse = await response.json();
+
+        if (cancelled) return;
+
+        // /recommend refuses cleanly with requires_cv when the CV is
+        // missing/empty/wrong-user. We already checked for cvId above,
+        // but the backend may still reject (e.g. CV doesn't belong to
+        // this anonymous user). Show the backend's message and an empty
+        // list rather than fabricating cards.
+        if (data.requires_cv || !data.jobs || data.jobs.length === 0) {
+          setRecommendedJobs([]);
+          setRecommendMessage(
+            data.message ||
+              "Upload your CV to get personalized job recommendations.",
+          );
+          return;
+        }
+
+        setRecommendMessage(null);
+        setRecommendedJobs(data.jobs.map(mapApiJobToRecommendedJob));
       } catch (err) {
         console.error("Failed to fetch recommended jobs:", err);
+        // Network/backend failure: keep the existing UI stable. Don't
+        // blow away the user's view of their recommendations.
+        if (!cancelled) {
+          setRecommendMessage("Couldn't refresh recommendations right now.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
-    
+
     fetchRecommendedJobs();
+
+    // Refresh when the user uploads/updates/removes their CV so the
+    // section flips between personalized and general automatically.
+    const handleCvUpdated = () => {
+      fetchRecommendedJobs();
+    };
+    window.addEventListener("careerpilot_cv_updated", handleCvUpdated);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("careerpilot_cv_updated", handleCvUpdated);
+    };
   }, []);
 
   return (
@@ -348,29 +695,53 @@ function RecommendedJobsSection() {
         <SectionHeader
           eyebrow="Job Matches"
           title="Recommended For You"
-          description="Jobs that match your skills and preferences."
+          description={
+            recommendMessage ??
+            "Jobs that match your skills and preferences."
+          }
         />
         <Stagger className="grid gap-5 lg:grid-cols-3">
-          {recommendedJobs.slice(0, 3).map((job) => (
+          {isLoading && recommendedJobs.length === 0 ? (
+            <Reveal>
+              <div className="col-span-full flex items-center justify-center rounded-2xl border border-dashed border-[#e5e7eb] bg-white p-10">
+                <p className="text-sm text-[#6b7280]">Loading recommendations…</p>
+              </div>
+            </Reveal>
+          ) : recommendedJobs.length === 0 ? (
+            <Reveal>
+              <div className="col-span-full flex items-center justify-center rounded-2xl border border-dashed border-[#e5e7eb] bg-white p-10">
+                <p className="text-sm text-[#6b7280]">
+                  {recommendMessage ?? "No live jobs available right now. Check back soon."}
+                </p>
+              </div>
+            </Reveal>
+          ) : (
+            recommendedJobs.slice(0, 3).map((job) => (
             <Reveal key={job.id}>
               <div className="group flex flex-col rounded-2xl border border-[#e5e7eb] bg-white p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex gap-4">
                     <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[#F3F6FB] text-lg font-extrabold text-[#1D4ED8]">
-                      {job.company[0]}
+                      {job.company?.[0] || "?"}
                     </div>
                     <div>
                       <h3 className="text-lg font-extrabold text-black">{job.role}</h3>
                       <p className="text-sm font-bold text-[#1D4ED8]">{job.company}</p>
                     </div>
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-sm font-extrabold ${
-                    job.fitScore >= 90 ? "bg-green-100 text-green-700" :
-                    job.fitScore >= 80 ? "bg-blue-100 text-blue-700" :
-                    "bg-yellow-100 text-yellow-700"
-                  }`}>
-                    {job.fitScore}%
-                  </span>
+                  {job.fitScore > 0 ? (
+                    <span className={`rounded-full px-3 py-1 text-sm font-extrabold ${
+                      job.fitScore >= 90 ? "bg-green-100 text-green-700" :
+                      job.fitScore >= 80 ? "bg-blue-100 text-blue-700" :
+                      "bg-yellow-100 text-yellow-700"
+                    }`}>
+                      {job.fitScore}%
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-extrabold text-gray-500">
+                      General
+                    </span>
+                  )}
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 rounded-xl bg-gray-50 p-3">
@@ -403,7 +774,8 @@ function RecommendedJobsSection() {
                 </Link>
               </div>
             </Reveal>
-          ))}
+            ))
+          )}
         </Stagger>
         <Reveal>
           <div className="mt-6 flex justify-center">

@@ -1,0 +1,59 @@
+Ayaan Rahman
+Junior Software Engineer | Backend & Full-Stack Developer
+Dhaka, Bangladesh | ayaan.rahman@example.com | +880 17XX-XXXXXX | github.com/ayaan-dev | linkedin.com/in/ayaanrahman
+PROFESSIONAL SUMMARY
+Computer Science student and junior full-stack developer with hands-on experience building FastAPI backends, Next.js dashboards, 
+database-backed applications, and data-driven tools. Strong skills in Python, JavaScript, TypeScript, SQL, REST APIs, Git, and 
+problem solving. Interested in backend engineering, AI-powered applications, and scalable web systems.
+TECHNICAL SKILLS
+Languages Python, JavaScript, TypeScript, C, SQL
+Backend FastAPI, REST APIs, SQLAlchemy, Pydantic, authentication basics
+Frontend React, Next.js, Tailwind CSS, component-based UI development
+Data & Tools PostgreSQL, SQLite, Pandas, NumPy, Git, GitHub, Docker basics, 
+Linux/WSL
+PROFESSIONAL EXPERIENCE
+Backend Developer Intern | TechBridge Labs Jan 2026 - Present
+Dhaka, Bangladesh
+ Built REST API endpoints using Python, FastAPI, Pydantic, and SQLAlchemy for user profiles, application tracking, and 
+dashboard metrics.
+ Designed SQLite/PostgreSQL database models and implemented CRUD workflows for applications, todos, calendar events, and 
+assistant sessions.
+ Improved API reliability by adding request validation, clean error responses, unit tests with pytest, and structured service-layer 
+logic.
+Frontend Developer | Campus Career Portal Project Sep 2025 - Dec 2025
+Remote
+ Developed responsive Next.js and React pages for job search, CV upload, dashboard analytics, and application tracker features.
+ Integrated frontend components with backend APIs, managed loading/error states, and used Tailwind CSS for reusable interface 
+design.
+ Implemented localStorage-based state persistence for uploaded CV metadata and user preferences to improve the user 
+experience.
+Data Analyst Trainee | DataSpark Academy May 2025 - Aug 2025
+Dhaka, Bangladesh
+ Cleaned and analyzed student performance datasets using Python, Pandas, NumPy, and SQL to generate weekly reporting 
+summaries.
+ Created small automation scripts for CSV processing, skill extraction, and keyword matching to support data-driven 
+recommendations.
+ Presented insights with clear charts, written reports, and actionable recommendations for improving learning outcomes.
+PROJECTS
+CareerPilot - AI Career Co-pilot | FastAPI, Next.js, 
+RAG, SQLite
+2026
+Team Project
+ Built a CV-grounded career assistant prototype with CV upload, job matching, fit score calculation, cover letter generation, and 
+tracker modules.
+ Implemented backend services for CV parsing, skill extraction, recommendation logic, assistant session memory, and dashboard 
+data persistence.
+Job Skill Matcher | Python, NLP basics, SQL 2025
+Personal Project
+ Created a keyword-based matching tool that compares candidate skills against job descriptions and returns matched skills, 
+missing skills, and a percentage score.
+EDUCATION
+B.Sc. in Computer Science and Engineering | 
+Metropolitan University
+Expected 2028
+Sylhet, Bangladesh
+ Relevant coursework: Data Structures, Database Systems, Software Engineering, Discrete Mathematics, Web Development, 
+Artificial Intelligence basics.
+ACHIEVEMENTS & ACTIVITIES
+ Team lead for a hackathon project focused on AI career tools, backend architecture, and product demo planning.
+ Regularly practices C programming, graph theory, API development, Git workflow, and full-stack project structure.

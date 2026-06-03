@@ -1,28 +1,36 @@
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile, status
 from pydantic import BaseModel
 import os
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.database_models import CVProfile
-from app.services.cv_extraction_service import extract_text_from_cv
+from app.services.cv_extraction_service import (
+    MAX_CV_FILE_SIZE_BYTES,
+    extract_text_from_cv,
+)
 from app.services.cv_chunking_service import load_processed_cv_sections, save_processed_cv
 from app.services.fit_score import extract_skills
+from app.services.user_context_service import require_anonymous_user_id
+from app.services.vector_store_service import build_cv_rag_index
 
 
 router = APIRouter()
 
 UPLOAD_DIRECTORY = Path(__file__).resolve().parent.parent / "storage" / "uploaded_cvs"
-ALLOWED_EXTENSIONS = {".pdf", ".docx"}
-MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024
+ALLOWED_UPLOAD_TYPES = {
+    ".pdf": {"application/pdf"},
+    ".docx": {"application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+}
 CHUNK_SIZE = 64 * 1024
 INCLUDE_EXTRACTED_TEXT = os.getenv(
     "INCLUDE_EXTRACTED_TEXT_IN_UPLOAD_RESPONSE",
     "true",
 ).lower() == "true"
+INVALID_CV_FILE_MESSAGE = "Please upload a valid CV file in PDF or DOCX format."
 
 
 class CVUploadResponse(BaseModel):
@@ -44,18 +52,25 @@ class CVSectionsResponse(BaseModel):
     response_model=CVUploadResponse,
     response_model_exclude_none=True,
 )
-async def upload_cv(file: UploadFile = File(...)) -> CVUploadResponse:
+async def upload_cv(
+    file: UploadFile = File(...),
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+) -> CVUploadResponse:
+    anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
+
     if not file.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A CV file is required",
+            detail=INVALID_CV_FILE_MESSAGE,
         )
 
     suffix = Path(file.filename).suffix.lower()
-    if suffix not in ALLOWED_EXTENSIONS:
+    content_type = (file.content_type or "").lower()
+    allowed_mime_types = ALLOWED_UPLOAD_TYPES.get(suffix)
+    if not allowed_mime_types or content_type not in allowed_mime_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only PDF and DOCX files are supported",
+            detail=INVALID_CV_FILE_MESSAGE,
         )
 
     cv_id = str(uuid4())
@@ -73,10 +88,10 @@ async def upload_cv(file: UploadFile = File(...)) -> CVUploadResponse:
                     break
 
                 total_size += len(chunk)
-                if total_size > MAX_UPLOAD_SIZE_BYTES:
+                if total_size > MAX_CV_FILE_SIZE_BYTES:
                     raise HTTPException(
                         status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                        detail="Uploaded file is too large",
+                        detail="Uploaded CV file is too large. Maximum size is 5 MB.",
                     )
 
                 output_file.write(chunk)
@@ -84,7 +99,7 @@ async def upload_cv(file: UploadFile = File(...)) -> CVUploadResponse:
         if total_size == 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Uploaded CV file is empty",
+                detail="Could not extract text from the uploaded CV.",
             )
     except HTTPException:
         saved_path.unlink(missing_ok=True)
@@ -119,6 +134,7 @@ async def upload_cv(file: UploadFile = File(...)) -> CVUploadResponse:
         db: Session = next(get_db())
         try:
             cv_profile = CVProfile(
+                anonymous_user_id=anonymous_user_id,
                 cv_id=cv_id,
                 filename=file.filename,
                 file_type=suffix.lstrip("."),
@@ -133,6 +149,18 @@ async def upload_cv(file: UploadFile = File(...)) -> CVUploadResponse:
         # Don't fail upload if database save fails
         pass
 
+    # Build RAG index automatically after CV upload
+    try:
+        sections = load_processed_cv_sections(cv_id)
+        chunks = [
+            {"section": section_name, "text": section_content}
+            for section_name, section_content in sections.items()
+        ]
+        build_cv_rag_index(cv_id, chunks)
+    except Exception:
+        # Don't fail upload if RAG build fails
+        pass
+
     return CVUploadResponse(
         message="CV uploaded and processed successfully",
         cv_id=cv_id,
@@ -144,13 +172,33 @@ async def upload_cv(file: UploadFile = File(...)) -> CVUploadResponse:
 
 
 @router.get("/{cv_id}/sections", response_model=CVSectionsResponse)
-def get_cv_sections(cv_id: str) -> CVSectionsResponse:
+def get_cv_sections(
+    cv_id: str,
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+) -> CVSectionsResponse:
+    anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
+
+    from app.database import SessionLocal
+
+    db = SessionLocal()
     try:
+        profile = db.query(CVProfile).filter(
+            CVProfile.cv_id == cv_id,
+            CVProfile.anonymous_user_id == anonymous_user_id,
+        ).first()
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This CV does not belong to the current CareerPilot profile.",
+            )
+
         sections = load_processed_cv_sections(cv_id)
     except FileNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
+    finally:
+        db.close()
 
     return CVSectionsResponse(cv_id=cv_id, sections=sections)

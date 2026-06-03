@@ -9,8 +9,14 @@ from pydantic import BaseModel
 from app.api import assistant_routes, cover_letter_routes, cv_routes, fit_routes, job_routes, rag_routes, skills_fit_routes, tracker_routes, todo_routes, calendar_routes
 from app.database import Base, engine
 from app.models.database_models import CVProfile, Application, Todo, CalendarEvent, AssistantSession
+from app.services.llm_provider import provider_status
+from app.services.schema_migration_service import ensure_anonymous_user_columns
 
-load_dotenv()
+# Load .env from this file's directory (backend/.env) so the backend works
+# regardless of the CWD the uvicorn process was started with. The default
+# load_dotenv() walks up from CWD and can miss the file.
+_ENV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env")
+load_dotenv(dotenv_path=os.path.abspath(_ENV_PATH), override=False)
 
 
 class RootResponse(BaseModel):
@@ -61,6 +67,7 @@ app.include_router(calendar_routes.router, prefix="/api/calendar", tags=["Calend
 def on_startup():
     """Initialize database tables on startup."""
     Base.metadata.create_all(bind=engine)
+    ensure_anonymous_user_columns(engine)
 
 
 @app.get("/", response_model=RootResponse)
@@ -74,3 +81,9 @@ def health_check() -> HealthResponse:
         "status": "success",
         "message": "CareerPilot backend is healthy",
     }
+
+
+@app.get("/api/health/providers")
+def health_providers() -> dict:
+    """Return the LLM provider chain status (no secrets leaked)."""
+    return provider_status()

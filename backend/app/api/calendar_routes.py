@@ -1,19 +1,26 @@
 """Calendar routes for event/deadline management."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.database_models import CalendarEvent
 from app.models.calendar_models import CalendarEventCreate, CalendarEventResponse
+from app.services.user_context_service import require_anonymous_user_id
 
 
 router = APIRouter()
 
 
 @router.post("/events", response_model=CalendarEventResponse)
-def create_event(request: CalendarEventCreate, db: Session = Depends(get_db)) -> CalendarEventResponse:
+def create_event(
+    request: CalendarEventCreate,
+    db: Session = Depends(get_db),
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+) -> CalendarEventResponse:
     """Create a new calendar event."""
+    anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
     db_event = CalendarEvent(
+        anonymous_user_id=anonymous_user_id,
         title=request.title,
         description=request.description,
         event_date=request.event_date,
@@ -36,9 +43,18 @@ def create_event(request: CalendarEventCreate, db: Session = Depends(get_db)) ->
 
 
 @router.get("/events", response_model=list[CalendarEventResponse])
-def get_events(db: Session = Depends(get_db)) -> list[CalendarEventResponse]:
+def get_events(
+    db: Session = Depends(get_db),
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+) -> list[CalendarEventResponse]:
     """Get all calendar events."""
-    events = db.query(CalendarEvent).order_by(CalendarEvent.event_date.asc()).all()
+    anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
+    events = (
+        db.query(CalendarEvent)
+        .filter(CalendarEvent.anonymous_user_id == anonymous_user_id)
+        .order_by(CalendarEvent.event_date.asc())
+        .all()
+    )
 
     return [
         CalendarEventResponse(
@@ -55,9 +71,18 @@ def get_events(db: Session = Depends(get_db)) -> list[CalendarEventResponse]:
 
 
 @router.delete("/events/{event_id}")
-def delete_event(event_id: int, db: Session = Depends(get_db)) -> dict:
+def delete_event(
+    event_id: int,
+    db: Session = Depends(get_db),
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+) -> dict:
     """Delete a calendar event."""
-    event = db.query(CalendarEvent).filter(CalendarEvent.id == event_id).first()
+    anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
+    event = (
+        db.query(CalendarEvent)
+        .filter(CalendarEvent.id == event_id, CalendarEvent.anonymous_user_id == anonymous_user_id)
+        .first()
+    )
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 

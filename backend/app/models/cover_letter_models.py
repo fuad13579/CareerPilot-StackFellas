@@ -9,6 +9,11 @@ class CoverLetterRequest(BaseModel):
     job_title: str = Field(..., min_length=1, description="Job title position")
     company: str = Field(..., min_length=1, description="Company name")
     job_description: str = Field(..., min_length=1, description="Job description with requirements")
+    location: str | None = Field(None, description="Job location")
+    required_skills: list[str] = Field(default_factory=list, description="Required skills for the job")
+    job_url: str | None = Field(None, description="URL to the job posting")
+    application_id: str | None = Field(None, description="Saved tracker application ID")
+    next_action: str | None = Field(None, description="Next recommended action")
 
 
 class CoverLetterResponse(BaseModel):

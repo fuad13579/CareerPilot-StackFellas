@@ -12,6 +12,7 @@ const navLinks = [
   { name: "Upload", href: "/upload", isRoute: true },
   { name: "Jobs", href: "/jobs", isRoute: true },
   { name: "Assistant", href: "/assistant", isRoute: true },
+  { name: "Cover Letter", href: "/cover-letter", isRoute: true },
   { name: "Tracker", href: "/tracker", isRoute: true },
   { name: "Productivity", href: "/productivity", isRoute: true },
 ];

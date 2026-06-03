@@ -140,10 +140,17 @@ class TestLiveJobSearch:
 
     @pytest.mark.asyncio
     async def test_fetch_live_jobs_returns_source(self):
-        """Should return source name along with jobs."""
+        """Should return source label(s) along with jobs. With Adzuna
+        configured, the priority order is Adzuna -> Arbeitnow -> Remotive,
+        and the result is interleaved across all sources, so the label
+        can be any subset joined with '+' (e.g. ``Adzuna+Arbeitnow+Remotive``)
+        — but must never be the literal ``"None"`` placeholder or empty."""
         source, jobs, error = await fetch_live_jobs("python", "remote", 5)
-        assert source == "Remotive"
+        assert source and source != "None"
         assert isinstance(jobs, list)
+        # When at least one source is configured, label should mention a
+        # real provider.
+        assert any(name in source for name in ("Adzuna", "Arbeitnow", "Remotive"))
 
     @pytest.mark.asyncio
     async def test_live_jobs_have_is_live_true(self):
@@ -174,10 +181,28 @@ class TestLiveJobSearch:
 class TestJobSearchEndpoint:
     """Tests for GET /api/jobs/search endpoint."""
 
-    def test_search_requires_cv_id(self, client):
-        """cv_id query parameter is required."""
+    def test_search_without_cv_id_returns_general_jobs(self, client):
+        """cv_id is optional — missing/empty cv_id returns general live jobs with
+        personalized=false, fit_scores_enabled=false, and a helpful message."""
         response = client.get("/api/jobs/search")
-        assert response.status_code == 422
+        assert response.status_code == 200
+        data = response.json()
+        assert data.get("personalized") is False
+        assert data.get("fit_scores_enabled") is False
+        assert data.get("message")
+        # No fabricated fit scores when not personalized
+        for job in data.get("jobs", []):
+            assert job.get("fit_score") is None
+
+    def test_search_with_empty_cv_id_returns_general_jobs(self, client):
+        """Explicit empty cv_id is treated the same as missing cv_id."""
+        response = client.get("/api/jobs/search?cv_id=")
+        assert response.status_code == 200
+        data = response.json()
+        assert data.get("personalized") is False
+        assert data.get("fit_scores_enabled") is False
+        for job in data.get("jobs", []):
+            assert job.get("fit_score") is None
 
     def test_search_with_valid_cv_id(self, client):
         """Valid cv_id returns job response."""
@@ -202,6 +227,9 @@ class TestJobSearchEndpoint:
             assert "total" in data
             assert "is_live" in data
             assert "source" in data
+            # Personalization flags are always present
+            assert "personalized" in data
+            assert "fit_scores_enabled" in data
 
     def test_live_jobs_have_required_fields(self, client):
         """Live jobs must have required fields including is_live."""
@@ -211,6 +239,30 @@ class TestJobSearchEndpoint:
             if data["jobs"]:
                 for job in data["jobs"]:
                     assert "is_live" in job
+
+
+class TestJobRecommendEndpoint:
+    """Tests for GET /api/jobs/recommend endpoint (CV-required)."""
+
+    def test_recommend_without_cv_id_returns_requires_cv_shape(self, client):
+        """Missing cv_id returns the requires_cv=true shape, not a 422."""
+        response = client.get("/api/jobs/recommend")
+        assert response.status_code == 200
+        data = response.json()
+        assert data.get("requires_cv") is True
+        assert data.get("jobs") == []
+        assert data.get("personalized") is False
+        assert data.get("fit_scores_enabled") is False
+        assert data.get("error")
+        assert data.get("message")
+
+    def test_recommend_with_empty_cv_id_returns_requires_cv_shape(self, client):
+        """Empty cv_id is treated the same as missing cv_id."""
+        response = client.get("/api/jobs/recommend?cv_id=")
+        assert response.status_code == 200
+        data = response.json()
+        assert data.get("requires_cv") is True
+        assert data.get("jobs") == []
 
 
 class TestErrorHandling:

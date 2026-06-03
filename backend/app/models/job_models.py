@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class JobSearchRequest(BaseModel):
-    cv_id: str = Field(..., description="CV profile ID for skill matching")
+    cv_id: Optional[str] = Field(None, description="Optional CV profile ID for skill matching")
     query: str = Field(default="software internship", description="Job search query")
     location: str = Field(default="remote", description="Job location filter")
     limit: int = Field(default=10, ge=1, le=50, description="Max results to return")
@@ -19,6 +19,10 @@ class JobSearchResponse(BaseModel):
     error: Optional[str] = Field(None, description="Error message if any")
     requires_cv: bool = Field(False, description="Whether a valid CV is required")
     message: Optional[str] = Field(None, description="Informational message to user")
+    # Personalization flags. When personalized=False, the per-job fit
+    # score fields are None and must not be displayed as a real score.
+    personalized: bool = Field(False, description="Whether results are tailored to a CV")
+    fit_scores_enabled: bool = Field(False, description="Whether per-job fit_score is meaningful")
 
 
 class JobCard(BaseModel):
@@ -34,8 +38,8 @@ class JobCard(BaseModel):
     source: str = Field(..., description="Source platform (e.g., Remotive)")
     is_live: bool = Field(True, description="Whether this is from live data")
     fetched_at: datetime = Field(default_factory=datetime.utcnow, description="When data was fetched")
-    # Fit score fields
-    fit_score: float = Field(..., description="Match percentage 0-100")
+    # Fit score fields — None when no CV is provided / fit scores are disabled.
+    fit_score: Optional[float] = Field(None, description="Match percentage 0-100; None when not personalized")
     matched_skills: list[str] = Field(default_factory=list, description="Skills matching CV")
     missing_skills: list[str] = Field(default_factory=list, description="Skills not in CV")
     reason: Optional[str] = Field(None, description="Explanation of fit score")

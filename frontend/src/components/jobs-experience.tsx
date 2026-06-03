@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Search, MapPin, DollarSign, Calendar, Sparkles, Bookmark, Loader2, Briefcase, TrendingUp, AlertCircle, Lightbulb, CheckCircle2, FileText } from "lucide-react";
 import { GlassCard, Reveal, Stagger } from "./motion-shell";
 import { useTracker } from "./tracker-context";
+import { getPersistedCvId, getPersistedCvSkills, hasPersistedCv } from "./cv-storage";
+import { getCareerPilotHeaders } from "./user-storage";
 
 interface Job {
   id: string;
@@ -18,6 +20,8 @@ interface Job {
   missingSkills: string[];
   matchingSkills: string[];
   requiredSkills?: string[];
+  jobUrl?: string;
+  description?: string;
 }
 
 interface FitScoreResponse {
@@ -37,6 +41,8 @@ interface LiveJobSearchResponse {
   error: string | null;
   requires_cv?: boolean;
   message?: string | null;
+  personalized?: boolean;
+  fit_scores_enabled?: boolean;
 }
 
 // Map backend enriched job to frontend Job format
@@ -54,6 +60,8 @@ function mapApiJobToJob(apiJob: any): Job {
     missingSkills: apiJob.missing_skills || [],
     matchingSkills: apiJob.matched_skills || [],
     requiredSkills: apiJob.required_skills || [...(apiJob.matched_skills || []), ...(apiJob.missing_skills || [])],
+    jobUrl: apiJob.job_url || "",
+    description: apiJob.description || "",
   };
 }
 
@@ -90,15 +98,7 @@ const calculateFitScore = (userSkills: string[], jobSkills: string[]): FitScoreR
 
 // Load CV skills from localStorage
 const loadCvSkills = (): string[] => {
-  try {
-    const stored = localStorage.getItem("careerpilot_cv_skills");
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch {
-    // Ignore localStorage errors
-  }
-  return [];
+  return getPersistedCvSkills();
 };
 
 const getMatchColor = (fitScore: number) => {
@@ -121,36 +121,57 @@ export function JobsExperience() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLive, setIsLive] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [personalized, setPersonalized] = useState(false);
+  const [fitScoresEnabled, setFitScoresEnabled] = useState(false);
+  const [resultsMessage, setResultsMessage] = useState<string | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
   const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
   const [analyzedJobs, setAnalyzedJobs] = useState<Set<string>>(new Set());
-  const [cvSkills, setCvSkills] = useState<string[]>(loadCvSkills);
-  const [hasCvUploaded, setHasCvUploaded] = useState(cvSkills.length > 0);
+  const [cvSkills, setCvSkills] = useState<string[]>(loadCvSkills());
+  const [hasCvUploaded, setHasCvUploaded] = useState(hasPersistedCv());
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // Reusable refresh function for live jobs only
+  // Reusable refresh function for live jobs only.
+  // Uses a ref for the live query so the function identity stays stable
+  // across keystrokes — otherwise the initial-load effect below would
+  // re-fire on every character typed in the search bar.
+  const searchQueryRef = useRef(searchQuery);
+  useEffect(() => {
+    searchQueryRef.current = searchQuery;
+  }, [searchQuery]);
+
   const refreshJobs = useCallback(async (overrideQuery?: string) => {
-    const currentCvId = localStorage.getItem("careerpilot_cv_id") || "";
-    const query = overrideQuery !== undefined ? overrideQuery : searchQuery;
-    
+    const currentCvId = getPersistedCvId();
+    const query = overrideQuery !== undefined ? overrideQuery : searchQueryRef.current;
+
     setIsSearching(true);
     setApiError(null);
-    
+    setResultsMessage(null);
+
     try {
       const params = new URLSearchParams({
         cv_id: currentCvId,
         limit: "12",
       });
-      
-      if (query.trim()) {
+
+      if (query && query.trim()) {
         params.set("query", query.trim());
       }
-      
-      const response = await fetch(`/api/jobs/search?${params.toString()}`);
+
+      const response = await fetch(`/api/jobs/search?${params.toString()}`, {
+        headers: getCareerPilotHeaders(),
+      });
       const data: LiveJobSearchResponse = await response.json();
-      
-      // Handle requires_cv response
+
+      // Always sync the personalization flags from the response
+      setPersonalized(Boolean(data.personalized));
+      setFitScoresEnabled(Boolean(data.fit_scores_enabled));
+      if (data.message) {
+        setResultsMessage(data.message);
+      }
+
+      // Handle requires_cv response — backend rejected the cv_id we sent
       if (data.requires_cv) {
         setJobs([]);
         setIsLive(false);
@@ -172,37 +193,49 @@ export function JobsExperience() {
       setApiError("Unable to connect to job search service. Please try again.");
       setJobs([]);
       setIsLive(false);
+      setPersonalized(false);
+      setFitScoresEnabled(false);
     } finally {
       setIsSearching(false);
       setIsInitialLoad(false);
     }
-  }, [searchQuery]);
+  }, []);
 
-  // Initial load and CV upload detection
+  // Debounced live search-as-you-type. Re-runs only when the query string
+  // actually changes (not on every keystroke). Initial load fetches once.
   useEffect(() => {
-    refreshJobs();
-    
-    // Listen for CV updates from same tab (upload page)
+    if (isInitialLoad) {
+      refreshJobs();
+      return;
+    }
+    const handle = setTimeout(() => {
+      refreshJobs();
+    }, 350);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, isInitialLoad]);
+
+  // CV update listeners (same-tab and cross-tab).
+  useEffect(() => {
     const handleCvUpdated = () => {
       const skills = loadCvSkills();
       setCvSkills(skills);
-      setHasCvUploaded(skills.length > 0);
+      setHasCvUploaded(hasPersistedCv());
       refreshJobs();
     };
-    
-    // Listen for CV updates from other tabs
+
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "careerpilot_cv_skills" || e.key === "careerpilot_cv_id") {
         const skills = loadCvSkills();
         setCvSkills(skills);
-        setHasCvUploaded(skills.length > 0);
+        setHasCvUploaded(hasPersistedCv());
         refreshJobs();
       }
     };
-    
+
     window.addEventListener("careerpilot_cv_updated", handleCvUpdated);
     window.addEventListener("storage", handleStorageChange);
-    
+
     return () => {
       window.removeEventListener("careerpilot_cv_updated", handleCvUpdated);
       window.removeEventListener("storage", handleStorageChange);
@@ -251,6 +284,9 @@ export function JobsExperience() {
       fitScore: fitScore,
       deadline: job.deadline,
       nextAction: "Follow up with recruiter in 1 week",
+      jobDescription: job.description || job.matchReason,
+      requiredSkills: job.requiredSkills || [],
+      jobUrl: job.jobUrl || job.id,
     });
     setAppliedJobs((prev) => new Set(prev).add(job.id));
   };
@@ -296,13 +332,16 @@ export function JobsExperience() {
         )}
       </div>
 
-      {/* CV Skills Notice */}
-      {!hasCvUploaded && !isSearching && (
+      {/* General-results notice (no CV or CV rejected). Copy is driven by the
+          backend's `message` field; falls back to a local default. */}
+      {!fitScoresEnabled && !isSearching && !apiError && jobs.length > 0 && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
           <div className="flex items-center gap-3">
             <AlertCircle size={18} className="text-blue-600" />
             <div>
-              <p className="text-sm font-semibold text-blue-700">Upload your CV first to calculate personalized fit scores</p>
+              <p className="text-sm font-semibold text-blue-700">
+                {resultsMessage || "Showing general live jobs. Upload a CV to get personalized fit scores."}
+              </p>
               <p className="text-xs text-blue-600">Go to /upload to upload your CV and enable skill-based matching</p>
             </div>
           </div>
@@ -360,16 +399,22 @@ export function JobsExperience() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex gap-4">
                   <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-[#F3F6FB] text-xl font-extrabold text-[#1D4ED8]">
-                    {job.company[0]}
+                    {job.company?.[0] || "?"}
                   </div>
                   <div>
                     <h2 className="text-xl font-extrabold text-gray-900">{job.role}</h2>
                     <p className="text-sm font-bold text-[#1D4ED8]">{job.company}</p>
                   </div>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-sm font-extrabold ${getMatchColor(displayFitScore)}`}>
-                  {displayFitScore}% Match
-                </span>
+                {fitScoresEnabled ? (
+                  <span className={`rounded-full px-3 py-1 text-sm font-extrabold ${getMatchColor(displayFitScore)}`}>
+                    {displayFitScore}% Match
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-extrabold text-gray-500">
+                    General
+                  </span>
+                )}
               </div>
 
               {/* Details */}
@@ -395,14 +440,16 @@ export function JobsExperience() {
                 </div>
               </div>
 
-              {/* Match Reason */}
-              <div className="mt-4 rounded-xl bg-[#F0F9FF] p-4">
-                <div className="mb-2 flex items-center gap-2">
-                  <TrendingUp size={14} className="text-[#1D4ED8]" />
-                  <span className="text-xs font-semibold text-[#1D4ED8]">Why this matches</span>
+              {/* Match Reason — only when we have a CV and computed fit scores */}
+              {fitScoresEnabled && (
+                <div className="mt-4 rounded-xl bg-[#F0F9FF] p-4">
+                  <div className="mb-2 flex items-center gap-2">
+                    <TrendingUp size={14} className="text-[#1D4ED8]" />
+                    <span className="text-xs font-semibold text-[#1D4ED8]">Why this matches</span>
+                  </div>
+                  <p className="text-sm leading-relaxed text-gray-700">{job.matchReason}</p>
                 </div>
-                <p className="text-sm leading-relaxed text-gray-700">{job.matchReason}</p>
-              </div>
+              )}
 
               {/* Missing Skills - Always visible */}
               {displayMissingSkills.length > 0 ? (

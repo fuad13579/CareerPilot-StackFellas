@@ -26,9 +26,10 @@ def build_cv_rag_index(cv_id: str, chunks: list[dict]) -> dict:
     embedding_result = embedding_service.embed_texts(chunk_texts)
 
     stored_chunks = []
-    for chunk in chunks:
+    for idx, chunk in enumerate(chunks):
         stored_chunks.append(
             {
+                "chunk_id": f"chunk_{idx}",
                 **chunk,
             }
         )
@@ -90,10 +91,10 @@ def retrieve_relevant_chunks(cv_id: str, query: str, top_k: int = 3) -> list[dic
     similarity_scores = embedding_service.cosine_similarity(query_vector, chunk_vectors)
 
     ranked_results = []
-    for chunk, score in zip(chunks, similarity_scores):
+    for idx, (chunk, score) in enumerate(zip(chunks, similarity_scores)):
         ranked_results.append(
             {
-                "chunk_id": chunk["chunk_id"],
+                "chunk_id": chunk.get("chunk_id", f"chunk_{idx}"),
                 "section": chunk["section"],
                 "text": chunk["text"],
                 "score": round(float(score), 4),
