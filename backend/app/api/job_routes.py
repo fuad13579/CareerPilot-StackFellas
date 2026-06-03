@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -12,6 +12,13 @@ from app.services.job_search_service import fetch_live_jobs
 from app.services.job_recommendation_service import (
     enrich_job_with_fit_score,
     sort_jobs_by_fit_score,
+)
+from app.services.job_cache_service import (
+    build_cache_key,
+    cache_metadata,
+    get_fresh,
+    get_stale,
+    save_cache,
 )
 from app.services.user_context_service import require_anonymous_user_id
 
@@ -48,12 +55,86 @@ async def get_cv_skills(cv_id: str, anonymous_user_id: str, db: Session) -> list
     return skills
 
 
+def _empty_cache_metadata() -> dict[str, Any]:
+    return {"cached": False, "fetched_at": None, "cache_expires_at": None}
+
+
+async def resolve_live_jobs(
+    db: Session,
+    query: str,
+    location: str,
+    limit: int,
+    force_refresh: bool,
+) -> tuple[list[Any], str, str | None, dict[str, Any]]:
+    """
+    Cache-aware live job resolver.
+
+    Rules (from the spec):
+      * Cache only real, live-fetched jobs — never demo or static.
+      * Default TTL is 15 minutes (configurable via env).
+      * ``force_refresh=true`` always bypasses the cache.
+      * If live APIs fail but a cached row exists (even if expired),
+        return the stale row with a warning message.
+      * If live APIs fail and no cache row exists, return an empty
+        result so the caller can surface a clean error.
+
+    Returns:
+        (jobs, source, error_message, cache_metadata)
+    """
+    cache_key = build_cache_key(query, location, limit)
+
+    # 1. Fresh hit? Serve immediately, no API calls.
+    if not force_refresh:
+        fresh = get_fresh(db, cache_key)
+        if fresh is not None:
+            jobs, source, fetched_at, expires_at = fresh
+            logger.info("Job cache HIT (fresh) key=%s jobs=%d", cache_key, len(jobs))
+            return jobs, source, None, cache_metadata(fetched_at, expires_at)
+
+    # 2. Miss / expired / force-refresh — call the live APIs.
+    source, jobs, error = await fetch_live_jobs(query, location, min(limit, 50))
+
+    if jobs:
+        # Only persist real, live-fetched results. Empty / failed
+        # results are deliberately not cached so we don't poison the
+        # next call.
+        save_cache(db, cache_key, query, location, limit, source, jobs)
+        return jobs, source, error, _empty_cache_metadata()
+
+    # 3. Live APIs returned nothing. Try a stale cache as a safety net.
+    stale = get_stale(db, cache_key)
+    if stale is not None:
+        jobs, source, fetched_at, expires_at = stale
+        warning = (
+            error
+            or "Live job sources are temporarily unavailable. "
+            "Showing recently cached results."
+        )
+        logger.warning(
+            "Job cache STALE fallback key=%s jobs=%d reason=%s",
+            cache_key, len(jobs), warning,
+        )
+        return jobs, source, warning, cache_metadata(fetched_at, expires_at)
+
+    # 4. No cache, no live jobs — caller surfaces the error.
+    return (
+        [],
+        source or "None",
+        error or "No live job sources are currently available.",
+        _empty_cache_metadata(),
+    )
+
+
 @router.get("/search", response_model=JobSearchResponse)
 async def search_jobs(
     cv_id: Optional[str] = None,
     query: str = "software internship",
     location: str = "remote",
     limit: int = 10,
+    force_refresh: bool = Query(
+        default=False,
+        description="Bypass the cache and re-call the live job APIs.",
+    ),
     x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
@@ -67,6 +148,10 @@ async def search_jobs(
     calculated and ``personalized=False`` / ``fit_scores_enabled=False``
     are set on the response. The frontend must not display a fit score
     in that case.
+
+    Results are served from a short-lived cache (default 15 min). The
+    cache only ever contains real, live-fetched jobs. Pass
+    ``force_refresh=true`` to skip the cache and re-call the live APIs.
 
     For CV-required personalized recommendations, use ``GET /recommend``
     instead.
@@ -84,6 +169,7 @@ async def search_jobs(
             "message": "Anonymous user ID is missing. Please refresh CareerPilot and try again.",
             "personalized": False,
             "fit_scores_enabled": False,
+            **_empty_cache_metadata(),
         }
 
     # cv_id is optional. If missing/empty we still return live jobs but
@@ -105,18 +191,21 @@ async def search_jobs(
                 "message": "This CV does not belong to the current CareerPilot profile.",
                 "personalized": False,
                 "fit_scores_enabled": False,
+                **_empty_cache_metadata(),
             }
         personalized = True
 
     logger.info(
         f"Searching jobs: query='{query}', location='{location}', limit={limit}, "
-        f"has_cv={'yes' if cv_skills else 'no'}"
+        f"has_cv={'yes' if cv_skills else 'no'}, force_refresh={force_refresh}"
     )
 
-    # Fetch live jobs
-    source, jobs, error = await fetch_live_jobs(query, location, min(limit, 50))
+    # Cache-aware live fetch.
+    jobs, source, error, cache_info = await resolve_live_jobs(
+        db, query, location, limit, force_refresh
+    )
 
-    # If no live jobs available, return empty response
+    # If no jobs available, return empty response
     if not jobs:
         return {
             "jobs": [],
@@ -132,6 +221,7 @@ async def search_jobs(
             ),
             "personalized": personalized,
             "fit_scores_enabled": personalized,
+            **cache_info,
         }
 
     # Build response. Only enrich with fit scores when we actually have CV
@@ -159,6 +249,7 @@ async def search_jobs(
         ),
         "personalized": personalized,
         "fit_scores_enabled": personalized,
+        **cache_info,
     }
 
 
@@ -168,6 +259,10 @@ async def recommend_jobs(
     query: str = "software internship",
     location: str = "remote",
     limit: int = 10,
+    force_refresh: bool = Query(
+        default=False,
+        description="Bypass the cache and re-call the live job APIs.",
+    ),
     x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
@@ -180,7 +275,10 @@ async def recommend_jobs(
     are returned and no fit scores are fabricated.
 
     On success, jobs are enriched with real fit scores and sorted by
-    match (best first).
+    match (best first). The underlying live job results reuse the
+    general short-lived cache (just like ``/search``), but the per-job
+    fit scores are ALWAYS recomputed from the CV — they are never
+    cached globally.
     """
     cv_id_clean = (cv_id or "").strip()
 
@@ -195,6 +293,7 @@ async def recommend_jobs(
             "message": "Please upload your CV first to get personalized job recommendations.",
             "personalized": False,
             "fit_scores_enabled": False,
+            **_empty_cache_metadata(),
         }
 
     try:
@@ -210,6 +309,7 @@ async def recommend_jobs(
             "message": "Anonymous user ID is missing. Please refresh CareerPilot and try again.",
             "personalized": False,
             "fit_scores_enabled": False,
+            **_empty_cache_metadata(),
         }
 
     cv_skills = await get_cv_skills(cv_id_clean, anonymous_user_id, db)
@@ -224,14 +324,19 @@ async def recommend_jobs(
             "message": "This CV does not belong to the current CareerPilot profile.",
             "personalized": False,
             "fit_scores_enabled": False,
+            **_empty_cache_metadata(),
         }
 
     logger.info(
         f"Recommending jobs: query='{query}', location='{location}', "
-        f"limit={limit}, cv_id={cv_id_clean}"
+        f"limit={limit}, cv_id={cv_id_clean}, force_refresh={force_refresh}"
     )
 
-    source, jobs, error = await fetch_live_jobs(query, location, min(limit, 50))
+    # Reuse the same cache-aware live fetch as /search. The CV's fit
+    # scores are recomputed below — the cache stores real jobs only.
+    jobs, source, error, cache_info = await resolve_live_jobs(
+        db, query, location, limit, force_refresh
+    )
 
     if not jobs:
         return {
@@ -244,6 +349,7 @@ async def recommend_jobs(
             "message": None,
             "personalized": True,
             "fit_scores_enabled": True,
+            **cache_info,
         }
 
     enriched_jobs = [enrich_job_with_fit_score(job, cv_skills) for job in jobs]
@@ -259,4 +365,5 @@ async def recommend_jobs(
         "message": None,
         "personalized": True,
         "fit_scores_enabled": True,
+        **cache_info,
     }
