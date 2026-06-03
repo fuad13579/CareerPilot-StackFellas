@@ -23,6 +23,13 @@ class JobSearchResponse(BaseModel):
     # score fields are None and must not be displayed as a real score.
     personalized: bool = Field(False, description="Whether results are tailored to a CV")
     fit_scores_enabled: bool = Field(False, description="Whether per-job fit_score is meaningful")
+    # Cache metadata. ``cached`` is True when the response was served
+    # from the short-lived cache (or a stale fallback). ``fetched_at``
+    # and ``cache_expires_at`` are ISO-8601 UTC strings; they are null
+    # when no cache entry is in play.
+    cached: bool = Field(False, description="Whether the jobs came from the short-lived cache")
+    fetched_at: Optional[str] = Field(None, description="When the cached jobs were originally fetched (ISO-8601 UTC)")
+    cache_expires_at: Optional[str] = Field(None, description="When the cached entry expires (ISO-8601 UTC)")
 
 
 class JobCard(BaseModel):

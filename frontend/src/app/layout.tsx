@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AmbientBackground } from "@/components/motion-shell";
+import { AmbientBackground, ClientOnly } from "@/components/motion-shell";
 import { Navigation } from "@/components/navigation";
 import { TrackerProvider } from "@/components/tracker-context";
 import "@fontsource/inter/500.css";
@@ -26,7 +26,9 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full bg-[#FAF7F0] text-[#111827]">
         <TrackerProvider>
-          <AmbientBackground />
+          <ClientOnly>
+            <AmbientBackground />
+          </ClientOnly>
           <div className="min-h-screen">
             <Navigation />
             <main className="min-w-0 px-5 pb-16 pt-24 sm:px-8 lg:px-10">

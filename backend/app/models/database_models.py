@@ -84,3 +84,31 @@ class AssistantSession(Base):
     role: Mapped[str] = mapped_column(String(50))  # "user" or "assistant"
     content: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class JobSearchCache(Base):
+    """
+    Short-lived cache of live job search results.
+
+    Rows are keyed by ``(cache_key)`` which is derived from
+    ``(query, location, limit)``. The ``source`` column records which
+    live provider(s) produced the row (e.g. "Adzuna+Arbeitnow"). Jobs
+    are stored as a JSON blob of normalized JobCard dicts so we can
+    hand them straight back to the frontend without re-hitting APIs.
+
+    Cached rows ONLY contain real, live-fetched jobs — never demo or
+    hand-crafted fallbacks. The ``fetched_at`` / ``expires_at`` columns
+    drive the TTL (default 15 minutes) and let us distinguish a fresh
+    hit from a stale-but-still-usable one when the live APIs fail.
+    """
+    __tablename__ = "job_search_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    cache_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    query: Mapped[str] = mapped_column(String(255))
+    location: Mapped[str] = mapped_column(String(255))
+    limit: Mapped[int] = mapped_column(Integer)
+    source: Mapped[str] = mapped_column(String(255))
+    jobs_json: Mapped[str] = mapped_column(Text)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, index=True)
