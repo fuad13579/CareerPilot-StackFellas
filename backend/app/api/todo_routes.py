@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.database_models import Todo
-from app.models.todo_models import TodoCreate, TodoUpdate, TodoResponse
+from app.models.todo_models import TodoCreate, TodoUpdate, TodoResponse, TodoStats
 from app.services.user_context_service import require_anonymous_user_id
 
 
@@ -24,6 +24,8 @@ def create_todo(
         title=request.title,
         description=request.description,
         due_date=request.due_date,
+        linked_type=request.linked_type,
+        linked_id=request.linked_id,
     )
     db.add(db_todo)
     db.commit()
@@ -35,6 +37,8 @@ def create_todo(
         description=db_todo.description,
         is_completed=db_todo.is_completed,
         due_date=db_todo.due_date,
+        linked_type=db_todo.linked_type,
+        linked_id=db_todo.linked_id,
         created_at=db_todo.created_at.isoformat(),
     )
 
@@ -60,10 +64,28 @@ def get_todos(
             description=todo.description,
             is_completed=todo.is_completed,
             due_date=todo.due_date,
+            linked_type=todo.linked_type,
+            linked_id=todo.linked_id,
             created_at=todo.created_at.isoformat(),
         )
         for todo in todos
     ]
+
+
+@router.get("/stats", response_model=TodoStats)
+def get_todo_stats(db: Session = Depends(get_db)) -> TodoStats:
+    """Get todo statistics for progress tracking."""
+    total = db.query(Todo).count()
+    completed = db.query(Todo).filter(Todo.is_completed == True).count()
+    remaining = total - completed
+    progress_percentage = (completed / total * 100) if total > 0 else 0.0
+
+    return TodoStats(
+        total=total,
+        completed=completed,
+        remaining=remaining,
+        progress_percentage=round(progress_percentage, 1),
+    )
 
 
 @router.patch("/{todo_id}", response_model=TodoResponse)
@@ -91,6 +113,10 @@ def update_todo(
         todo.is_completed = request.is_completed
     if request.due_date is not None:
         todo.due_date = request.due_date
+    if request.linked_type is not None:
+        todo.linked_type = request.linked_type
+    if request.linked_id is not None:
+        todo.linked_id = request.linked_id
 
     db.commit()
     db.refresh(todo)
@@ -101,6 +127,8 @@ def update_todo(
         description=todo.description,
         is_completed=todo.is_completed,
         due_date=todo.due_date,
+        linked_type=todo.linked_type,
+        linked_id=todo.linked_id,
         created_at=todo.created_at.isoformat(),
     )
 

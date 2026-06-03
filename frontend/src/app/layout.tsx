@@ -2,6 +2,14 @@ import type { Metadata } from "next";
 import { AmbientBackground, ClientOnly } from "@/components/motion-shell";
 import { Navigation } from "@/components/navigation";
 import { TrackerProvider } from "@/components/tracker-context";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/inter/800.css";
+import "@fontsource/manrope/500.css";
+import "@fontsource/manrope/600.css";
+import "@fontsource/manrope/700.css";
+import "@fontsource/manrope/800.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
