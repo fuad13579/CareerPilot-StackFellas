@@ -1,31 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { PageShell } from "@/components/page-shell";
-import { KanbanBoard } from "@/components/kanban-board";
-import { JobApplication } from "@/components/job-card";
-
-const STORAGE_KEY = "careerpilot-tracker-applications";
-
-async function fetchWithTimeout(url: string, timeoutMs = 3000) {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(url, { signal: controller.signal });
-  } finally {
-    window.clearTimeout(timeout);
-  }
-}
-
-function loadLocalApplications() {
-  try {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    return saved ? (JSON.parse(saved) as JobApplication[]) : [];
-  } catch {
-    return [];
-  }
-}
+import { TrackerExperience } from "@/components/tracker-experience";
 
 export default function TrackerPage() {
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -57,24 +30,15 @@ export default function TrackerPage() {
   };
 
   return (
-    <PageShell
-      title="Tracker"
-      description="Monitor application status, follow-up timing, interview stages, and outcomes."
-    >
-      {isLoading ? (
-        <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-200 border-t-cyan-600" />
-        </div>
-      ) : error ? (
-        <>
-          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            {error}
-          </div>
-          <KanbanBoard initialApplications={applications} />
-        </>
-      ) : (
-        <KanbanBoard initialApplications={applications} />
-      )}
-    </PageShell>
+    <div className="pb-12">
+      {/* Page Header */}
+      <div className="mb-6 border-b border-gray-200 pb-4">
+        <h1 className="text-2xl font-extrabold text-[#111827]">Tracker</h1>
+        <p className="mt-1 text-sm font-medium text-[#6B7280]">
+          Monitor application status, follow-up timing, interview stages, and outcomes.
+        </p>
+      </div>
+      <TrackerExperience />
+    </div>
   );
 }

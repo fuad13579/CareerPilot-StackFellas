@@ -14,3 +14,7 @@ backend/app/storage/vector_db/
 # Local database
 *.db
 backend/app/storage/*.db
+
+# Debug logs
+debug.log
+*.log

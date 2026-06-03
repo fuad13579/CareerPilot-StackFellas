@@ -1,21 +1,16 @@
-import { PageShell } from "@/components/page-shell";
+"use client";
+
+import { PageShell } from "@/components/motion-shell";
+import { UploadExperience } from "@/components/upload-experience";
 
 export default function UploadPage() {
   return (
     <PageShell
-      title="Upload"
-      description="Upload a resume or job description so CareerPilot can extract skills, experience, and role requirements."
+      eyebrow="CareerPilot"
+      title="Upload Your CV"
+      description="CareerPilot analyzes your CV and uses it as the source of truth for job matching, AI assistant answers, cover letters, and skill gap analysis."
     >
-      <div className="rounded-lg border border-dashed border-cyan-300 bg-white p-8 text-center shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-950">Resume intake</h2>
-        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-600">
-          Drag-and-drop support and parsing will connect here. For now, this page
-          establishes the upload workflow surface.
-        </p>
-        <button className="mt-6 rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700">
-          Select file
-        </button>
-      </div>
+      <UploadExperience />
     </PageShell>
   );
 }

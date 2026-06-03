@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PageShell } from "@/components/page-shell";
+import { PageShell } from "@/components/motion-shell";
 import { TodoList } from "@/components/todo-list";
 import { DeadlineList } from "@/components/deadline-list";
 import { ProgressWidget } from "@/components/progress-widget";
