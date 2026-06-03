@@ -13,6 +13,30 @@ import type { ReactNode } from "react";
 const PREMIUM_EASE = [0.22, 1, 0.36, 1] as const;
 const SOFT_EASE = [0.4, 0, 0.2, 1] as const;
 
+/**
+ * Defers rendering of children until after the first client render. Used
+ * to wrap framer-motion blocks whose `animate`/`whileInView` style output
+ * is not byte-identical between SSR and the initial client render, which
+ * otherwise triggers a React hydration mismatch warning.
+ *
+ * The first paint is slightly delayed (one frame), but the visual result
+ * is identical — and we no longer fight React to keep SSR happy.
+ */
+export function ClientOnly({
+  children,
+  fallback = null,
+}: {
+  children: ReactNode;
+  fallback?: ReactNode;
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  if (!mounted) return <>{fallback}</>;
+  return <>{children}</>;
+}
+
 // Entrance animation variants
 const entranceVariants = {
   hidden: { opacity: 0, y: 24, filter: "blur(8px)" },

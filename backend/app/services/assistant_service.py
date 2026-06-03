@@ -23,7 +23,7 @@ def _session_key(anonymous_user_id: str | None, session_id: str) -> str:
 
 def get_conversation_history(session_id: str, anonymous_user_id: str | None = None, db=None) -> list[dict[str, str]]:
     """Get conversation history for a session from database.
-    
+
     Queries AssistantSession rows by session_id and returns a list of
     message dictionaries ordered by created_at ascending.
     """
@@ -38,8 +38,16 @@ def get_conversation_history(session_id: str, anonymous_user_id: str | None = No
 
             sessions = query.order_by(AssistantSession.created_at.asc()).all()
             if sessions:
-                # Sync to memory for consistency
-                history = [{"role": s.role, "content": s.content} for s in sessions]
+                # Sync to memory for consistency. We keep the created_at stamp
+                # so the /history endpoint can echo it back to the client.
+                history = [
+                    {
+                        "role": s.role,
+                        "content": s.content,
+                        "created_at": s.created_at.isoformat() if s.created_at else None,
+                    }
+                    for s in sessions
+                ]
                 # Keep only last MAX_HISTORY_MESSAGES
                 history = history[-MAX_HISTORY_MESSAGES:]
                 SESSION_MEMORY[_session_key(anonymous_user_id, session_id)] = history
@@ -50,7 +58,7 @@ def get_conversation_history(session_id: str, anonymous_user_id: str | None = No
     except Exception:
         pass
 
-    # Fall back to in-memory
+    # Fall back to in-memory (no timestamps available)
     return SESSION_MEMORY.get(_session_key(anonymous_user_id, session_id), [])
 
 

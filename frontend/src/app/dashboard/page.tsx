@@ -1,11 +1,13 @@
 import { DashboardHome } from "@/components/dashboard";
 import { Navigation } from "@/components/navigation";
-import { AmbientBackground } from "@/components/motion-shell";
+import { AmbientBackground, ClientOnly } from "@/components/motion-shell";
 
 export default function DashboardPage() {
   return (
     <>
-      <AmbientBackground />
+      <ClientOnly>
+        <AmbientBackground />
+      </ClientOnly>
       <Navigation />
       <DashboardHome />
     </>

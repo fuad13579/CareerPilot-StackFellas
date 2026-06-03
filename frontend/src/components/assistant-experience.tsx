@@ -104,6 +104,7 @@ export function AssistantExperience() {
   const [error, setError] = useState("");
   const [cvId, setCvId] = useState("");
   const [sessionId, setSessionId] = useState("");
+  const [isRehydrating, setIsRehydrating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -128,6 +129,64 @@ export function AssistantExperience() {
       window.removeEventListener("careerpilot_cv_updated", syncPersistentState);
     };
   }, []);
+
+  // Rehydrate the previous conversation for this session on mount.
+  // The backend persists every user/assistant turn, so a refresh — or
+  // a new tab — should not wipe the chat. We only re-run when the
+  // sessionId actually changes (initial mount + cross-tab sync).
+  useEffect(() => {
+    if (!sessionId) return;
+
+    let cancelled = false;
+    const rehydrate = async () => {
+      setIsRehydrating(true);
+      try {
+        const response = await fetch(
+          `/api/assistant/history?session_id=${encodeURIComponent(sessionId)}`,
+          { headers: getCareerPilotHeaders() },
+        );
+        if (!response.ok) {
+          // Don't replace the seed greeting if the backend is down —
+          // better to show a friendly default than an empty chat.
+          return;
+        }
+        const payload = await response.json().catch(() => ({}));
+        if (cancelled) return;
+        const history = Array.isArray(payload?.messages) ? payload.messages : [];
+        if (history.length === 0) return;
+
+        const rehydrated: Message[] = history
+          .filter(
+            (m: { role?: unknown; content?: unknown }) =>
+              (m.role === "user" || m.role === "assistant") &&
+              typeof m.content === "string" &&
+              m.content.trim().length > 0,
+          )
+          .map((m: { role: "user" | "assistant"; content: string }, index: number) => ({
+            id: `history-${index}-${m.content.slice(0, 8)}`,
+            role: m.role,
+            content: m.content,
+            timestamp: new Date(),
+          }));
+
+        if (rehydrated.length > 0) {
+          setMessages(rehydrated);
+        }
+      } catch {
+        // Network failure: keep the seed greeting. The user can still
+        // start a fresh conversation.
+      } finally {
+        if (!cancelled) {
+          setIsRehydrating(false);
+        }
+      }
+    };
+
+    void rehydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -241,6 +300,12 @@ export function AssistantExperience() {
       )}
 
       <div className="flex-1 space-y-3 overflow-y-auto pr-1.5">
+        {isRehydrating && (
+          <div className="flex items-center gap-2 text-xs font-medium text-[#6B7280]">
+            <Loader2 size={12} className="animate-spin" />
+            <span>Restoring your previous chat…</span>
+          </div>
+        )}
         {messages.map((msg) => (
           <div
             key={msg.id}
