@@ -90,6 +90,7 @@ It launches the same two processes but uses the system Python interpreter instea
 | POST | `/api/assistant/chat` | Chat with the RAG assistant over your CV. |
 
 Frontend integration details, request examples, response examples, and error cases are documented in [`docs/API.md`](docs/API.md).
+System architecture, RAG flow, job scoring, and tracker data flow are documented in [`docs/architecture.md`](docs/architecture.md).
 
 ---
 
