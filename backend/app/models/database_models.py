@@ -54,6 +54,8 @@ class Todo(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
     due_date: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    linked_type: Mapped[str | None] = mapped_column(String(50), nullable=True)  # "goal" or "application"
+    linked_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -67,6 +69,7 @@ class CalendarEvent(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     event_date: Mapped[str] = mapped_column(String(50))
     related_application_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("applications.id"), nullable=True)
+    linked_type: Mapped[str | None] = mapped_column(String(50), nullable=True)  # "goal", "application", or "general"
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

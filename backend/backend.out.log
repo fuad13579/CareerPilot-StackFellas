@@ -1,0 +1,19 @@
+INFO:     127.0.0.1:55621 - "GET /api/tracker/applications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61747 - "GET /api/todos/stats HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:64051 - "GET /api/todos/stats HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54508 - "GET /api/todos/stats HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:54504 - "GET /api/todos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54505 - "GET /api/calendar/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54507 - "GET /api/tracker/applications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59742 - "GET /api/todos/stats HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:59745 - "GET /api/todos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59746 - "GET /api/calendar/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50302 - "GET /api/tracker/applications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58255 - "GET /api/todos/stats HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:57107 - "GET /api/todos/stats HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:58253 - "GET /api/tracker/applications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58469 - "GET /api/tracker/applications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51803 - "GET /api/todos/stats HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:51796 - "GET /api/todos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55595 - "GET /api/tracker/applications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55597 - "GET /api/tracker/applications HTTP/1.1" 200 OK

@@ -14,6 +14,7 @@ const navLinks = [
   { name: "Assistant", href: "/assistant", isRoute: true },
   { name: "Cover Letter", href: "/cover-letter", isRoute: true },
   { name: "Tracker", href: "/tracker", isRoute: true },
+  { name: "Productivity", href: "/productivity", isRoute: true },
 ];
 
 export function Navigation() {

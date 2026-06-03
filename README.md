@@ -85,9 +85,12 @@ It launches the same two processes but uses the system Python interpreter instea
 | GET | `/health` | Liveness check (returns `{ "status": "ok" }`). |
 | GET | `/api/health/providers` | Reports which LLM provider is active (booleans + model names, never the key values). |
 | POST | `/api/cv/upload` | Upload a CV (PDF/DOCX), parse + chunk + embed into the local vector store. |
-| POST | `/api/jobs/search` | Search for jobs by free-text query. |
+| GET | `/api/jobs/search` | Search for jobs by free-text query. |
 | POST | `/api/fit/score` | Compute fit score between a CV and a job posting. |
 | POST | `/api/assistant/chat` | Chat with the RAG assistant over your CV. |
+
+Frontend integration details, request examples, response examples, and error cases are documented in [`docs/API.md`](docs/API.md).
+System architecture, RAG flow, job scoring, and tracker data flow are documented in [`docs/architecture.md`](docs/architecture.md).
 
 ---
 

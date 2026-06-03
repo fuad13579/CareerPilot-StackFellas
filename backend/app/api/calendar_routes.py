@@ -25,6 +25,7 @@ def create_event(
         description=request.description,
         event_date=request.event_date,
         related_application_id=request.related_application_id,
+        linked_type=request.linked_type,
     )
     db.add(db_event)
     db.commit()
@@ -36,6 +37,7 @@ def create_event(
         description=db_event.description,
         event_date=db_event.event_date,
         related_application_id=db_event.related_application_id,
+        linked_type=db_event.linked_type,
         created_at=db_event.created_at.isoformat(),
     )
 
@@ -61,6 +63,7 @@ def get_events(
             description=event.description,
             event_date=event.event_date,
             related_application_id=event.related_application_id,
+            linked_type=event.linked_type,
             created_at=event.created_at.isoformat(),
         )
         for event in events
