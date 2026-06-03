@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.database_models import Todo
-from app.models.todo_models import TodoCreate, TodoUpdate, TodoResponse
+from app.models.todo_models import TodoCreate, TodoUpdate, TodoResponse, TodoStats
 from app.services.user_context_service import require_anonymous_user_id
 
 
