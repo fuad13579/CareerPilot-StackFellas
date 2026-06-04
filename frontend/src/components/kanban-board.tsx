@@ -187,7 +187,7 @@ export function KanbanBoard({ initialApplications, userId }: KanbanBoardProps) {
         console.error("Failed to update status:", error);
       }
     },
-    [applications]
+    [applications, userId]
   );
 
   const handleAddApplication = useCallback(
@@ -251,17 +251,23 @@ export function KanbanBoard({ initialApplications, userId }: KanbanBoardProps) {
     [selectedColumn]
   );
 
-  const handleDeleteApplication = useCallback(async (id: number) => {
-    setApplications((apps) => apps.filter((app) => app.id !== id));
+  const handleDeleteApplication = useCallback(
+    async (id: number) => {
+      setApplications((apps) => apps.filter((app) => app.id !== id));
 
-    try {
-      await fetchWithTimeout(`/api/tracker/applications/${id}`, {
-        method: "DELETE",
-      });
-    } catch (error) {
-      console.error("Failed to delete application:", error);
-    }
-  }, []);
+      try {
+        await fetchWithTimeout(`/api/tracker/applications/${id}`, {
+          method: "DELETE",
+          headers: {
+            ...userHeaders(userId),
+          },
+        });
+      } catch (error) {
+        console.error("Failed to delete application:", error);
+      }
+    },
+    [userId]
+  );
 
   const openAddModal = useCallback((columnId: string) => {
     setSelectedColumn(columnId as ColumnId);
