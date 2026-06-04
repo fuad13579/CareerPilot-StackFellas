@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarEvent, CreateEventRequest } from "@/types/productivity";
 import { Calendar, X, AlertCircle, Clock } from "lucide-react";
 
@@ -29,6 +29,34 @@ export function DeadlineList({
   const [eventDate, setEventDate] = useState("");
   const [linkedType, setLinkedType] = useState("");
   const [linkedId, setLinkedId] = useState<number | undefined>(undefined);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
+  const [pendingDeleteTimeout, setPendingDeleteTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  const beginDelete = (id: number) => {
+    if (pendingDeleteTimeout) clearTimeout(pendingDeleteTimeout);
+    setConfirmingDeleteId(id);
+    const timeout = setTimeout(() => setConfirmingDeleteId(null), 3000);
+    setPendingDeleteTimeout(timeout);
+  };
+
+  const cancelDelete = () => {
+    if (pendingDeleteTimeout) clearTimeout(pendingDeleteTimeout);
+    setPendingDeleteTimeout(null);
+    setConfirmingDeleteId(null);
+  };
+
+  const confirmDelete = async (id: number) => {
+    if (pendingDeleteTimeout) clearTimeout(pendingDeleteTimeout);
+    setPendingDeleteTimeout(null);
+    setConfirmingDeleteId(null);
+    await onDelete(id);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pendingDeleteTimeout) clearTimeout(pendingDeleteTimeout);
+    };
+  }, [pendingDeleteTimeout]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,8 +134,9 @@ export function DeadlineList({
           className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4"
         >
           <div>
-            <label className="block text-sm font-medium text-slate-700">Title *</label>
+            <label htmlFor="deadline-title" className="block text-sm font-medium text-slate-700">Title *</label>
             <input
+              id="deadline-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -118,8 +147,9 @@ export function DeadlineList({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Date *</label>
+            <label htmlFor="deadline-date" className="block text-sm font-medium text-slate-700">Date *</label>
             <input
+              id="deadline-date"
               type="date"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
@@ -129,8 +159,9 @@ export function DeadlineList({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Notes</label>
+            <label htmlFor="deadline-notes" className="block text-sm font-medium text-slate-700">Notes</label>
             <textarea
+              id="deadline-notes"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
@@ -142,6 +173,7 @@ export function DeadlineList({
           <div>
             <label className="block text-sm font-medium text-slate-700">Link to (optional)</label>
             <select
+              aria-label="Link type"
               value={linkedType}
               onChange={(e) => {
                 setLinkedType(e.target.value);
@@ -150,12 +182,12 @@ export function DeadlineList({
               className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
             >
               <option value="">No link</option>
-              <option value="goal">Career Goal</option>
               <option value="application">Job Application</option>
             </select>
 
             {linkedType === "application" && linkedApplications.length > 0 && (
               <select
+                aria-label="Linked application"
                 value={linkedId || ""}
                 onChange={(e) => setLinkedId(Number(e.target.value) || undefined)}
                 className="mt-2 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
@@ -230,13 +262,39 @@ export function DeadlineList({
                   )}
                 </div>
 
-                <button
-                  onClick={() => onDelete(event.id)}
-                  className="opacity-0 transition-opacity group-hover:opacity-100"
-                  aria-label="Delete deadline"
-                >
-                  <X className="h-4 w-4 text-slate-400 hover:text-red-500" />
-                </button>
+                {confirmingDeleteId === event.id ? (
+                  <div
+                    className="flex items-center gap-1"
+                    role="group"
+                    aria-label="Confirm delete deadline"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => confirmDelete(event.id)}
+                      className="rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700"
+                      aria-label="Confirm delete"
+                      autoFocus
+                    >
+                      Delete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelDelete}
+                      className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                      aria-label="Cancel delete"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => beginDelete(event.id)}
+                    className="opacity-0 transition-opacity group-hover:opacity-100"
+                    aria-label="Delete deadline"
+                  >
+                    <X className="h-4 w-4 text-slate-400 hover:text-red-500" />
+                  </button>
+                )}
               </div>
             );
           })}

@@ -147,7 +147,10 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
             ? todos.map((todo: any) => ({
                 id: String(todo.id),
                 task: todo.title,
-                priority: "medium",
+                // Preserve the backend's priority if it exists, otherwise
+                // default to "medium". Hardcoding "medium" for every todo
+                // made the UI lie about user-defined priority.
+                priority: todo.priority || "medium",
                 completed: Boolean(todo.is_completed),
                 due: todo.due_date || "",
                 createdAt: todo.created_at || new Date().toISOString(),
@@ -156,16 +159,25 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         }));
       } catch (error) {
         console.error("Failed to hydrate tracker state:", error);
-      } finally {
+
+        // Backend is unreachable: fall back to the per-user localStorage cache
+        // so the UI still has *something* to render. The cache key is already
+        // namespaced by anonymousUserId, so two demo users on the same browser
+        // do not see each other's data.
         try {
           const stored = localStorage.getItem(getTrackerStorageKey(userId));
           if (stored) {
             const parsed = JSON.parse(stored);
-            setState((prev) => ({ ...prev, ...parsed }));
+            setState((prev) => ({
+              ...prev,
+              applications: Array.isArray(parsed?.applications) ? parsed.applications : prev.applications,
+              todos: Array.isArray(parsed?.todos) ? parsed.todos : prev.todos,
+            }));
           }
-        } catch (error) {
-          console.error("Failed to load tracker cache:", error);
+        } catch (cacheError) {
+          console.error("Failed to load tracker cache:", cacheError);
         }
+      } finally {
         setIsInitialized(true);
       }
     };
@@ -184,8 +196,14 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     }
   }, [state, isInitialized, anonymousUserId]);
 
-  // Helper to generate IDs
-  const generateId = () => Math.random().toString(36).substr(2, 9);
+  // Helper to generate IDs (local-only; the backend id replaces this once the
+  // POST returns so we never persist a uuid as a primary key).
+  const generateId = () => {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+    return `local-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  };
 
   // Application actions
   const addApplication = useCallback((app: Omit<Application, "id" | "appliedDate">) => {
@@ -213,8 +231,9 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         required_skills: newApp.requiredSkills,
         status: newApp.status,
         fit_score: newApp.fitScore,
-        job_url: newApp.jobUrl || newApp.deadline,
-        notes: newApp.nextAction,
+        // Don't fall back to the deadline string: that turns into nonsense
+        // URLs in the DB and on subsequent reads. Send null when absent.
+        job_url: newApp.jobUrl?.trim() ? newApp.jobUrl.trim() : null,
       }),
     })
       .then(async (response) => {

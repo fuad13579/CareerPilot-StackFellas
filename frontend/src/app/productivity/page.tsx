@@ -6,6 +6,7 @@ import { TodoList } from "@/components/todo-list";
 import { DeadlineList } from "@/components/deadline-list";
 import { ProgressWidget } from "@/components/progress-widget";
 import { Todo, TodoStats, CalendarEvent, CreateTodoRequest, CreateEventRequest, JobApplication } from "@/types/productivity";
+import { getCareerPilotHeaders } from "@/components/user-storage";
 
 const STORAGE_KEY_TODOS = "careerpilot-todos";
 const STORAGE_KEY_EVENTS = "careerpilot-events";
@@ -16,7 +17,10 @@ async function fetchWithTimeout(url: string, timeoutMs = 3000) {
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    return await fetch(url, { signal: controller.signal });
+    return await fetch(url, {
+      signal: controller.signal,
+      headers: getCareerPilotHeaders(),
+    });
   } finally {
     window.clearTimeout(timeout);
   }
@@ -119,7 +123,10 @@ export default function ProductivityPage() {
     try {
       const response = await fetch("/api/todos", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getCareerPilotHeaders(),
+        },
         body: JSON.stringify(data),
       });
 
@@ -155,7 +162,10 @@ export default function ProductivityPage() {
     try {
       const response = await fetch(`/api/todos/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getCareerPilotHeaders(),
+        },
         body: JSON.stringify({ is_completed: completed }),
       });
 
@@ -183,6 +193,7 @@ export default function ProductivityPage() {
     try {
       const response = await fetch(`/api/todos/${id}`, {
         method: "DELETE",
+        headers: { ...getCareerPilotHeaders() },
       });
 
       if (response.ok) {
@@ -206,7 +217,10 @@ export default function ProductivityPage() {
     try {
       const response = await fetch(`/api/todos/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getCareerPilotHeaders(),
+        },
         body: JSON.stringify(data),
       });
 
@@ -232,7 +246,10 @@ export default function ProductivityPage() {
     try {
       const response = await fetch("/api/calendar/events", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getCareerPilotHeaders(),
+        },
         body: JSON.stringify(data),
       });
 
@@ -265,6 +282,7 @@ export default function ProductivityPage() {
     try {
       const response = await fetch(`/api/calendar/events/${id}`, {
         method: "DELETE",
+        headers: { ...getCareerPilotHeaders() },
       });
 
       if (response.ok) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useEffect, useRef, useState, FormEvent } from "react";
 import { X } from "lucide-react";
 import { COLUMNS } from "./kanban-column";
 
@@ -27,6 +27,28 @@ export function AddApplicationModal({
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Close on Escape; restore focus to the previously-focused element on
+  // unmount. Without this, keyboard users can only escape the modal by
+  // tabbing out, which is hostile to screen readers.
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousActive = document.activeElement as HTMLElement | null;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    // Move focus into the dialog so keyboard users land somewhere sensible.
+    modalRef.current?.focus();
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      previousActive?.focus?.();
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -56,14 +78,22 @@ export function AddApplicationModal({
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-application-title"
+        tabIndex={-1}
+        className="relative z-10 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl outline-none"
+      >
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">Add Application</h2>
+            <h2 id="add-application-title" className="text-lg font-semibold text-slate-950">Add Application</h2>
             <p className="mt-1 text-sm text-slate-500">
               Adding to{" "}
               <span className="font-medium">
