@@ -20,9 +20,13 @@ import { AddApplicationModal } from "./add-application-modal";
 
 interface KanbanBoardProps {
   initialApplications: JobApplication[];
+  // Per-user id so the localStorage cache does not collide between two
+  // demo users sharing a browser. Passed in from the parent (which already
+  // gets it from user-storage via tracker-context).
+  userId?: string | null;
 }
 
-const STORAGE_KEY = "careerpilot-tracker-applications";
+const STORAGE_KEY_PREFIX = "careerpilot-tracker-applications";
 
 async function fetchWithTimeout(
   url: string,
@@ -39,7 +43,15 @@ async function fetchWithTimeout(
   }
 }
 
-export function KanbanBoard({ initialApplications }: KanbanBoardProps) {
+// Forward the anonymous-user header that the backend requires for
+// /api/tracker/* routes. Without this, the kanban drag PATCH and the add
+// POST both return 400 from require_anonymous_user_id.
+function userHeaders(userId?: string | null): HeadersInit {
+  if (!userId) return {};
+  return { "x-careerpilot-user-id": userId };
+}
+
+export function KanbanBoard({ initialApplications, userId }: KanbanBoardProps) {
   const [applications, setApplications] = useState<JobApplication[]>(initialApplications);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -50,8 +62,14 @@ export function KanbanBoard({ initialApplications }: KanbanBoardProps) {
   }, [initialApplications]);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
-  }, [applications]);
+    if (!userId) return;
+    const key = `${STORAGE_KEY_PREFIX}-${userId}`;
+    try {
+      window.localStorage.setItem(key, JSON.stringify(applications));
+    } catch (error) {
+      console.error("Failed to cache kanban state:", error);
+    }
+  }, [applications, userId]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -149,7 +167,10 @@ export function KanbanBoard({ initialApplications }: KanbanBoardProps) {
           `/api/tracker/applications/${activeId}/status`,
           {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...userHeaders(userId),
+            },
             body: JSON.stringify({ status: targetColumn }),
           }
         );
@@ -177,8 +198,12 @@ export function KanbanBoard({ initialApplications }: KanbanBoardProps) {
       notes?: string;
     }) => {
       const now = new Date().toISOString();
+      // Use a negative timestamp for the local-only id so it can never
+      // collide with a real positive backend primary key, and so the
+      // reconciliation step (app.id === localApplication.id) only matches
+      // the optimistic placeholder we just inserted.
       const localApplication: JobApplication = {
-        id: Date.now(),
+        id: -Date.now(),
         job_id: crypto.randomUUID(),
         role: data.role,
         company: data.company,
@@ -197,7 +222,10 @@ export function KanbanBoard({ initialApplications }: KanbanBoardProps) {
       try {
         const response = await fetchWithTimeout("/api/tracker/applications", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...userHeaders(userId),
+          },
           body: JSON.stringify({
             job_id: localApplication.job_id,
             role: localApplication.role,

@@ -110,6 +110,7 @@ export function TodoForm({
 
         <div className="mt-2 space-y-2">
           <select
+            aria-label="Link type"
             value={linkedType}
             onChange={(e) => {
               setLinkedType(e.target.value);
@@ -118,12 +119,12 @@ export function TodoForm({
             className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
           >
             <option value="">No link</option>
-            <option value="goal">Career Goal</option>
             <option value="application">Job Application</option>
           </select>
 
           {linkedType === "application" && linkedApplications.length > 0 && (
             <select
+              aria-label="Linked application"
               value={linkedId || ""}
               onChange={(e) => setLinkedId(Number(e.target.value) || undefined)}
               className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"

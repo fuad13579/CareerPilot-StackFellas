@@ -73,10 +73,22 @@ def get_todos(
 
 
 @router.get("/stats", response_model=TodoStats)
-def get_todo_stats(db: Session = Depends(get_db)) -> TodoStats:
+def get_todo_stats(
+    db: Session = Depends(get_db),
+    x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
+) -> TodoStats:
     """Get todo statistics for progress tracking."""
-    total = db.query(Todo).count()
-    completed = db.query(Todo).filter(Todo.is_completed == True).count()
+    anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
+    total = (
+        db.query(Todo)
+        .filter(Todo.anonymous_user_id == anonymous_user_id)
+        .count()
+    )
+    completed = (
+        db.query(Todo)
+        .filter(Todo.anonymous_user_id == anonymous_user_id, Todo.is_completed == True)
+        .count()
+    )
     remaining = total - completed
     progress_percentage = (completed / total * 100) if total > 0 else 0.0
 
