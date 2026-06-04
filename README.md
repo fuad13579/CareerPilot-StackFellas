@@ -49,9 +49,9 @@ It's intentionally a **hackathon MVP** -- fast, opinionated, and demo-ready, wit
 - **pytest** 8.3.5 (test suite)
 
 ### AI Providers (priority chain)
-1. **GitHub Models** (recommended) -- uses a PAT with `models: read` scope
-2. **OpenRouter** (fallback) -- `openrouter/auto:free` routes to free-tier models
-3. **Rule-based CV/RAG fallback** (always available, no key required)
+1. **GitHub Models** (recommended) -- uses a PAT with `models: read` scope. **Real LLM** answer, green chip in the UI.
+2. **OpenRouter** (fallback) -- `openrouter/auto:free` routes to free-tier models. **Real LLM** answer, green chip in the UI.
+3. **Rule-based CV/RAG fallback** (always available, no key required). **Not** an LLM -- it is a deterministic, intent-routed pipeline over the parsed CV sections (`fallback_response_service.py`). The UI shows an amber "Built-in CV analysis" chip so the user can always tell which engine answered. See `docs/evaluation.md` section 6 for the full contract.
 
 ### Job APIs
 - **Adzuna** -- env-gated, free tier 250 calls/month
@@ -80,7 +80,7 @@ CareerPilot-StackFellas/
     src/app/             App Router pages (upload, jobs, assistant, )
     src/components/      UI components (Kanban, job cards, modals, )
     package.json
- docs/                    Reserved for future design notes
+ docs/                    Architecture, evaluation, and demo runbook (see Documentation)
  start-dev.ps1            One-shot dev launcher (Windows / PowerShell)
  start-dev.js             Cross-platform Node variant of the launcher
  dev-down.ps1             Stops the dev servers cleanly
@@ -291,6 +291,16 @@ The suite covers:
 ### Manual smoke tests
 
 - `python backend/test_rag.py` -- exercises the RAG pipeline end-to-end against the in-memory DB.
+
+---
+
+##  Documentation
+
+| Doc | What it covers |
+| --- | --- |
+| [`docs/architecture.md`](docs/architecture.md) | C4-style context + container diagram, component breakdown, end-to-end data flow (CV upload -> ingestion -> RAG -> assistant / cover letter / tracker), storage layout, and deployment topology. The architecture diagram the brief asks for. |
+| [`docs/evaluation.md`](docs/evaluation.md) | Evaluation suite: 5 Pillar 3 benchmark query cases (readiness, skill gap, roadmap, cover letter, conversational memory), the full pytest contract, manual end-to-end cases, and adversarial / guard-rail cases with pass/fail verdicts. |
+| [`docs/demo-runbook.md`](docs/demo-runbook.md) | 5-minute recorded-demo script. Time-boxed steps for CV upload, job search, fit score, AI assistant, cover letter, and tracker update, with the exact UI actions, expected visible output, and failure-mode talking points. |
 
 ---
 
