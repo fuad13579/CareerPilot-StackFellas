@@ -12,6 +12,10 @@ class AssistantQueryRequest(BaseModel):
         default=None,
         description="Optional tracked-job ID. When provided, readiness/skill-gap answers use this job.",
     )
+    job_context: str | None = Field(
+        default=None,
+        description="Optional raw target job context from a live or saved job card.",
+    )
 
 
 class AssistantSource(BaseModel):

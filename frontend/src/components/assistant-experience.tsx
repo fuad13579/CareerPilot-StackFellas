@@ -24,6 +24,12 @@ import {
   getCareerPilotHeaders,
 } from "./user-storage";
 import {
+  buildAssistantJobContextText,
+  clearAssistantJobContext,
+  getAssistantJobContext,
+  type AssistantJobContext,
+} from "./assistant-job-context";
+import {
   getPersistedCvId,
   getPersistedCvSkills,
   getPersistedCvSummary,
@@ -122,6 +128,7 @@ export function AssistantExperience() {
   const [cvId, setCvId] = useState("");
   const [cvName, setCvName] = useState("");
   const [cvSkills, setCvSkills] = useState<string[]>([]);
+  const [selectedJob, setSelectedJob] = useState<AssistantJobContext | null>(null);
   const [sessionId, setSessionId] = useState("");
   const [isRehydrating, setIsRehydrating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -136,6 +143,7 @@ export function AssistantExperience() {
       setSessionId(activeSessionId);
       setCvName(summary?.filename || "");
       setCvSkills(getPersistedCvSkills().slice(0, 5));
+      setSelectedJob(getAssistantJobContext());
 
       if (activeCvId) {
         setError((current) => (current === NO_CV_MESSAGE ? "" : current));
@@ -145,10 +153,12 @@ export function AssistantExperience() {
     syncPersistentState();
     window.addEventListener("storage", syncPersistentState);
     window.addEventListener("careerpilot_cv_updated", syncPersistentState);
+    window.addEventListener("careerpilot_assistant_job_context_updated", syncPersistentState);
 
     return () => {
       window.removeEventListener("storage", syncPersistentState);
       window.removeEventListener("careerpilot_cv_updated", syncPersistentState);
+      window.removeEventListener("careerpilot_assistant_job_context_updated", syncPersistentState);
     };
   }, []);
 
@@ -251,6 +261,8 @@ export function AssistantExperience() {
           cv_id: activeCvId,
           session_id: activeSessionId,
           question: trimmedQuestion,
+          job_id: selectedJob?.trackerApplicationId || undefined,
+          job_context: selectedJob ? buildAssistantJobContextText(selectedJob) : undefined,
         }),
       });
 
@@ -328,6 +340,11 @@ export function AssistantExperience() {
     setError("");
   };
 
+  const clearSelectedJob = () => {
+    clearAssistantJobContext();
+    setSelectedJob(null);
+  };
+
   const hasConversationStarted = messages.length > 1;
   const hasCv = Boolean(cvId);
 
@@ -390,6 +407,44 @@ export function AssistantExperience() {
                 </span>
               ))}
             </div>
+          </div>
+        )}
+
+        {selectedJob && (
+          <div className="mt-4 rounded-2xl border border-[#BFDBFE] bg-white/90 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B]">
+                  Active target job
+                </p>
+                <h3 className="mt-1 text-lg font-extrabold text-[#0F172A]">
+                  {selectedJob.role}
+                </h3>
+                <p className="text-sm font-semibold text-[#1D4ED8]">{selectedJob.company}</p>
+              </div>
+              <button
+                type="button"
+                onClick={clearSelectedJob}
+                className="rounded-full border border-[#CBD5E1] px-3 py-1 text-xs font-semibold text-[#475569] transition hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
+              >
+                Clear job
+              </button>
+            </div>
+            {selectedJob.requiredSkills && selectedJob.requiredSkills.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {selectedJob.requiredSkills.slice(0, 4).map((skill) => (
+                  <span
+                    key={skill}
+                    className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-xs font-semibold text-[#1E40AF]"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
+            {selectedJob.matchReason && (
+              <p className="mt-3 text-sm text-[#475569]">{selectedJob.matchReason}</p>
+            )}
           </div>
         )}
       </div>
@@ -538,7 +593,17 @@ export function AssistantExperience() {
                   if (action.navigateTo) {
                     router.push(action.navigateTo);
                   } else if (action.prompt) {
-                    void sendQuestion(action.prompt);
+                    const prompt =
+                      selectedJob && action.label === "Job Readiness"
+                        ? `Am I ready for the ${selectedJob.role} role at ${selectedJob.company}?`
+                        : selectedJob && action.label === "Skill Gaps"
+                          ? `What skills am I missing for the ${selectedJob.role} role at ${selectedJob.company}?`
+                          : selectedJob && action.label === "Cover Letter"
+                            ? `Draft a cover letter for the ${selectedJob.role} role at ${selectedJob.company} based on my CV.`
+                            : action.prompt;
+                    if (prompt) {
+                      void sendQuestion(prompt);
+                    }
                   }
                 }}
                 disabled={!hasCv || isLoading}
