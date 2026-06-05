@@ -586,7 +586,18 @@ const mapApiJobToRecommendedJob = (job: any): RecommendedJob => ({
   // Backend returns fit_score=null when not personalized. Don't fall
   // back to 0 — that would silently re-introduce the fabrication we
   // just removed. The card gates the badge on > 0 so 0 means "no score".
-  fitScore: typeof job.fit_score === "number" ? Math.round(job.fit_score) : 0,
+  fitScore:
+    typeof job.fit_score === "number" &&
+    !(
+      Array.isArray(job.matched_skills) &&
+      job.matched_skills.length === 0 &&
+      Array.isArray(job.missing_skills) &&
+      job.missing_skills.length === 0 &&
+      typeof job.reason === "string" &&
+      job.reason.toLowerCase().includes("required skills could not be identified")
+    )
+      ? Math.round(job.fit_score)
+      : 0,
   matchReason: job.reason || "Based on your skills",
   type: job.source === "Remotive" ? "Remote" : job.type ?? "Remote",
   deadline: job.deadline || new Date().toISOString().split("T")[0],

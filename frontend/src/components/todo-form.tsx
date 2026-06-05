@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { CreateTodoRequest } from "@/types/productivity";
 import { Calendar, Link2 } from "lucide-react";
+import {
+  GOAL_CATEGORIES,
+  encodeGoalDescription,
+  parseGoalMetadata,
+} from "./productivity-goals";
 
 interface JobApplication {
   id: number;
@@ -29,13 +34,15 @@ export function TodoForm({
   linkedApplications = [],
   initialData,
 }: TodoFormProps) {
+  const parsedInitial = parseGoalMetadata(initialData?.description);
   const [title, setTitle] = useState(initialData?.title || "");
-  const [description, setDescription] = useState(initialData?.description || "");
+  const [description, setDescription] = useState(parsedInitial.cleanDescription || "");
   const [dueDate, setDueDate] = useState(initialData?.due_date || "");
   const [linkedType, setLinkedType] = useState(initialData?.linked_type || "");
   const [linkedId, setLinkedId] = useState<number | undefined>(
     initialData?.linked_id || undefined
   );
+  const [goalCategory, setGoalCategory] = useState(parsedInitial.goalId || "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +50,7 @@ export function TodoForm({
 
     onSubmit({
       title: title.trim(),
-      description: description.trim() || undefined,
+      description: encodeGoalDescription(description.trim() || undefined, goalCategory || undefined),
       due_date: dueDate || undefined,
       linked_type: linkedType || undefined,
       linked_id: linkedId,
@@ -84,6 +91,25 @@ export function TodoForm({
           rows={2}
           className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm placeholder-slate-400 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
         />
+      </div>
+
+      <div>
+        <label htmlFor="todo-goal" className="block text-sm font-medium text-slate-700">
+          Goal Category
+        </label>
+        <select
+          id="todo-goal"
+          value={goalCategory}
+          onChange={(e) => setGoalCategory(e.target.value)}
+          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+        >
+          <option value="">No specific goal</option>
+          {GOAL_CATEGORIES.map((goal) => (
+            <option key={goal.id} value={goal.id}>
+              {goal.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Due date */}

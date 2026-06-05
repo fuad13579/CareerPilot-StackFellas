@@ -45,6 +45,20 @@ interface LiveJobSearchResponse {
   fit_scores_enabled?: boolean;
 }
 
+function isUnscoredJob(job: Job, matchedSkills: string[], missingSkills: string[]) {
+  const reason = job.matchReason.toLowerCase();
+  return (
+    matchedSkills.length === 0 &&
+    missingSkills.length === 0 &&
+    (
+      !job.requiredSkills ||
+      job.requiredSkills.length === 0 ||
+      reason.includes("required skills could not be identified") ||
+      reason.includes("required skills unavailable")
+    )
+  );
+}
+
 // Map backend enriched job to frontend Job format
 function mapApiJobToJob(apiJob: any): Job {
   return {
@@ -388,9 +402,14 @@ export function JobsExperience() {
       <Stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
         {jobs.map((job) => {
           const computedFit = getJobFitScore(job);
-          const displayFitScore = computedFit ? computedFit.fit_score : job.fitScore;
           const displayMatchedSkills = computedFit ? computedFit.matched_skills : job.matchingSkills;
           const displayMissingSkills = computedFit ? computedFit.missing_skills : job.missingSkills;
+          const forceUnscored = isUnscoredJob(job, displayMatchedSkills, displayMissingSkills);
+          const displayFitScore = forceUnscored
+            ? null
+            : computedFit
+              ? computedFit.fit_score
+              : job.fitScore;
 
           return (
           <Reveal key={job.id}>
