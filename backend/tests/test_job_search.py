@@ -118,6 +118,31 @@ class TestFitScoreCalculation:
         assert result.total_required == 4
         assert result.fit_score == 50.0
 
+    def test_fit_score_is_unavailable_when_job_has_no_detectable_skills(self):
+        """Jobs without extractable requirements must not get a fabricated score."""
+        job = JobCard(
+            job_id="test-5",
+            role="Software Automation Intern",
+            company="Test Corp",
+            location="Remote",
+            deadline=None,
+            salary="$80k",
+            required_skills=[],
+            description="Great communication, ownership, and curiosity required.",
+            job_url="https://example.com",
+            source="Test",
+            is_live=True,
+            fetched_at=datetime.utcnow(),
+            fit_score=None,
+            matched_skills=[],
+            missing_skills=[],
+            reason=None,
+        )
+        result = calculate_fit_score(["Python", "SQL"], job)
+        assert result.total_required == 0
+        assert result.match_count == 0
+        assert result.fit_score is None
+
 
 class TestJobSorting:
     """Tests for job sorting by fit score."""
