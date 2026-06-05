@@ -262,13 +262,13 @@ def _load_job_data(job_id: str | None, anonymous_user_id: str | None) -> dict | 
     if not job_id or not anonymous_user_id:
         return None
     try:
-        from app.models.database_models import JobApplication
+        from app.models.database_models import Application
         db = SessionLocal()
         try:
             app = (
-                db.query(JobApplication)
-                .filter(JobApplication.id == job_id)
-                .filter(JobApplication.anonymous_user_id == anonymous_user_id)
+                db.query(Application)
+                .filter(Application.id == job_id)
+                .filter(Application.anonymous_user_id == anonymous_user_id)
                 .first()
             )
             if not app:
@@ -299,6 +299,7 @@ def process_assistant_query(
     question: str,
     anonymous_user_id: str | None = None,
     job_id: str | None = None,
+    job_context: str | None = None,
 ) -> AssistantQueryResponse:
     """Process an AI assistant query with RAG context and session memory."""
     # Add user message to history
@@ -312,12 +313,15 @@ def process_assistant_query(
 
     # Build optional job_data from a tracked job (best-effort; ignored if missing).
     job_data = _load_job_data(job_id, anonymous_user_id)
+    combined_context = context
+    if job_context and job_context.strip():
+        combined_context = f"{context}\n\nTarget Job Context:\n{job_context.strip()}".strip()
 
     # Generate answer (try LLM, fallback to rule-based response)
-    detected_skills = extract_basic_skills_from_context(context)
+    detected_skills = extract_basic_skills_from_context(combined_context)
     answer, provider, fallback_used = generate_ai_response(
         prompt=question,
-        cv_context=context,
+        cv_context=combined_context,
         task="assistant",
         detected_skills=detected_skills,
         job_data=job_data,
@@ -336,11 +340,19 @@ def process_assistant_query(
         )
         for chunk in chunks
     ]
+    if job_context and job_context.strip():
+        sources.append(
+            AssistantSource(
+                section="target_job",
+                text=job_context.strip(),
+                score=None,
+            )
+        )
 
     return AssistantQueryResponse(
         session_id=session_id,
         answer=answer,
-        retrieved_context=context,
+        retrieved_context=combined_context,
         sources=sources,
         provider=provider,
         fallback_used=fallback_used,

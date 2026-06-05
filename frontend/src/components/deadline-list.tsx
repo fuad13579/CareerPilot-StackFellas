@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import { CalendarEvent, CreateEventRequest } from "@/types/productivity";
 import { Calendar, X, AlertCircle, Clock } from "lucide-react";
+import {
+  GOAL_CATEGORIES,
+  encodeGoalDescription,
+  parseGoalMetadata,
+} from "./productivity-goals";
 
 interface JobApplication {
   id: number;
@@ -23,12 +28,14 @@ export function DeadlineList({
   onDelete,
   linkedApplications = [],
 }: DeadlineListProps) {
+  const initialGoal = parseGoalMetadata("");
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [linkedType, setLinkedType] = useState("");
   const [linkedId, setLinkedId] = useState<number | undefined>(undefined);
+  const [goalCategory, setGoalCategory] = useState(initialGoal.goalId || "");
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
   const [pendingDeleteTimeout, setPendingDeleteTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
@@ -64,7 +71,7 @@ export function DeadlineList({
 
     await onCreate({
       title: title.trim(),
-      description: description.trim() || undefined,
+      description: encodeGoalDescription(description.trim() || undefined, goalCategory || undefined),
       event_date: eventDate,
       linked_type: linkedType || undefined,
       related_application_id: linkedType === "application" ? linkedId : undefined,
@@ -76,6 +83,7 @@ export function DeadlineList({
     setEventDate("");
     setLinkedType("");
     setLinkedId(undefined);
+    setGoalCategory("");
     setShowForm(false);
   };
 
@@ -171,6 +179,23 @@ export function DeadlineList({
           </div>
 
           <div>
+            <label htmlFor="deadline-goal" className="block text-sm font-medium text-slate-700">Goal Category</label>
+            <select
+              id="deadline-goal"
+              value={goalCategory}
+              onChange={(e) => setGoalCategory(e.target.value)}
+              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+            >
+              <option value="">No specific goal</option>
+              {GOAL_CATEGORIES.map((goal) => (
+                <option key={goal.id} value={goal.id}>
+                  {goal.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label className="block text-sm font-medium text-slate-700">Link to (optional)</label>
             <select
               aria-label="Link type"
@@ -228,6 +253,7 @@ export function DeadlineList({
             const linkedApp = event.related_application_id
               ? linkedApplicationMap.get(event.related_application_id)
               : null;
+            const goalMeta = parseGoalMetadata(event.description);
 
             return (
               <div
@@ -251,14 +277,21 @@ export function DeadlineList({
                     <h3 className="font-medium text-slate-950">{event.title}</h3>
                     {getStatusBadge(daysUntil)}
                   </div>
+                  {goalMeta.goal && (
+                    <div className="mt-1">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${goalMeta.goal.tone}`}>
+                        {goalMeta.goal.label}
+                      </span>
+                    </div>
+                  )}
                   <p className="mt-0.5 text-sm text-slate-600">{formatDate(event.event_date)}</p>
                   {linkedApp && (
                     <p className="mt-1 text-xs text-slate-500">
                       {linkedApp.company} - {linkedApp.role}
                     </p>
                   )}
-                  {event.description && (
-                    <p className="mt-1 text-xs text-slate-500">{event.description}</p>
+                  {goalMeta.cleanDescription && (
+                    <p className="mt-1 text-xs text-slate-500">{goalMeta.cleanDescription}</p>
                   )}
                 </div>
 

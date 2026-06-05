@@ -7,10 +7,12 @@ import {
   AlertTriangle,
   Bot,
   Briefcase,
+  CheckCircle2,
   FileText,
   Lightbulb,
   Loader2,
   Map,
+  RefreshCcw,
   Send,
   Sparkles,
   User,
@@ -21,15 +23,31 @@ import {
   getCareerPilotAssistantSessionId,
   getCareerPilotHeaders,
 } from "./user-storage";
-import { getPersistedCvId } from "./cv-storage";
+import {
+  buildAssistantJobContextText,
+  clearAssistantJobContext,
+  getAssistantJobContext,
+  type AssistantJobContext,
+} from "./assistant-job-context";
+import {
+  getPersistedCvId,
+  getPersistedCvSkills,
+  getPersistedCvSummary,
+} from "./cv-storage";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
-  timestamp: Date;
+  timestampLabel?: string | null;
   provider?: string | null;
   fallbackUsed?: boolean;
+  sources?: Array<{
+    section: string;
+    text: string;
+    score?: number | null;
+  }>;
+  retrievedContext?: string | null;
 }
 
 interface QuickAction {
@@ -40,20 +58,28 @@ interface QuickAction {
 }
 
 const NO_CV_MESSAGE = "Please upload your CV first.";
+const SEED_ASSISTANT_MESSAGE: Message = {
+  id: "assistant-seed",
+  role: "assistant",
+  content:
+    "Hi, I'm your CareerPilot assistant. I can analyze your uploaded CV, check your readiness for a role, identify missing skills, build a roadmap, or draft a cover letter.",
+  timestampLabel: null,
+};
 
 const quickActions: QuickAction[] = [
-  { icon: Briefcase, label: "Job Readiness", prompt: "Am I ready for a frontend developer role?" },
-  { icon: Lightbulb, label: "Skill Gaps", prompt: "What skills am I missing for my target roles?" },
+  { icon: Briefcase, label: "Job Readiness", prompt: "Am I ready for this data engineer role?" },
+  { icon: Lightbulb, label: "Skill Gaps", prompt: "What skills am I missing for a Google internship?" },
   { icon: Map, label: "Learning Roadmap", prompt: "Build me a 3-month roadmap to become job-ready" },
-  { icon: FileText, label: "Cover Letter", navigateTo: "/cover-letter" },
+  { icon: FileText, label: "Cover Letter", prompt: "Draft a cover letter for this job posting based on my CV." },
 ];
 
 function createMessage(role: Message["role"], content: string): Message {
+  const now = new Date();
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     role,
     content,
-    timestamp: new Date(),
+    timestampLabel: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
   };
 }
 
@@ -95,16 +121,14 @@ function extractErrorMessage(payload: unknown, fallback: string): string {
 
 export function AssistantExperience() {
   const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>([
-    createMessage(
-      "assistant",
-      "Hi, I'm your CareerPilot assistant. I can analyze your uploaded CV, check your readiness for a role, identify missing skills, build a roadmap, or draft a cover letter."
-    ),
-  ]);
+  const [messages, setMessages] = useState<Message[]>([SEED_ASSISTANT_MESSAGE]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [cvId, setCvId] = useState("");
+  const [cvName, setCvName] = useState("");
+  const [cvSkills, setCvSkills] = useState<string[]>([]);
+  const [selectedJob, setSelectedJob] = useState<AssistantJobContext | null>(null);
   const [sessionId, setSessionId] = useState("");
   const [isRehydrating, setIsRehydrating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -113,9 +137,13 @@ export function AssistantExperience() {
     const syncPersistentState = () => {
       const activeCvId = getPersistedCvId();
       const activeSessionId = ensureCareerPilotAssistantSessionId();
+      const summary = getPersistedCvSummary();
 
       setCvId(activeCvId);
       setSessionId(activeSessionId);
+      setCvName(summary?.filename || "");
+      setCvSkills(getPersistedCvSkills().slice(0, 5));
+      setSelectedJob(getAssistantJobContext());
 
       if (activeCvId) {
         setError((current) => (current === NO_CV_MESSAGE ? "" : current));
@@ -125,17 +153,15 @@ export function AssistantExperience() {
     syncPersistentState();
     window.addEventListener("storage", syncPersistentState);
     window.addEventListener("careerpilot_cv_updated", syncPersistentState);
+    window.addEventListener("careerpilot_assistant_job_context_updated", syncPersistentState);
 
     return () => {
       window.removeEventListener("storage", syncPersistentState);
       window.removeEventListener("careerpilot_cv_updated", syncPersistentState);
+      window.removeEventListener("careerpilot_assistant_job_context_updated", syncPersistentState);
     };
   }, []);
 
-  // Rehydrate the previous conversation for this session on mount.
-  // The backend persists every user/assistant turn, so a refresh — or
-  // a new tab — should not wipe the chat. We only re-run when the
-  // sessionId actually changes (initial mount + cross-tab sync).
   useEffect(() => {
     if (!sessionId) return;
 
@@ -151,15 +177,13 @@ export function AssistantExperience() {
               Accept: "application/json",
             },
             cache: "no-store",
-          },
+          }
         );
-        if (!response.ok) {
-          // Don't replace the seed greeting if the backend is down —
-          // better to show a friendly default than an empty chat.
-          return;
-        }
+        if (!response.ok) return;
+
         const payload = await response.json().catch(() => ({}));
         if (cancelled) return;
+
         const history = Array.isArray(payload?.messages) ? payload.messages : [];
         if (history.length === 0) return;
 
@@ -168,21 +192,30 @@ export function AssistantExperience() {
             (m: { role?: unknown; content?: unknown }) =>
               (m.role === "user" || m.role === "assistant") &&
               typeof m.content === "string" &&
-              m.content.trim().length > 0,
+              m.content.trim().length > 0
           )
-          .map((m: { role: "user" | "assistant"; content: string }, index: number) => ({
-            id: `history-${index}-${m.content.slice(0, 8)}`,
-            role: m.role,
-            content: m.content,
-            timestamp: new Date(),
-          }));
+          .map(
+            (
+              m: { role: "user" | "assistant"; content: string; created_at?: string | null },
+              index: number
+            ) => ({
+              id: `history-${index}-${m.content.slice(0, 8)}`,
+              role: m.role,
+              content: m.content,
+              timestampLabel: m.created_at
+                ? new Date(m.created_at).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : null,
+            })
+          );
 
         if (rehydrated.length > 0) {
           setMessages(rehydrated);
         }
       } catch {
-        // Network failure: keep the seed greeting. The user can still
-        // start a fresh conversation.
+        // Keep the seed greeting when history cannot be restored.
       } finally {
         if (!cancelled) {
           setIsRehydrating(false);
@@ -202,12 +235,11 @@ export function AssistantExperience() {
 
   const sendQuestion = async (question: string) => {
     const trimmedQuestion = question.trim();
-    if (!trimmedQuestion || isLoading) {
-      return;
-    }
+    if (!trimmedQuestion || isLoading) return;
 
     const activeCvId = getPersistedCvId();
-    const activeSessionId = getCareerPilotAssistantSessionId() || ensureCareerPilotAssistantSessionId();
+    const activeSessionId =
+      getCareerPilotAssistantSessionId() || ensureCareerPilotAssistantSessionId();
 
     if (!activeCvId) {
       setError(NO_CV_MESSAGE);
@@ -229,6 +261,8 @@ export function AssistantExperience() {
           cv_id: activeCvId,
           session_id: activeSessionId,
           question: trimmedQuestion,
+          job_id: selectedJob?.trackerApplicationId || undefined,
+          job_context: selectedJob ? buildAssistantJobContextText(selectedJob) : undefined,
         }),
       });
 
@@ -253,14 +287,37 @@ export function AssistantExperience() {
         typeof payload.provider === "string" && payload.provider.trim()
           ? payload.provider.trim()
           : null;
-      const fallbackUsed = Boolean(payload.fallback_used);
+      const sources = Array.isArray(payload.sources)
+        ? payload.sources
+            .filter(
+              (source: { section?: unknown; text?: unknown; score?: unknown }) =>
+                typeof source?.section === "string" && typeof source?.text === "string"
+            )
+            .map((source: { section: string; text: string; score?: number | null }) => ({
+              section: source.section,
+              text: source.text,
+              score: typeof source.score === "number" ? source.score : null,
+            }))
+        : [];
+      const retrievedContext =
+        typeof payload.retrieved_context === "string" ? payload.retrieved_context : null;
 
       setMessages((prev) => [
         ...prev,
-        { ...createMessage("assistant", answer), provider, fallbackUsed },
+        {
+          ...createMessage("assistant", answer),
+          provider,
+          fallbackUsed: Boolean(payload.fallback_used),
+          sources,
+          retrievedContext,
+        },
       ]);
     } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : "Failed to get assistant response.");
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Failed to get assistant response."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -268,29 +325,128 @@ export function AssistantExperience() {
 
   const handleSendMessage = async (e?: FormEvent) => {
     e?.preventDefault();
-    if (!inputValue.trim()) {
-      return;
-    }
+    if (!inputValue.trim()) return;
 
     const nextQuestion = inputValue.trim();
     setInputValue("");
     await sendQuestion(nextQuestion);
   };
 
+  const handleResetSession = () => {
+    window.localStorage.removeItem("careerpilot_assistant_session_id");
+    const nextSessionId = ensureCareerPilotAssistantSessionId();
+    setSessionId(nextSessionId);
+    setMessages([SEED_ASSISTANT_MESSAGE]);
+    setError("");
+  };
+
+  const clearSelectedJob = () => {
+    clearAssistantJobContext();
+    setSelectedJob(null);
+  };
+
   const hasConversationStarted = messages.length > 1;
   const hasCv = Boolean(cvId);
 
   return (
-    <div className="flex h-[600px] flex-col -mt-2">
-      <div className="mb-3 border-b border-gray-200 pb-3">
-        <h2 className="text-base font-bold text-[#111827]">AI Career Assistant</h2>
-        <p className="mt-1 text-sm text-[#6B7280]">
-          Ask about your CV, job readiness, skill gaps, roadmap, and applications.
-        </p>
-        <div className="mt-1.5 flex items-center gap-1.5 text-xs text-[#1D4ED8]">
-          <Zap size={10} />
-          <span>{hasCv ? "CV context active. Session memory enabled." : "Upload a CV to enable personalized answers"}</span>
+    <div className="flex h-[760px] flex-col rounded-[28px] border border-[#E5E7EB] bg-[linear-gradient(180deg,#FFFFFF_0%,#F8FAFC_100%)] p-5 shadow-[0_18px_48px_rgba(15,23,42,.06)]">
+      <div className="mb-4 rounded-[24px] border border-[#DBEAFE] bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,.18),_transparent_38%),linear-gradient(135deg,#EFF6FF_0%,#FFFFFF_58%,#F8FAFC_100%)] p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#1D4ED8]">
+              Personal AI Assistant
+            </p>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-[-0.03em] text-[#111827]">
+              CV-grounded answers with session memory.
+            </h2>
+            <p className="mt-3 text-sm font-medium leading-7 text-[#64748B]">
+              Ask about role readiness, benchmark skill gaps, personalized learning
+              roadmaps, or cover-letter drafting. The assistant uses your uploaded CV
+              as the source of truth.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleResetSession}
+            className="inline-flex items-center gap-2 rounded-full border border-[#CBD5E1] bg-white px-4 py-2 text-sm font-semibold text-[#334155] transition hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
+          >
+            <RefreshCcw size={14} />
+            New Session
+          </button>
         </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#DBEAFE] px-3 py-1 text-xs font-semibold text-[#1D4ED8]">
+            <Zap size={12} />
+            {hasCv ? "CV context active" : "Waiting for CV"}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#E0F2FE] px-3 py-1 text-xs font-semibold text-[#0369A1]">
+            <CheckCircle2 size={12} />
+            Session memory enabled
+          </span>
+          {cvName && (
+            <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#475569]">
+              Using CV: {cvName}
+            </span>
+          )}
+        </div>
+
+        {cvSkills.length > 0 && (
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B]">
+              Detected skills in context
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {cvSkills.map((skill) => (
+                <span
+                  key={skill}
+                  className="rounded-full border border-[#BFDBFE] bg-white px-3 py-1 text-xs font-semibold text-[#1E40AF]"
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {selectedJob && (
+          <div className="mt-4 rounded-2xl border border-[#BFDBFE] bg-white/90 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B]">
+                  Active target job
+                </p>
+                <h3 className="mt-1 text-lg font-extrabold text-[#0F172A]">
+                  {selectedJob.role}
+                </h3>
+                <p className="text-sm font-semibold text-[#1D4ED8]">{selectedJob.company}</p>
+              </div>
+              <button
+                type="button"
+                onClick={clearSelectedJob}
+                className="rounded-full border border-[#CBD5E1] px-3 py-1 text-xs font-semibold text-[#475569] transition hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
+              >
+                Clear job
+              </button>
+            </div>
+            {selectedJob.requiredSkills && selectedJob.requiredSkills.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {selectedJob.requiredSkills.slice(0, 4).map((skill) => (
+                  <span
+                    key={skill}
+                    className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-xs font-semibold text-[#1E40AF]"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
+            {selectedJob.matchReason && (
+              <p className="mt-3 text-sm text-[#475569]">{selectedJob.matchReason}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {!hasCv && (
@@ -299,7 +455,10 @@ export function AssistantExperience() {
             <AlertTriangle size={16} className="mt-0.5 shrink-0" />
             <div>
               <p>{NO_CV_MESSAGE}</p>
-              <Link href="/upload" className="mt-1 inline-flex text-sm font-semibold text-amber-900 underline underline-offset-4">
+              <Link
+                href="/upload"
+                className="mt-1 inline-flex text-sm font-semibold text-amber-900 underline underline-offset-4"
+              >
                 Go to CV upload
               </Link>
             </div>
@@ -320,9 +479,10 @@ export function AssistantExperience() {
         {isRehydrating && (
           <div className="flex items-center gap-2 text-xs font-medium text-[#6B7280]">
             <Loader2 size={12} className="animate-spin" />
-            <span>Restoring your previous chat…</span>
+            <span>Restoring your previous chat...</span>
           </div>
         )}
+
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -333,6 +493,7 @@ export function AssistantExperience() {
                 <Bot size={20} className="text-white" />
               </div>
             )}
+
             <div
               className={`max-w-[75%] rounded-2xl p-4 ${
                 msg.role === "user"
@@ -360,13 +521,40 @@ export function AssistantExperience() {
                       AI - {msg.provider === "github_models" ? "GitHub Models" : msg.provider === "openrouter" ? "OpenRouter" : msg.provider}
                     </span>
                   ) : null)}
-                <span
-                  className={msg.role === "user" ? "text-blue-200" : "text-gray-400"}
-                >
-                  {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
+
+                {msg.timestampLabel && (
+                  <span className={msg.role === "user" ? "text-blue-200" : "text-gray-400"}>
+                    {msg.timestampLabel}
+                  </span>
+                )}
               </div>
+
+              {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
+                <div className="mt-3 rounded-xl border border-[#DBEAFE] bg-[#F8FBFF] p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#1D4ED8]">
+                    Grounded In Your CV
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    {msg.sources.slice(0, 3).map((source, index) => (
+                      <div key={`${source.section}-${index}`} className="rounded-lg bg-white p-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-[#0F172A]">{source.section}</span>
+                          {typeof source.score === "number" && (
+                            <span className="text-[11px] font-semibold text-[#64748B]">
+                              score {source.score.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 line-clamp-3 text-xs leading-5 text-[#475569]">
+                          {source.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+
             {msg.role === "user" && (
               <div className="grid size-10 shrink-0 place-items-center rounded-full bg-gray-100">
                 <User size={20} className="text-gray-600" />
@@ -387,29 +575,45 @@ export function AssistantExperience() {
             </div>
           </div>
         )}
+
         <div ref={messagesEndRef} />
       </div>
 
       {!hasConversationStarted && (
-        <div className="mb-3 mt-2 grid grid-cols-2 gap-2.5">
-          {quickActions.map((action) => (
-            <button
-              key={action.label}
-              onClick={() => {
-                setInputValue("");
-                if (action.navigateTo) {
-                  router.push(action.navigateTo);
-                } else if (action.prompt) {
-                  void sendQuestion(action.prompt);
-                }
-              }}
-              disabled={!hasCv || isLoading}
-              className="flex items-center gap-2.5 rounded-xl border-2 border-gray-200 bg-white p-3.5 text-left transition hover:border-[#1D4ED8] hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <action.icon size={18} className="text-[#1D4ED8]" />
-              <span className="text-sm font-bold text-gray-700">{action.label}</span>
-            </button>
-          ))}
+        <div className="mb-3 mt-3">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B]">
+            Start with benchmark prompts
+          </p>
+          <div className="grid grid-cols-2 gap-2.5">
+            {quickActions.map((action) => (
+              <button
+                key={action.label}
+                onClick={() => {
+                  setInputValue("");
+                  if (action.navigateTo) {
+                    router.push(action.navigateTo);
+                  } else if (action.prompt) {
+                    const prompt =
+                      selectedJob && action.label === "Job Readiness"
+                        ? `Am I ready for the ${selectedJob.role} role at ${selectedJob.company}?`
+                        : selectedJob && action.label === "Skill Gaps"
+                          ? `What skills am I missing for the ${selectedJob.role} role at ${selectedJob.company}?`
+                          : selectedJob && action.label === "Cover Letter"
+                            ? `Draft a cover letter for the ${selectedJob.role} role at ${selectedJob.company} based on my CV.`
+                            : action.prompt;
+                    if (prompt) {
+                      void sendQuestion(prompt);
+                    }
+                  }
+                }}
+                disabled={!hasCv || isLoading}
+                className="flex items-center gap-2.5 rounded-xl border-2 border-gray-200 bg-white p-3.5 text-left transition hover:border-[#1D4ED8] hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <action.icon size={18} className="text-[#1D4ED8]" />
+                <span className="text-sm font-bold text-gray-700">{action.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -440,7 +644,9 @@ export function AssistantExperience() {
       {sessionId && messages.length > 1 && (
         <div className="mt-2 flex items-center justify-center gap-1.5 text-xs text-[#1D4ED8]">
           <Zap size={12} />
-          <span>Session context active: CareerPilot will remember this conversation while you continue chatting.</span>
+          <span>
+            Session context active: CareerPilot will remember this conversation while you continue chatting.
+          </span>
         </div>
       )}
     </div>

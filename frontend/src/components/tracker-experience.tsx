@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { GlassCard, Reveal, Stagger } from "./motion-shell";
+import { ClientOnly, GlassCard, Reveal, Stagger } from "./motion-shell";
 import { Briefcase, Calendar, Target, CheckCircle2, Clock, MessageSquare, AlertCircle } from "lucide-react";
 import { useTracker } from "./tracker-context";
 import { getCareerPilotUserId } from "./user-storage";
@@ -120,7 +120,25 @@ export function TrackerExperience() {
               <h3 className="mt-1 text-lg font-extrabold text-black">Track jobs by stage</h3>
             </div>
           </div>
-          <KanbanBoard initialApplications={kanbanApplications} userId={userId} />
+          <ClientOnly
+            fallback={
+              <div className="grid gap-4 lg:grid-cols-4">
+                {["Applied", "Interviewing", "Offer", "Rejected"].map((column) => (
+                  <div key={column} className="rounded-xl bg-slate-50 p-4">
+                    <div className="mb-3 flex items-center justify-between border-b border-slate-200 pb-3">
+                      <h4 className="font-semibold text-slate-800">{column}</h4>
+                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-600">0</span>
+                    </div>
+                    <div className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed border-slate-200 text-sm text-slate-400">
+                      Loading board...
+                    </div>
+                  </div>
+                ))}
+              </div>
+            }
+          >
+            <KanbanBoard initialApplications={kanbanApplications} userId={userId} />
+          </ClientOnly>
         </GlassCard>
       </Reveal>
 

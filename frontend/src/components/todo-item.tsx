@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Todo } from "@/types/productivity";
 import { CheckCircle2, Circle, Trash2, Calendar, Link2, Edit2 } from "lucide-react";
 import { TodoForm } from "./todo-form";
+import { parseGoalMetadata } from "./productivity-goals";
 
 interface JobApplication {
   id: number;
@@ -64,6 +65,7 @@ export function TodoItem({
   const linkedApplication = todo.linked_type === "application" && todo.linked_id
     ? linkedApplications.find((app) => app.id === todo.linked_id)
     : null;
+  const goalMeta = parseGoalMetadata(todo.description);
 
   if (isEditing) {
     return (
@@ -76,6 +78,8 @@ export function TodoItem({
             title: todo.title,
             description: todo.description || undefined,
             due_date: todo.due_date || undefined,
+            linked_type: todo.linked_type || undefined,
+            linked_id: todo.linked_id || undefined,
           }}
         />
       </div>
@@ -114,9 +118,17 @@ export function TodoItem({
             {todo.title}
           </h3>
 
+          {goalMeta.goal && (
+            <div className="mt-2">
+              <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${goalMeta.goal.tone}`}>
+                {goalMeta.goal.label}
+              </span>
+            </div>
+          )}
+
           {/* Description */}
-          {todo.description && (
-            <p className="mt-1 text-sm text-slate-600">{todo.description}</p>
+          {goalMeta.cleanDescription && (
+            <p className="mt-1 text-sm text-slate-600">{goalMeta.cleanDescription}</p>
           )}
 
           {/* Meta info */}

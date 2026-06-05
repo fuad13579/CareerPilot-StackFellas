@@ -41,6 +41,7 @@ def ask_assistant(
             question=request.question,
             anonymous_user_id=anonymous_user_id,
             job_id=request.job_id,
+            job_context=request.job_context,
         )
         print(f"[ASSISTANT DEBUG] Response: answer_length={len(result.answer)}, sources={len(result.sources)}")
         return result

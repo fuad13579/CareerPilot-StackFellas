@@ -97,8 +97,12 @@ class EmbeddingService:
         try:
             from sentence_transformers import SentenceTransformer
 
+            # Default to local-only so demo flows do not stall on model downloads
+            # when SSL/network access is unavailable. If the model is cached
+            # locally, SentenceTransformer still loads it; otherwise we fall back
+            # immediately to hashing-based embeddings.
             local_only = (
-                os.getenv("SENTENCE_TRANSFORMER_LOCAL_ONLY", "false").lower() == "true"
+                os.getenv("SENTENCE_TRANSFORMER_LOCAL_ONLY", "true").lower() == "true"
             )
             return SentenceTransformer(
                 EMBEDDING_MODEL_NAME,

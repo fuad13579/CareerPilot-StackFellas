@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Search, MapPin, DollarSign, Calendar, Sparkles, Bookmark, Loader2, Briefcase, TrendingUp, AlertCircle, Lightbulb, CheckCircle2, FileText } from "lucide-react";
+import { Search, MapPin, DollarSign, Calendar, Bookmark, Loader2, Briefcase, TrendingUp, AlertCircle, Lightbulb, CheckCircle2, FileText, MessageSquare } from "lucide-react";
 import { GlassCard, Reveal, Stagger } from "./motion-shell";
 import { useTracker } from "./tracker-context";
 import { getPersistedCvId, getPersistedCvSkills, hasPersistedCv } from "./cv-storage";
 import { getCareerPilotHeaders } from "./user-storage";
+import { setAssistantJobContext } from "./assistant-job-context";
 
 interface Job {
   id: string;
@@ -43,6 +45,20 @@ interface LiveJobSearchResponse {
   message?: string | null;
   personalized?: boolean;
   fit_scores_enabled?: boolean;
+}
+
+function isUnscoredJob(job: Job, matchedSkills: string[], missingSkills: string[]) {
+  const reason = job.matchReason.toLowerCase();
+  return (
+    matchedSkills.length === 0 &&
+    missingSkills.length === 0 &&
+    (
+      !job.requiredSkills ||
+      job.requiredSkills.length === 0 ||
+      reason.includes("required skills could not be identified") ||
+      reason.includes("required skills unavailable")
+    )
+  );
 }
 
 // Map backend enriched job to frontend Job format
@@ -115,6 +131,7 @@ const getTypeBadgeColor = (type: string) => {
 };
 
 export function JobsExperience() {
+  const router = useRouter();
   const { addApplication } = useTracker();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -291,6 +308,27 @@ export function JobsExperience() {
     setAppliedJobs((prev) => new Set(prev).add(job.id));
   };
 
+  const handleAskAssistant = (
+    job: Job,
+    fitScore: number | null,
+    matchedSkills: string[],
+    missingSkills: string[]
+  ) => {
+    setAssistantJobContext({
+      id: job.id,
+      role: job.role,
+      company: job.company,
+      description: job.description,
+      requiredSkills: job.requiredSkills || [],
+      matchingSkills: matchedSkills,
+      missingSkills,
+      matchReason: job.matchReason,
+      fitScore,
+      trackerApplicationId: null,
+    });
+    router.push("/assistant");
+  };
+
   return (
     <div className="space-y-8">
       {/* Search Bar */}
@@ -388,9 +426,14 @@ export function JobsExperience() {
       <Stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
         {jobs.map((job) => {
           const computedFit = getJobFitScore(job);
-          const displayFitScore = computedFit ? computedFit.fit_score : job.fitScore;
           const displayMatchedSkills = computedFit ? computedFit.matched_skills : job.matchingSkills;
           const displayMissingSkills = computedFit ? computedFit.missing_skills : job.missingSkills;
+          const forceUnscored = isUnscoredJob(job, displayMatchedSkills, displayMissingSkills);
+          const displayFitScore = forceUnscored
+            ? null
+            : computedFit
+              ? computedFit.fit_score
+              : job.fitScore;
 
           return (
           <Reveal key={job.id}>
@@ -515,7 +558,7 @@ export function JobsExperience() {
               )}
 
               {/* Actions */}
-              <div className="mt-auto flex gap-3 pt-5">
+              <div className="mt-auto grid grid-cols-[1fr_auto_auto] gap-3 pt-5">
                 <button
                   onClick={() => handleApplyJob(job, displayFitScore)}
                   disabled={appliedJobs.has(job.id)}
@@ -533,6 +576,20 @@ export function JobsExperience() {
                       Apply Now
                     </>
                   )}
+                </button>
+                <button
+                  onClick={() =>
+                    handleAskAssistant(
+                      job,
+                      displayFitScore,
+                      displayMatchedSkills,
+                      displayMissingSkills
+                    )
+                  }
+                  aria-label={`Ask assistant about ${job.role} at ${job.company}`}
+                  className="rounded-xl border-2 border-sky-200 bg-sky-50 px-4 py-3 font-extrabold text-sky-700 transition-all hover:border-sky-300 hover:bg-sky-100"
+                >
+                  <MessageSquare size={18} />
                 </button>
                 <button
                   onClick={() => handleSaveJob(job.id)}
