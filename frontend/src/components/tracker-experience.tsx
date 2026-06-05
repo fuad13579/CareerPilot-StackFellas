@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { GlassCard, Reveal, Stagger } from "./motion-shell";
-import { Briefcase, MapPin, Calendar, Target, CheckCircle2, Clock, MessageSquare, AlertCircle } from "lucide-react";
+import { Briefcase, Calendar, Target, CheckCircle2, Clock, MessageSquare, AlertCircle } from "lucide-react";
 import { useTracker } from "./tracker-context";
+import { getCareerPilotUserId } from "./user-storage";
+import { KanbanBoard } from "./kanban-board";
 
 const columnColors: Record<string, string> = {
   Applied: "border-l-[#3B82F6]",
@@ -19,6 +22,7 @@ const badgeColors: Record<string, string> = {
 };
 
 export function TrackerExperience() {
+  const [userId, setUserId] = useState<string | null>(null);
   const { 
     state, 
     getApplicationCount, 
@@ -33,14 +37,27 @@ export function TrackerExperience() {
   // the same element. Inline style now drives the width so the gradient bar
   // actually animates from 0 -> progressWidth.
   const progressWidth = Math.min(weeklyStats.applicationsThisWeek / 5 * 100, 100);
+  const kanbanApplications = useMemo(
+    () =>
+      applications.map((app) => ({
+        id: Number(app.id),
+        job_id: app.id,
+        role: app.role,
+        company: app.company,
+        location: app.location || null,
+        status: app.status,
+        fit_score: Number.isFinite(app.fitScore) ? app.fitScore : null,
+        job_url: app.jobUrl || null,
+        notes: app.nextAction || app.jobDescription || null,
+        created_at: app.appliedDate,
+        updated_at: app.appliedDate,
+      })),
+    [applications]
+  );
 
-  // Group applications by status
-  const applicationsByStatus = {
-    Applied: applications.filter(a => a.status === "Applied"),
-    Interviewing: applications.filter(a => a.status === "Interviewing"),
-    Offer: applications.filter(a => a.status === "Offer"),
-    Rejected: applications.filter(a => a.status === "Rejected"),
-  };
+  useEffect(() => {
+    setUserId(getCareerPilotUserId() || null);
+  }, []);
 
   const totalApplications = getApplicationCount();
   const interviewingCount = getApplicationCountByStatus("Interviewing");
@@ -95,57 +112,17 @@ export function TrackerExperience() {
         </GlassCard>
       </Reveal>
 
-      {/* Kanban Board */}
-      <div className="grid gap-5 lg:grid-cols-4">
-        {Object.entries(applicationsByStatus).map(([status, apps]) => (
-          <div key={status} className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className={`h-3 w-3 rounded-full ${columnColors[status].replace("border-l-", "bg-")}`} />
-                <h3 className="font-extrabold text-black">{status}</h3>
-              </div>
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${badgeColors[status]}`}>
-                {apps.length}
-              </span>
+      <Reveal>
+        <GlassCard className="p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-[#1D4ED8]">Application Board</p>
+              <h3 className="mt-1 text-lg font-extrabold text-black">Track jobs by stage</h3>
             </div>
-            <Stagger className="space-y-3">
-              {apps.map((app) => (
-                <Reveal key={app.id}>
-                  <GlassCard className={`border-l-4 p-5 min-h-[200px] flex flex-col justify-between ${columnColors[status]}`}>
-                    <div>
-                      <div className="mb-3 flex items-start justify-between gap-2">
-                        <div>
-                          <h4 className="font-extrabold text-black">{app.role}</h4>
-                          <p className="mt-0.5 text-sm font-semibold text-[#1D4ED8]">{app.company}</p>
-                        </div>
-                        <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-xs font-bold text-[#D97706]">
-                          {app.fitScore}%
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-[#6B7280]">
-                        <div className="flex items-center gap-1">
-                          <MapPin size={12} />
-                          <span>{app.location}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar size={12} />
-                          <span>{new Date(app.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 rounded-lg bg-[#F9FAFB] p-3">
-                      <p className="text-xs font-medium text-[#374151]">
-                        <span className="font-semibold text-[#1D4ED8]">Next: </span>
-                        {app.nextAction}
-                      </p>
-                    </div>
-                  </GlassCard>
-                </Reveal>
-              ))}
-            </Stagger>
           </div>
-        ))}
-      </div>
+          <KanbanBoard initialApplications={kanbanApplications} userId={userId} />
+        </GlassCard>
+      </Reveal>
 
       {/* Two Column Layout: Tasks and AI Nudge */}
       <div className="grid gap-5 lg:grid-cols-2">

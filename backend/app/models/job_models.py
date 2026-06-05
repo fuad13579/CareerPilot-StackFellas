@@ -53,7 +53,7 @@ class JobCard(BaseModel):
 
 
 class FitScoreResponse(BaseModel):
-    fit_score: float
+    fit_score: Optional[float]
     matched_skills: list[str]
     missing_skills: list[str]
     match_count: int

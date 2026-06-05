@@ -14,7 +14,7 @@ interface Job {
   location: string;
   salary: string;
   deadline: string;
-  fitScore: number;
+  fitScore: number | null;
   type: "Remote" | "Hybrid" | "On-site" | "Internship" | "Full-time";
   matchReason: string;
   missingSkills: string[];
@@ -25,7 +25,7 @@ interface Job {
 }
 
 interface FitScoreResponse {
-  fit_score: number;
+  fit_score: number | null;
   matched_skills: string[];
   missing_skills: string[];
   match_count: number;
@@ -54,7 +54,7 @@ function mapApiJobToJob(apiJob: any): Job {
     location: apiJob.location || "Remote",
     salary: apiJob.salary || "Not specified",
     deadline: apiJob.deadline || new Date().toISOString().split('T')[0],
-    fitScore: Math.round(apiJob.fit_score || 0),
+    fitScore: typeof apiJob.fit_score === "number" ? Math.round(apiJob.fit_score) : null,
     type: "Remote" as const, // Remotive only returns remote jobs
     matchReason: apiJob.reason || "Calculated based on your CV skills",
     missingSkills: apiJob.missing_skills || [],
@@ -275,13 +275,13 @@ export function JobsExperience() {
     });
   };
 
-  const handleApplyJob = (job: Job, fitScore: number) => {
+  const handleApplyJob = (job: Job, fitScore: number | null) => {
     addApplication({
       role: job.role,
       company: job.company,
       location: job.location,
       status: "Applied",
-      fitScore: fitScore,
+      fitScore: fitScore ?? 0,
       deadline: job.deadline,
       nextAction: "Follow up with recruiter in 1 week",
       jobDescription: job.description || job.matchReason,
@@ -407,9 +407,15 @@ export function JobsExperience() {
                   </div>
                 </div>
                 {fitScoresEnabled ? (
-                  <span className={`rounded-full px-3 py-1 text-sm font-extrabold ${getMatchColor(displayFitScore)}`}>
-                    {displayFitScore}% Match
-                  </span>
+                  typeof displayFitScore === "number" ? (
+                    <span className={`rounded-full px-3 py-1 text-sm font-extrabold ${getMatchColor(displayFitScore)}`}>
+                      {displayFitScore}% Match
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-extrabold text-gray-500">
+                      Not scored
+                    </span>
+                  )
                 ) : (
                   <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-extrabold text-gray-500">
                     General

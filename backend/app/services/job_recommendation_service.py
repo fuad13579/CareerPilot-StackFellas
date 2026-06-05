@@ -141,9 +141,9 @@ def calculate_fit_score(cv_skills: list[str], job: JobCard) -> FitScoreResponse:
     job_skills.update(desc_skills)
     
     if not job_skills:
-        # No specific skills found - assume neutral match
+        # We cannot compute a real score without identifiable requirements.
         return FitScoreResponse(
-            fit_score=50.0,
+            fit_score=None,
             matched_skills=[],
             missing_skills=[],
             match_count=0,
@@ -180,10 +180,7 @@ def calculate_fit_score(cv_skills: list[str], job: JobCard) -> FitScoreResponse:
     total_required = len(job_skills)
     match_count = len(matched)
     
-    if total_required > 0:
-        fit_score = round((match_count / total_required) * 100, 1)
-    else:
-        fit_score = 50.0  # Neutral if no skills required
+    fit_score = round((match_count / total_required) * 100, 1) if total_required > 0 else None
     
     return FitScoreResponse(
         fit_score=fit_score,
@@ -203,11 +200,16 @@ def enrich_job_with_fit_score(job: JobCard, cv_skills: list[str]) -> dict[str, A
     fit = calculate_fit_score(cv_skills, job)
     
     # Generate reason text
-    if fit.match_count == 0:
+    if fit.total_required == 0:
+        reason = (
+            "Required skills could not be identified from this job posting, "
+            "so a reliable personalized fit score is unavailable."
+        )
+    elif fit.match_count == 0:
         reason = "No matching skills found between your CV and this job's requirements."
-    elif fit.fit_score >= 80:
+    elif (fit.fit_score or 0) >= 80:
         reason = f"Great match! You have {fit.match_count} of {fit.total_required} required skills."
-    elif fit.fit_score >= 50:
+    elif (fit.fit_score or 0) >= 50:
         reason = f"Good match with {fit.match_count}/{fit.total_required} skills. Consider learning: {', '.join(fit.missing_skills[:3])}"
     else:
         reason = f"You match {fit.match_count}/{fit.total_required} skills. Missing: {', '.join(fit.missing_skills[:3])}"
@@ -234,4 +236,8 @@ def enrich_job_with_fit_score(job: JobCard, cv_skills: list[str]) -> dict[str, A
 
 def sort_jobs_by_fit_score(jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Sort jobs by fit_score descending."""
-    return sorted(jobs, key=lambda j: j.get("fit_score", 0), reverse=True)
+    return sorted(
+        jobs,
+        key=lambda j: j.get("fit_score") if isinstance(j.get("fit_score"), (int, float)) else -1,
+        reverse=True,
+    )
