@@ -262,13 +262,13 @@ def _load_job_data(job_id: str | None, anonymous_user_id: str | None) -> dict | 
     if not job_id or not anonymous_user_id:
         return None
     try:
-        from app.models.database_models import JobApplication
+        from app.models.database_models import Application
         db = SessionLocal()
         try:
             app = (
-                db.query(JobApplication)
-                .filter(JobApplication.id == job_id)
-                .filter(JobApplication.anonymous_user_id == anonymous_user_id)
+                db.query(Application)
+                .filter(Application.id == job_id)
+                .filter(Application.anonymous_user_id == anonymous_user_id)
                 .first()
             )
             if not app:

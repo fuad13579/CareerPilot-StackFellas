@@ -298,6 +298,7 @@ The suite covers:
 
 | Doc | What it covers |
 | --- | --- |
+| [`docs/stack-report.md`](docs/stack-report.md) | Judge-facing stack report and architecture decision document: project goal, chosen technologies, FastAPI rationale, CV pipeline, RAG flow, fit score logic, assistant flow, cover letter flow, tracker/dashboard flow, limitations, and future improvements. |
 | [`docs/architecture.md`](docs/architecture.md) | C4-style context + container diagram, component breakdown, end-to-end data flow (CV upload -> ingestion -> RAG -> assistant / cover letter / tracker), storage layout, and deployment topology. The architecture diagram the brief asks for. |
 | [`docs/evaluation.md`](docs/evaluation.md) | Evaluation suite: 5 Pillar 3 benchmark query cases (readiness, skill gap, roadmap, cover letter, conversational memory), the full pytest contract, manual end-to-end cases, and adversarial / guard-rail cases with pass/fail verdicts. |
 | [`docs/demo-runbook.md`](docs/demo-runbook.md) | 5-minute recorded-demo script. Time-boxed steps for CV upload, job search, fit score, AI assistant, cover letter, and tracker update, with the exact UI actions, expected visible output, and failure-mode talking points. |

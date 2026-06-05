@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   try {
     const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
@@ -10,7 +12,7 @@ export async function GET(request: Request) {
         "Content-Type": "application/json",
         ...(userId ? { "x-careerpilot-user-id": userId } : {}),
       },
-      next: { revalidate: 15 },
+      cache: "no-store",
     });
 
     if (!response.ok) {
