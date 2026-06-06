@@ -53,6 +53,18 @@ export interface CreateEventRequest {
 
 export interface JobApplication {
   id: number;
+  job_id: string;
   role: string;
   company: string;
+  location: string | null;
+  deadline: string | null;
+  next_action: string | null;
+  job_description: string | null;
+  required_skills: string[];
+  status: "Applied" | "Interviewing" | "Offer" | "Rejected" | string;
+  fit_score: number | null;
+  job_url: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 }
