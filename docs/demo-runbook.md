@@ -52,10 +52,10 @@ visible expected output, and the time budget.
 - **Action:** drag `sample-cv.pdf` onto the upload card.
 - **Visible result:**
   - Spinner shows for ~3-5 s.
-  - The dashboard populates with parsed sections: contact info,
-    experience, education, skills (chips), and the "top skills" bar
-    chart.
-  - A toast appears: "CV uploaded - 4 sections parsed".
+  - The upload flow completes and the app shows parsed CV data such as
+    skills, experience, and education.
+  - The dashboard reflects the uploaded CV without requiring a manual
+    reload.
 - **Voiceover (mid-step):** "The CV is parsed locally, the sections are
   indexed for retrieval, and the dashboard updates without a reload."
 - **What this proves:** the RAG ingestion pipeline works end-to-end
@@ -120,9 +120,8 @@ visible expected output, and the time budget.
 - **Action:** click "Save to tracker", then navigate to the
   "Tracker" tab.
 - **Visible result:**
-  - The new application appears in the "Saved" column of the kanban
-    board.
-  - Drag it across to "Applied".
+  - The new application appears in the tracker board.
+  - Move it into the `Applied` stage.
   - Refresh the page - the card stays in "Applied".
 - **Voiceover (closing):** "Everything is persisted, including the
   anonymous session, so a refresh does not lose the candidate's work.
@@ -158,7 +157,7 @@ visible expected output, and the time budget.
 
 - Use OBS (or the Windows Game Bar) at 1280x720, 30 fps, 4 Mbps
   bitrate. The whole recording should land around 200 MB.
-- Mute notifications; the toast in step 1 must be the only one.
+- Mute notifications so product feedback is the only visible UI change.
 - If the LLM is slow on the day, the 90 s assistant step has 15 s of
   slack.
 - Re-record the assistant turn last - it is the one most likely to

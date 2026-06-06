@@ -154,8 +154,8 @@ pytest -q
 
 | # | Test function | What it proves | Verdict |
 |---|---|---|---|
-| 2.2.1 | `test_cv_upload_requires_anonymous_user_id` | First-time upload auto-creates a stable anonymous id stored in a cookie. | PASS |
-| 2.2.2 | `test_cv_upload_persists_anonymous_user_id` | A second request with the same cookie reattaches to the original CV row - not a new one. | PASS |
+| 2.2.1 | `test_cv_upload_requires_anonymous_user_id` | First-time usage creates a stable anonymous id in browser storage, and requests carry it through `x-careerpilot-user-id`. | PASS |
+| 2.2.2 | `test_cv_upload_persists_anonymous_user_id` | A second request with the same anonymous id reattaches to the original CV row - not a new one. | PASS |
 | 2.2.3 | `test_jobs_search_rejects_foreign_cv` | A job-search request that names a CV id the user does not own is 403. Prevents IDOR. | PASS |
 
 ### 2.3 Skills-fit scoring (`test_skills_fit.py`)
@@ -181,7 +181,7 @@ These are the flows a judge should be able to reproduce by following
 
 | # | Flow | Where to verify | Verdict |
 |---|---|---|---|
-| 3.1 | Upload CV PDF -> see parsed sections appear in dashboard. | `GET /api/cv/sections` after upload. | PASS |
+| 3.1 | Upload CV PDF -> see parsed sections appear in dashboard. | `GET /api/cv/{cv_id}/sections` after upload. | PASS |
 | 3.2 | Job search returns at least 5 results from Arbeitnow/Remotive. | `GET /api/jobs/search?q=python`. | PASS |
 | 3.3 | Fit score renders on the job card. | UI: jobs page, click a card, see the score gauge. | PASS |
 | 3.4 | Assistant query with `GITHUB_MODELS_TOKEN` set -> green "AI - GitHub Models" chip. | UI: assistant panel, latest message. | PASS |
