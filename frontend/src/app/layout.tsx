@@ -31,7 +31,7 @@ export default function RootLayout({
           </ClientOnly>
           <div className="min-h-screen">
             <Navigation />
-            <main className="min-w-0 px-5 pb-16 pt-24 sm:px-8 lg:px-10">
+            <main className="min-w-0 px-5 pb-16 pt-18 sm:px-8 lg:px-10">
               <div className="mx-auto w-full max-w-[1200px]">{children}</div>
             </main>
           </div>

@@ -95,10 +95,12 @@ export function DashboardHome() {
   }, []);
 
   useEffect(() => {
-    const cvId = getPersistedCvId();
-    if (!cvId) return;
+    let cancelled = false;
 
     const loadSections = async () => {
+      const cvId = getPersistedCvId();
+      if (!cvId) return;
+
       try {
         const response = await fetch(`/api/cv/${encodeURIComponent(cvId)}/sections`, {
           headers: getCareerPilotHeaders(),
@@ -112,6 +114,8 @@ export function DashboardHome() {
         const experience = extractSectionEntries(data?.sections?.experience);
         const education = extractSectionEntries(data?.sections?.education);
 
+        if (cancelled) return;
+
         setCvSnapshot({
           ...summary,
           experience: experience.length > 0 ? experience : summary.experience || [],
@@ -122,7 +126,19 @@ export function DashboardHome() {
       }
     };
 
-    loadSections();
+    const handleCvUpdated = () => {
+      void loadSections();
+    };
+
+    void loadSections();
+    window.addEventListener("careerpilot_cv_updated", handleCvUpdated);
+    window.addEventListener("storage", handleCvUpdated);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("careerpilot_cv_updated", handleCvUpdated);
+      window.removeEventListener("storage", handleCvUpdated);
+    };
   }, []);
 
   return (
@@ -134,9 +150,9 @@ export function DashboardHome() {
         <RecommendedJobsSection />
         <ApplicationTrackerSection />
         <UpcomingTasksSection />
-        <LearningRoadmapSection />
+        <LiveLearningRoadmapSection cvSnapshot={cvSnapshot} />
         <AINudgesSection />
-        <SkillsToImproveSection />
+        <LiveSkillsToImproveSection cvSnapshot={cvSnapshot} />
       </main>
     </div>
   );
@@ -1141,4 +1157,285 @@ function SkillsToImproveSection() {
       </div>
     </section>
   );
+}
+
+function LiveLearningRoadmapSection({
+  cvSnapshot,
+}: {
+  cvSnapshot: CvSnapshot | null;
+}) {
+  const { state, getWeeklyStats } = useTracker();
+  const roadmap = buildDashboardRoadmap(state, cvSnapshot, getWeeklyStats());
+
+  return (
+    <section className="relative">
+      <div className="mx-auto max-w-6xl px-6">
+        <SectionHeader
+          eyebrow="Learning Path"
+          title="Your Roadmap"
+          description="CareerPilot builds your roadmap from CV gaps, target roles, and application progress."
+        />
+        <Stagger className="grid gap-5 md:grid-cols-2">
+          {roadmap.map((week) => (
+            <Reveal key={week.week}>
+              <div className="group relative rounded-2xl border border-[#e5e7eb] bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:shadow-[#1D4ED8]/5">
+                <div className={`absolute -left-3 top-6 flex size-6 items-center justify-center rounded-full ring-4 ring-white ${
+                  week.status === "completed" ? "bg-[#10b981]" :
+                  week.status === "in-progress" ? "bg-[#1d4ed8]" :
+                  "bg-[#e5e7eb]"
+                }`}>
+                  {week.status === "completed" && (
+                    <CheckCircle2 size={14} className="text-white" />
+                  )}
+                  {week.status === "in-progress" && (
+                    <Zap size={12} className="text-white" />
+                  )}
+                  {week.status === "upcoming" && (
+                    <div className="size-2 rounded-full bg-gray-400" />
+                  )}
+                </div>
+
+                <div className="mb-3 flex items-center gap-3">
+                  <span className="text-sm font-semibold text-[#1d4ed8]">{week.week}</span>
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    week.status === "completed" ? "bg-green-100 text-green-700" :
+                    week.status === "in-progress" ? "bg-blue-100 text-blue-700" :
+                    "bg-gray-100 text-gray-600"
+                  }`}>
+                    {week.status === "completed" ? "Completed" :
+                     week.status === "in-progress" ? "In Progress" :
+                     "Upcoming"}
+                  </span>
+                </div>
+
+                <h3 className="text-base font-extrabold text-black">{week.title}</h3>
+                <p className="mt-2 text-sm text-[#6b7280]">{week.description}</p>
+
+                <div className="mt-4">
+                  <div className="flex items-center justify-between text-xs text-[#6b7280]">
+                    <span>Progress</span>
+                    <span className="font-semibold text-black">{week.progress}%</span>
+                  </div>
+                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#f3f4f6]">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      whileInView={{ width: `${week.progress}%` }}
+                      viewport={{ once: true, amount: 0.6 }}
+                      transition={{
+                        duration: 1,
+                        ease: [0.22, 1, 0.36, 1],
+                      }}
+                      className={`h-full rounded-full ${
+                        week.status === "completed"
+                          ? "bg-gradient-to-r from-[#10b981] to-[#34d399]"
+                          : week.status === "in-progress"
+                            ? "bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6]"
+                            : "bg-[#e5e7eb]"
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          ))}
+        </Stagger>
+      </div>
+    </section>
+  );
+}
+
+function LiveSkillsToImproveSection({
+  cvSnapshot,
+}: {
+  cvSnapshot: CvSnapshot | null;
+}) {
+  const { state } = useTracker();
+  const displaySkills = buildDashboardSkillFocus(state, cvSnapshot);
+
+  return (
+    <section className="relative">
+      <div className="mx-auto max-w-6xl px-6">
+        <SectionHeader
+          eyebrow="Improvement Areas"
+          title="Skills to Develop"
+          description="Based on your target roles, here is what to focus on."
+        />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {displaySkills.slice(0, 6).map((skill, index) => (
+            <motion.div
+              key={skill.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.5 }}
+              transition={{ delay: index * 0.1, duration: 0.5 }}
+              className="group relative overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-4 transition-all duration-300 hover:border-[#1d4ed8]/30 hover:shadow-lg hover:shadow-[#1d4ed8]/10"
+            >
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex size-9 items-center justify-center rounded-lg bg-[#1d4ed8]/10">
+                  <Target size={18} className="text-[#1d4ed8]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-black">{skill.name}</h3>
+                  <p className="text-xs text-[#6b7280]">{skill.category}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-[#6b7280]">Proficiency</span>
+                  <span className="font-semibold text-black">{skill.proficiency}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-[#f3f4f6]">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    whileInView={{ width: `${skill.proficiency}%` }}
+                    viewport={{ once: true, amount: 0.5 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className={`h-full rounded-full ${
+                      skill.priority === "high" ? "bg-gradient-to-r from-[#ef4444] to-[#f87171]" :
+                      skill.priority === "medium" ? "bg-gradient-to-r from-[#f59e0b] to-[#fbbf24]" :
+                      "bg-gradient-to-r from-[#10b981] to-[#34d399]"
+                    }`}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          ))}
+          {displaySkills.length === 0 && (
+            <div className="rounded-xl border border-dashed border-[#e5e7eb] bg-white p-6 text-sm text-[#6b7280] md:col-span-2 lg:col-span-3">
+              Upload a CV or save applications to surface real skill gaps here.
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function buildDashboardRoadmap(
+  state: {
+    applications: Array<{ status: string; requiredSkills: string[] }>;
+    todos: Array<{ completed: boolean }>;
+    skills: Array<{ name: string }>;
+  },
+  cvSnapshot: CvSnapshot | null,
+  weeklyStats: {
+    applicationsThisWeek: number;
+    todosCompletedThisWeek: number;
+    skillsAddedThisWeek: number;
+  }
+) {
+  const cvSkills = normalizeSkills(cvSnapshot?.skills || []);
+  const missingSkills = collectMissingApplicationSkills(state.applications, cvSkills);
+  const totalTodos = state.todos.length;
+  const completedTodos = state.todos.filter((todo) => todo.completed).length;
+  const interviewing = state.applications.filter((app) => app.status === "Interviewing").length;
+  const experienceCount = cvSnapshot?.experience?.length || 0;
+
+  return [
+    {
+      week: "Step 1",
+      title: "CV and Profile Readiness",
+      progress: cvSnapshot ? 100 : 10,
+      status: (cvSnapshot ? "completed" : "in-progress") as "completed" | "in-progress" | "upcoming",
+      description: cvSnapshot
+        ? `Your CV is uploaded with ${cvSnapshot.skills?.length || 0} detected skills and ${experienceCount} experience section${experienceCount === 1 ? "" : "s"}.`
+        : "Upload your CV to unlock fit scores, assistant grounding, and cover letter generation.",
+    },
+    {
+      week: "Step 2",
+      title: "Close Target Role Skill Gaps",
+      progress: missingSkills.length === 0 ? 15 : Math.max(25, 100 - missingSkills.length * 15),
+      status: (missingSkills.length === 0 ? "upcoming" : "in-progress") as "completed" | "in-progress" | "upcoming",
+      description:
+        missingSkills.length > 0
+          ? `Focus next on ${missingSkills.slice(0, 3).join(", ")} based on the requirements of your saved applications.`
+          : "Save a few target jobs so CareerPilot can identify missing skills from real application requirements.",
+    },
+    {
+      week: "Step 3",
+      title: "Application Momentum",
+      progress: Math.min(100, weeklyStats.applicationsThisWeek * 20),
+      status: (weeklyStats.applicationsThisWeek >= 5
+        ? "completed"
+        : weeklyStats.applicationsThisWeek > 0
+          ? "in-progress"
+          : "upcoming") as "completed" | "in-progress" | "upcoming",
+      description:
+        weeklyStats.applicationsThisWeek > 0
+          ? `You have submitted ${weeklyStats.applicationsThisWeek} application${weeklyStats.applicationsThisWeek === 1 ? "" : "s"} this week. Keep pushing toward your weekly goal of 5.`
+          : "Start your weekly goal by applying to your strongest-fit roles from the jobs page.",
+    },
+    {
+      week: "Step 4",
+      title: "Follow-up and Interview Readiness",
+      progress: totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0,
+      status: (interviewing > 0 || completedTodos > 0 ? "in-progress" : "upcoming") as "completed" | "in-progress" | "upcoming",
+      description:
+        interviewing > 0
+          ? `You currently have ${interviewing} application${interviewing === 1 ? "" : "s"} in interviewing. Use todos and the assistant to prepare responses and next steps.`
+          : totalTodos > 0
+            ? `You have completed ${completedTodos} of ${totalTodos} productivity tasks. Keep deadlines and follow-ups moving.`
+            : "Add tracker tasks and deadlines to keep your preparation and follow-ups organized.",
+    },
+  ];
+}
+
+function buildDashboardSkillFocus(
+  state: {
+    applications: Array<{ requiredSkills: string[] }>;
+    skills: Array<{ id: string; name: string; level: number }>;
+  },
+  cvSnapshot: CvSnapshot | null
+) {
+  const cvSkills = normalizeSkills(cvSnapshot?.skills || []);
+  const missingSkillCards = collectMissingApplicationSkills(state.applications, cvSkills).map((skill, index) => ({
+    id: `gap-${skill.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${index}`,
+    name: skill,
+    proficiency: 20,
+    priority: "high" as const,
+    category: "Job Gap",
+  }));
+
+  const trackerSkillCards = state.skills.map((skill) => ({
+    id: skill.id,
+    name: skill.name,
+    proficiency: skill.level,
+    priority: (skill.level < 40 ? "high" : skill.level < 70 ? "medium" : "low") as "high" | "medium" | "low",
+    category: "Tracked Skill",
+  }));
+
+  const cvSkillCards = (cvSnapshot?.skills || []).slice(0, 6).map((skill, index) => ({
+    id: `cv-${skill.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${index}`,
+    name: skill,
+    proficiency: 75,
+    priority: "low" as const,
+    category: "CV Skill",
+  }));
+
+  const seen = new Set<string>();
+  return [...missingSkillCards, ...trackerSkillCards, ...cvSkillCards].filter((skill) => {
+    const key = skill.name.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function normalizeSkills(skills: string[]) {
+  return new Set(skills.map((skill) => skill.trim().toLowerCase()).filter(Boolean));
+}
+
+function collectMissingApplicationSkills(
+  applications: Array<{ requiredSkills: string[] }>,
+  cvSkills: Set<string>
+) {
+  const missing = new Set<string>();
+  for (const application of applications) {
+    for (const skill of application.requiredSkills || []) {
+      const normalized = skill.trim().toLowerCase();
+      if (!normalized || cvSkills.has(normalized)) continue;
+      missing.add(skill.trim());
+    }
+  }
+  return Array.from(missing);
 }
