@@ -53,6 +53,7 @@ export interface TrackerState {
 // Context type
 interface TrackerContextType {
   state: TrackerState;
+  dataSource: "backend" | "local_fallback";
   // Application actions
   addApplication: (app: Omit<Application, "id" | "appliedDate">) => void;
   updateApplicationStatus: (id: string, status: Application["status"]) => void;
@@ -81,6 +82,31 @@ interface TrackerContextType {
   };
 }
 
+interface TrackerApplicationResponse {
+  id: number;
+  role: string;
+  company: string;
+  location?: string | null;
+  job_description?: string | null;
+  fit_score?: number | null;
+  deadline?: string | null;
+  next_action?: string | null;
+  notes?: string | null;
+  required_skills?: string[];
+  job_url?: string | null;
+  status: Application["status"];
+  created_at?: string | null;
+}
+
+interface TrackerTodoResponse {
+  id: number;
+  title: string;
+  priority?: Todo["priority"] | null;
+  is_completed: boolean;
+  due_date?: string | null;
+  created_at?: string | null;
+}
+
 const STORAGE_KEY_PREFIX = "careerpilot_tracker_state";
 
 function getTrackerStorageKey(userId: string): string {
@@ -107,12 +133,13 @@ const TrackerContext = createContext<TrackerContextType | undefined>(undefined);
 export function TrackerProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<TrackerState>(defaultState);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [anonymousUserId, setAnonymousUserId] = useState("");
+  const anonymousUserIdRef = React.useRef("");
+  const [dataSource, setDataSource] = useState<"backend" | "local_fallback">("backend");
 
   // Load the anonymous user, then hydrate from backend and local cache.
   useEffect(() => {
     const userId = ensureCareerPilotUserId();
-    setAnonymousUserId(userId);
+    anonymousUserIdRef.current = userId;
 
     const hydrate = async () => {
       try {
@@ -122,13 +149,13 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
           fetch("/api/todos", { headers }),
         ]);
 
-        const applications = applicationsResponse.ok ? await applicationsResponse.json() : [];
-        const todos = todosResponse.ok ? await todosResponse.json() : [];
+        const applications: TrackerApplicationResponse[] = applicationsResponse.ok ? await applicationsResponse.json() : [];
+        const todos: TrackerTodoResponse[] = todosResponse.ok ? await todosResponse.json() : [];
 
         setState((prev) => ({
           ...prev,
           applications: Array.isArray(applications)
-            ? applications.map((app: any) => ({
+            ? applications.map((app) => ({
                 id: String(app.id),
                 role: app.role,
                 company: app.company,
@@ -144,7 +171,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
               }))
             : [],
           todos: Array.isArray(todos)
-            ? todos.map((todo: any) => ({
+            ? todos.map((todo) => ({
                 id: String(todo.id),
                 task: todo.title,
                 // Preserve the backend's priority if it exists, otherwise
@@ -157,6 +184,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
               }))
             : [],
         }));
+        setDataSource("backend");
       } catch (error) {
         console.error("Failed to hydrate tracker state:", error);
 
@@ -173,6 +201,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
               applications: Array.isArray(parsed?.applications) ? parsed.applications : prev.applications,
               todos: Array.isArray(parsed?.todos) ? parsed.todos : prev.todos,
             }));
+            setDataSource("local_fallback");
           }
         } catch (cacheError) {
           console.error("Failed to load tracker cache:", cacheError);
@@ -187,14 +216,14 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
 
   // Save to localStorage on state change
   useEffect(() => {
-    if (isInitialized && anonymousUserId) {
+    if (isInitialized && anonymousUserIdRef.current) {
       try {
-        localStorage.setItem(getTrackerStorageKey(anonymousUserId), JSON.stringify(state));
+        localStorage.setItem(getTrackerStorageKey(anonymousUserIdRef.current), JSON.stringify(state));
       } catch (error) {
         console.error("Failed to save tracker state:", error);
       }
     }
-  }, [state, isInitialized, anonymousUserId]);
+  }, [state, isInitialized]);
 
   // Helper to generate IDs (local-only; the backend id replaces this once the
   // POST returns so we never persist a uuid as a primary key).
@@ -355,7 +384,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         }),
       }).catch((error) => console.error("Failed to persist todo completion:", error));
     }
-  }, []);
+  }, [state.todos]);
 
   const removeTodo = useCallback((id: string) => {
     setState((prev) => ({ ...prev, todos: prev.todos.filter((todo) => todo.id !== id) }));
@@ -449,6 +478,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
 
   const contextValue: TrackerContextType = {
     state,
+    dataSource,
     addApplication,
     updateApplicationStatus,
     removeApplication,

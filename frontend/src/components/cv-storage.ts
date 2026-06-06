@@ -2,6 +2,7 @@ export interface PersistedCvSummary {
   filename: string;
   fileType: string;
   extractedText: string;
+  analyzedAt?: string;
   profileSummary?: string;
   skills?: string[];
   experience?: string[];

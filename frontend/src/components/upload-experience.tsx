@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { 
   FileText, 
@@ -23,24 +23,15 @@ import { getCareerPilotHeaders } from "./user-storage";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error";
 
-type CoverLetterStatus = "idle" | "generating" | "success" | "error";
-
 interface CVSummary {
   filename: string;
   fileType: string;
+  analyzedAt?: string;
   extractedText: string;
   profileSummary?: string;
   skills?: string[];
   experience?: string[];
   education?: string[];
-}
-
-interface JobDetails {
-  id: string;
-  title: string;
-  company: string;
-  location: string;
-  description: string;
 }
 
 const ACCEPTED_MIME_BY_EXTENSION: Record<string, string> = {
@@ -52,24 +43,12 @@ const INVALID_CV_FILE_MESSAGE = "Please upload a valid CV file in PDF or DOCX fo
 
 export function UploadExperience() {
   const router = useRouter();
-  const [status, setStatus] = useState<UploadStatus>("idle");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [cvSummary, setCvSummary] = useState<CVSummary | null>(null);
+  const persistedSummary = getPersistedCvSummary();
+  const [status, setStatus] = useState<UploadStatus>(persistedSummary ? "success" : "idle");
+  const [cvSummary, setCvSummary] = useState<CVSummary | null>(persistedSummary);
   const [error, setError] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    try {
-      const storedSummary = getPersistedCvSummary();
-      if (!storedSummary) return;
-
-      setCvSummary(storedSummary);
-      setStatus("success");
-    } catch {
-      // Ignore storage hydration errors and keep the page usable.
-    }
-  }, []);
 
   const validateFile = (file: File): string | null => {
     const extension = "." + file.name.split(".").pop()?.toLowerCase();
@@ -93,7 +72,6 @@ export function UploadExperience() {
       return;
     }
 
-    setSelectedFile(file);
     setStatus("uploading");
     setError("");
     setCvSummary(null);
@@ -147,6 +125,7 @@ export function UploadExperience() {
         filename: data.filename || file.name,
         fileType: data.file_type || file.name.split(".").pop()?.toUpperCase() || "Unknown",
         extractedText: data.extracted_text || "CV extraction successful.",
+        analyzedAt: new Date().toISOString(),
         profileSummary: data.profile_summary,
         skills: data.skills || data.extracted_skills || [],
         experience: experienceSections.length > 0 ? experienceSections : data.experience || [],
@@ -322,22 +301,22 @@ export function UploadExperience() {
     return hasDateRange || looksLikeRoleLine;
   };
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) uploadFile(file);
-  }, []);
+  };
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
-  }, []);
+  };
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+  const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-  }, []);
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Search, MapPin, DollarSign, Calendar, Bookmark, Loader2, Briefcase, TrendingUp, AlertCircle, Lightbulb, CheckCircle2, FileText, MessageSquare } from "lucide-react";
+import { Search, MapPin, DollarSign, Calendar, Bookmark, Loader2, Briefcase, TrendingUp, AlertCircle, CheckCircle2, FileText, MessageSquare } from "lucide-react";
 import { GlassCard, Reveal, Stagger } from "./motion-shell";
 import { useTracker } from "./tracker-context";
 import { getPersistedCvId, getPersistedCvSkills, hasPersistedCv } from "./cv-storage";
@@ -15,7 +15,7 @@ interface Job {
   company: string;
   location: string;
   salary: string;
-  deadline: string;
+  deadline: string | null;
   fitScore: number | null;
   type: "Remote" | "Hybrid" | "On-site" | "Internship" | "Full-time";
   matchReason: string;
@@ -24,6 +24,7 @@ interface Job {
   requiredSkills?: string[];
   jobUrl?: string;
   description?: string;
+  source?: string;
 }
 
 interface FitScoreResponse {
@@ -45,6 +46,46 @@ interface LiveJobSearchResponse {
   message?: string | null;
   personalized?: boolean;
   fit_scores_enabled?: boolean;
+  cached?: boolean;
+  fetched_at?: string | null;
+  cache_expires_at?: string | null;
+}
+
+interface ApiJobResponse {
+  job_id: string;
+  role: string;
+  company: string;
+  location?: string | null;
+  salary?: string | null;
+  deadline?: string | null;
+  fit_score?: number | null;
+  reason?: string | null;
+  missing_skills?: string[];
+  matched_skills?: string[];
+  required_skills?: string[];
+  job_url?: string | null;
+  description?: string | null;
+  source?: string;
+}
+
+function inferJobType(apiJob: ApiJobResponse): Job["type"] {
+  const role = apiJob.role.toLowerCase();
+  const location = (apiJob.location || "").toLowerCase();
+  const description = (apiJob.description || "").toLowerCase();
+  const source = (apiJob.source || "").toLowerCase();
+  const haystack = `${role} ${location} ${description} ${source}`;
+
+  if (haystack.includes("intern")) return "Internship";
+  if (haystack.includes("hybrid")) return "Hybrid";
+  if (
+    haystack.includes("on-site") ||
+    haystack.includes("onsite") ||
+    haystack.includes("on site")
+  ) {
+    return "On-site";
+  }
+  if (haystack.includes("remote") || source.includes("remotive")) return "Remote";
+  return "Full-time";
 }
 
 function isUnscoredJob(job: Job, matchedSkills: string[], missingSkills: string[]) {
@@ -62,34 +103,24 @@ function isUnscoredJob(job: Job, matchedSkills: string[], missingSkills: string[
 }
 
 // Map backend enriched job to frontend Job format
-function mapApiJobToJob(apiJob: any): Job {
+function mapApiJobToJob(apiJob: ApiJobResponse): Job {
   return {
     id: apiJob.job_id,
     role: apiJob.role,
     company: apiJob.company,
-    location: apiJob.location || "Remote",
+    location: apiJob.location || "Location not provided",
     salary: apiJob.salary || "Not specified",
-    deadline: apiJob.deadline || new Date().toISOString().split('T')[0],
+    deadline: apiJob.deadline || null,
     fitScore: typeof apiJob.fit_score === "number" ? Math.round(apiJob.fit_score) : null,
-    type: "Remote" as const, // Remotive only returns remote jobs
+    type: inferJobType(apiJob),
     matchReason: apiJob.reason || "Calculated based on your CV skills",
     missingSkills: apiJob.missing_skills || [],
     matchingSkills: apiJob.matched_skills || [],
     requiredSkills: apiJob.required_skills || [...(apiJob.matched_skills || []), ...(apiJob.missing_skills || [])],
     jobUrl: apiJob.job_url || "",
     description: apiJob.description || "",
+    source: apiJob.source,
   };
-}
-
-function mapJobType(jobType: string): Job["type"] {
-  const type = jobType?.toLowerCase() || "";
-  if (type.includes("contract") || type.includes("freelance")) return "Full-time";
-  if (type.includes("fulltime") || type.includes("full-time") || type.includes("full time")) return "Full-time";
-  if (type.includes("parttime") || type.includes("part-time") || type.includes("part time")) return "Internship";
-  if (type.includes("intern")) return "Internship";
-  if (type.includes("hybrid")) return "Hybrid";
-  if (type.includes("remote")) return "Remote";
-  return "Remote";
 }
 
 // Calculate fit score from user skills vs required skills
@@ -134,17 +165,18 @@ export function JobsExperience() {
   const router = useRouter();
   const { addApplication } = useTracker();
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchLocation, setSearchLocation] = useState("remote");
   const [isSearching, setIsSearching] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLive, setIsLive] = useState(false);
+  const [activeSource, setActiveSource] = useState<string | null>(null);
+  const [isCachedResult, setIsCachedResult] = useState(false);
+  const [cacheExpiresAt, setCacheExpiresAt] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [personalized, setPersonalized] = useState(false);
   const [fitScoresEnabled, setFitScoresEnabled] = useState(false);
   const [resultsMessage, setResultsMessage] = useState<string | null>(null);
-  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
   const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
-  const [analyzedJobs, setAnalyzedJobs] = useState<Set<string>>(new Set());
   const [cvSkills, setCvSkills] = useState<string[]>(loadCvSkills());
   const [hasCvUploaded, setHasCvUploaded] = useState(hasPersistedCv());
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -154,13 +186,19 @@ export function JobsExperience() {
   // across keystrokes — otherwise the initial-load effect below would
   // re-fire on every character typed in the search bar.
   const searchQueryRef = useRef(searchQuery);
+  const searchLocationRef = useRef(searchLocation);
   useEffect(() => {
     searchQueryRef.current = searchQuery;
   }, [searchQuery]);
+  useEffect(() => {
+    searchLocationRef.current = searchLocation;
+  }, [searchLocation]);
 
-  const refreshJobs = useCallback(async (overrideQuery?: string) => {
+  const refreshJobs = useCallback(async (options?: { query?: string; location?: string; forceRefresh?: boolean }) => {
     const currentCvId = getPersistedCvId();
-    const query = overrideQuery !== undefined ? overrideQuery : searchQueryRef.current;
+    const query = options?.query !== undefined ? options.query : searchQueryRef.current;
+    const location = options?.location !== undefined ? options.location : searchLocationRef.current;
+    const forceRefresh = Boolean(options?.forceRefresh);
 
     setIsSearching(true);
     setApiError(null);
@@ -170,10 +208,14 @@ export function JobsExperience() {
       const params = new URLSearchParams({
         cv_id: currentCvId,
         limit: "12",
+        location: location.trim() || "remote",
       });
 
       if (query && query.trim()) {
         params.set("query", query.trim());
+      }
+      if (forceRefresh) {
+        params.set("force_refresh", "true");
       }
 
       const response = await fetch(`/api/jobs/search?${params.toString()}`, {
@@ -182,8 +224,10 @@ export function JobsExperience() {
       const data: LiveJobSearchResponse = await response.json();
 
       // Always sync the personalization flags from the response
-      setPersonalized(Boolean(data.personalized));
       setFitScoresEnabled(Boolean(data.fit_scores_enabled));
+      setActiveSource(data.source || null);
+      setIsCachedResult(Boolean(data.cached));
+      setCacheExpiresAt(data.cache_expires_at || null);
       if (data.message) {
         setResultsMessage(data.message);
       }
@@ -197,7 +241,7 @@ export function JobsExperience() {
       } else if (data.jobs && data.jobs.length > 0) {
         setJobs(data.jobs.map(mapApiJobToJob));
         setIsLive(data.is_live);
-        setHasCvUploaded(true);
+        setHasCvUploaded(Boolean(currentCvId || hasPersistedCv()));
       } else {
         setJobs([]);
         setIsLive(false);
@@ -210,7 +254,9 @@ export function JobsExperience() {
       setApiError("Unable to connect to job search service. Please try again.");
       setJobs([]);
       setIsLive(false);
-      setPersonalized(false);
+      setActiveSource(null);
+      setIsCachedResult(false);
+      setCacheExpiresAt(null);
       setFitScoresEnabled(false);
     } finally {
       setIsSearching(false);
@@ -222,15 +268,17 @@ export function JobsExperience() {
   // actually changes (not on every keystroke). Initial load fetches once.
   useEffect(() => {
     if (isInitialLoad) {
-      refreshJobs();
-      return;
+      const initialHandle = setTimeout(() => {
+        void refreshJobs();
+      }, 0);
+      return () => clearTimeout(initialHandle);
     }
     const handle = setTimeout(() => {
-      refreshJobs();
+      void refreshJobs();
     }, 350);
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, isInitialLoad]);
+  }, [searchQuery, searchLocation, isInitialLoad]);
 
   // CV update listeners (same-tab and cross-tab).
   useEffect(() => {
@@ -269,15 +317,11 @@ export function JobsExperience() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim()) return;
-    refreshJobs(searchQuery);
-  };
-
-  const handleAnalyzeFit = async (jobId: string) => {
-    setAnalyzingId(jobId);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setAnalyzingId(null);
-    setAnalyzedJobs((prev) => new Set(prev).add(jobId));
+    void refreshJobs({
+      query: searchQuery,
+      location: searchLocation,
+      forceRefresh: true,
+    });
   };
 
   const handleSaveJob = (jobId: string) => {
@@ -332,14 +376,14 @@ export function JobsExperience() {
   return (
     <div className="space-y-8">
       {/* Search Bar */}
-      <form onSubmit={handleSearch} className="relative">
+      <form onSubmit={handleSearch} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
         <div className="relative">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search frontend internships, remote backend roles, or data jobs..."
+            placeholder="Search frontend internships, backend roles, or data jobs..."
             className="w-full rounded-2xl border-2 border-gray-200 bg-white py-4 pl-14 pr-32 text-lg font-medium shadow-lg transition-all focus:border-[#1D4ED8] focus:outline-none focus:ring-4 focus:ring-blue-100"
           />
           <button
@@ -353,6 +397,16 @@ export function JobsExperience() {
               "Search"
             )}
           </button>
+        </div>
+        <div className="relative">
+          <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <input
+            type="text"
+            value={searchLocation}
+            onChange={(e) => setSearchLocation(e.target.value)}
+            placeholder="Location or remote"
+            className="w-full rounded-2xl border-2 border-gray-200 bg-white py-4 pl-14 pr-4 text-lg font-medium shadow-lg transition-all focus:border-[#1D4ED8] focus:outline-none focus:ring-4 focus:ring-blue-100"
+          />
         </div>
       </form>
 
@@ -368,7 +422,32 @@ export function JobsExperience() {
             Live
           </span>
         )}
+        {activeSource && !isSearching && (
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+            Source: {activeSource}
+          </span>
+        )}
+        {isCachedResult && !isSearching && (
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+            Cached
+          </span>
+        )}
       </div>
+
+      {activeSource && !isSearching && !apiError && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-semibold text-slate-700">
+            Results are coming from {activeSource}.
+          </p>
+          <p className="mt-1 text-xs text-slate-600">
+            {isCachedResult
+              ? `This result set came from the short-lived cache${cacheExpiresAt ? ` and expires at ${new Date(cacheExpiresAt).toLocaleString("en-US")}` : ""}. Press Search again to force a refresh.`
+              : activeSource.includes("Remotive") && !activeSource.includes("Adzuna") && !activeSource.includes("Arbeitnow")
+                ? "Remotive is used as a fallback source and can return broader remote results than your exact query."
+                : "Typed searches are strongest when Adzuna or Arbeitnow are contributing results."}
+          </p>
+        </div>
+      )}
 
       {/* General-results notice (no CV or CV rejected). Copy is driven by the
           backend's `message` field; falls back to a local default. */}
@@ -394,7 +473,7 @@ export function JobsExperience() {
             <div>
               <p className="text-sm font-semibold text-red-700">{apiError}</p>
               <button
-                onClick={() => refreshJobs()}
+                onClick={() => refreshJobs({ forceRefresh: true })}
                 className="mt-2 text-xs font-medium text-red-600 underline hover:text-red-800"
               >
                 Try again
@@ -479,7 +558,9 @@ export function JobsExperience() {
                 <div className="flex items-center gap-2 rounded-xl bg-gray-50 p-3">
                   <Calendar size={16} className="text-gray-400" />
                   <span className="text-xs font-medium text-gray-700">
-                    {new Date(job.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    {job.deadline
+                      ? new Date(job.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                      : "Deadline not provided"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 rounded-xl bg-gray-50 p-3">
@@ -523,38 +604,6 @@ export function JobsExperience() {
                 <TrendingUp size={12} className="shrink-0 text-green-500" />
                 <span className="text-xs font-medium text-gray-500">Required skills unavailable for this job</span>
               </div>
-              )}
-
-              {/* Analysis Result */}
-              {analyzedJobs.has(job.id) && (
-                <div className="mt-4 space-y-3 rounded-xl border border-[#E5E7EB] p-4">
-                  <div className="flex items-start gap-2">
-                    <Lightbulb size={14} className="mt-0.5 text-amber-500" />
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700">Matching skills</p>
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {displayMatchedSkills.map((skill) => (
-                          <span key={skill} className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <AlertCircle size={14} className="mt-0.5 text-orange-500" />
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700">Skills to improve</p>
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {displayMissingSkills.map((skill) => (
-                          <span key={skill} className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
               )}
 
               {/* Actions */}

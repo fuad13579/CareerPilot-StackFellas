@@ -6,7 +6,7 @@ from datetime import datetime
 from app.main import app
 from app.models.job_models import JobCard, FitScoreResponse
 from app.services.job_recommendation_service import calculate_fit_score, sort_jobs_by_fit_score
-from app.services.job_search_service import fetch_live_jobs, _normalize_job
+from app.services.job_search_service import fetch_live_jobs, _normalize_job, rank_jobs
 
 
 @pytest.fixture
@@ -201,6 +201,76 @@ class TestLiveJobSearch:
         assert job.company == "Test Corp"
         assert job.job_id == "123"
         assert job.source == "Remotive"
+
+    def test_rank_jobs_prefers_location_match_over_remote_fallback(self):
+        jobs = [
+            JobCard(
+                job_id="remotive-1",
+                role="Backend Engineer",
+                company="Remote Corp",
+                location="Remote",
+                deadline=None,
+                salary=None,
+                required_skills=["Python"],
+                description="Remote backend engineer role",
+                job_url="https://example.com/remote",
+                source="Remotive",
+                is_live=True,
+                fetched_at=datetime.utcnow(),
+            ),
+            JobCard(
+                job_id="adzuna-1",
+                role="Backend Engineer",
+                company="Dhaka Tech",
+                location="Dhaka, Bangladesh",
+                deadline=None,
+                salary=None,
+                required_skills=["Python"],
+                description="Backend engineer role in Dhaka with Python",
+                job_url="https://example.com/dhaka",
+                source="Adzuna",
+                is_live=True,
+                fetched_at=datetime.utcnow(),
+            ),
+        ]
+
+        ranked = rank_jobs(jobs, "backend engineer", "Dhaka", 10)
+        assert ranked[0].job_id == "adzuna-1"
+
+    def test_rank_jobs_prefers_remote_source_for_remote_intent(self):
+        jobs = [
+            JobCard(
+                job_id="adzuna-2",
+                role="Data Analyst",
+                company="Office Inc",
+                location="New York, NY",
+                deadline=None,
+                salary=None,
+                required_skills=["SQL"],
+                description="On-site data analyst role",
+                job_url="https://example.com/onsite",
+                source="Adzuna",
+                is_live=True,
+                fetched_at=datetime.utcnow(),
+            ),
+            JobCard(
+                job_id="remotive-2",
+                role="Data Analyst",
+                company="Remote Inc",
+                location="Remote",
+                deadline=None,
+                salary=None,
+                required_skills=["SQL"],
+                description="Remote data analyst role",
+                job_url="https://example.com/remote-data",
+                source="Remotive",
+                is_live=True,
+                fetched_at=datetime.utcnow(),
+            ),
+        ]
+
+        ranked = rank_jobs(jobs, "data analyst", "remote", 10)
+        assert ranked[0].job_id == "remotive-2"
 
 
 class TestJobSearchEndpoint:
