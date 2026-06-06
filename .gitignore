@@ -18,3 +18,7 @@ backend/app/storage/*.db
 # Debug logs
 debug.log
 *.log
+
+# Local deployment keys
+careerpilot-backend_key.pem
+careerpilot-backend_key_runtime.pem

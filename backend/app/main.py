@@ -83,6 +83,11 @@ def health_check() -> HealthResponse:
     }
 
 
+@app.get("/api/health", response_model=HealthResponse)
+def api_health_check() -> HealthResponse:
+    return health_check()
+
+
 @app.get("/api/health/providers")
 def health_providers() -> dict:
     """Return the LLM provider chain status (no secrets leaked)."""
