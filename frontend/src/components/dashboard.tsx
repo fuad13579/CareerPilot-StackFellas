@@ -8,7 +8,6 @@ import {
   FileText, 
   CheckCircle2, 
   TrendingUp, 
-  Briefcase, 
   Calendar, 
   MapPin, 
   DollarSign,
@@ -52,7 +51,7 @@ interface RecommendedJob {
 }
 
 interface LiveJobSearchResponse {
-  jobs: any[];
+  jobs: LiveJobCardResponse[];
   total: number;
   is_live: boolean;
   source: string | null;
@@ -61,6 +60,21 @@ interface LiveJobSearchResponse {
   message?: string | null;
   personalized?: boolean;
   fit_scores_enabled?: boolean;
+}
+
+interface LiveJobCardResponse {
+  job_id: string;
+  role?: string | null;
+  title?: string | null;
+  company?: string | null;
+  company_name?: string | null;
+  location?: string | null;
+  salary?: string | null;
+  fit_score?: number | null;
+  reason?: string | null;
+  matched_skills?: string[];
+  missing_skills?: string[];
+  deadline?: string | null;
 }
 
 interface TrackerApplicationResponse {
@@ -166,46 +180,6 @@ export function DashboardHome() {
   );
 }
 
-// Dev/test fallback only. NOT used in normal runtime rendering — see
-// RecommendedJobsSection, which always tries the live API first.
-// Kept here so unit tests and Storybook-style previews have something
-// to render when there is no backend available.
-const DEV_FALLBACK_RECOMMENDED_JOBS: RecommendedJob[] = [
-  {
-    id: "1",
-    role: "Frontend Developer",
-    company: "TechCorp Inc.",
-    location: "Remote",
-    salary: "$85k - $110k",
-    fitScore: 92,
-    matchReason: "Strong React & TypeScript match",
-    type: "Remote",
-    deadline: "2026-06-05",
-  },
-  {
-    id: "2",
-    role: "React Developer",
-    company: "StartupXYZ",
-    location: "New York, NY",
-    salary: "$90k - $120k",
-    fitScore: 87,
-    matchReason: "Your skills align with their tech stack",
-    type: "Hybrid",
-    deadline: "2026-06-08",
-  },
-  {
-    id: "3",
-    role: "UI Engineer",
-    company: "DesignFirst",
-    location: "San Francisco, CA",
-    salary: "$100k - $130k",
-    fitScore: 81,
-    matchReason: "Good fit for your experience level",
-    type: "On-site",
-    deadline: "2026-06-12",
-  },
-];
-
 function SectionHeader({
   eyebrow,
   title,
@@ -238,12 +212,21 @@ function WelcomeHero({
   cvSnapshot: CvSnapshot | null;
 }) {
   const hasCvUploaded = Boolean(cvSnapshot);
+  const analyzedAtLabel =
+    cvSnapshot?.analyzedAt
+      ? new Date(cvSnapshot.analyzedAt).toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        })
+      : "Not uploaded";
   const welcomeInfo = {
     greeting: hasCvUploaded ? "Welcome back!" : "Welcome to CareerPilot",
     message: hasCvUploaded
       ? "Your CV has been analyzed and CareerPilot is ready to help you apply smarter."
       : "Upload your CV to unlock job matching, fit scores, AI answers, and cover letters.",
-    lastActive: hasCvUploaded ? "Last active: Today" : "Last active: Not uploaded",
+    lastActive: hasCvUploaded ? `Last analyzed: ${analyzedAtLabel}` : "Last analyzed: Not uploaded",
   };
 
   return (
@@ -297,8 +280,8 @@ function WelcomeHero({
         <Reveal>
           <div className="mt-10 flex items-center gap-6 text-sm text-[#6b7280]">
             <div className="flex items-center gap-2">
-              <div className="size-2 rounded-full bg-[#10b981]" />
-              <span>CV Analyzed</span>
+              <div className={`size-2 rounded-full ${hasCvUploaded ? "bg-[#10b981]" : "bg-[#9ca3af]"}`} />
+              <span>{hasCvUploaded ? "CV Analyzed" : "CV Not Uploaded"}</span>
             </div>
             <div className="flex items-center gap-2">
               <Clock size={14} />
@@ -318,7 +301,14 @@ function CVStatusSection({
 }) {
   const cvStatus = {
     uploaded: Boolean(cvSnapshot),
-    lastAnalyzed: cvSnapshot ? "Just now" : "Not analyzed yet",
+    lastAnalyzed: cvSnapshot?.analyzedAt
+      ? new Date(cvSnapshot.analyzedAt).toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        })
+      : "Not analyzed yet",
     skillsDetected: cvSnapshot?.skills?.length || 0,
     experienceSections: cvSnapshot?.experience?.length || 0,
     overallScore: cvSnapshot ? Math.min(100, 60 + (cvSnapshot.skills?.length || 0) * 2) : 0,
@@ -684,7 +674,7 @@ function isExperienceHeader(line: string): boolean {
 //
 // Field names follow the backend JobCard model in
 // backend/app/models/job_models.py (role/company, not title/company_name).
-const mapApiJobToRecommendedJob = (job: any): RecommendedJob => ({
+const mapApiJobToRecommendedJob = (job: LiveJobCardResponse): RecommendedJob => ({
   id: job.job_id,
   role: job.role ?? job.title ?? "",
   company: job.company ?? job.company_name ?? "",
@@ -1019,93 +1009,6 @@ function UpcomingTasksSection() {
   );
 }
 
-function LearningRoadmapSection() {
-  const { state } = useTracker();
-  const { roadmap } = state;
-
-  return (
-    <section className="relative">
-      <div className="mx-auto max-w-6xl px-6">
-        <SectionHeader
-          eyebrow="Learning Path"
-          title="Your Roadmap"
-          description="CareerPilot builds your roadmap from CV gaps, target roles, and application progress."
-        />
-        <Stagger className="grid gap-5 md:grid-cols-2">
-          {roadmap.map((week) => (
-            <Reveal key={week.week}>
-              <div className="group relative rounded-2xl border border-[#e5e7eb] bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:shadow-[#1D4ED8]/5">
-                {/* Timeline dot */}
-                <div className={`absolute -left-3 top-6 flex size-6 items-center justify-center rounded-full ring-4 ring-white ${
-                  week.status === "completed" ? "bg-[#10b981]" :
-                  week.status === "in-progress" ? "bg-[#1d4ed8]" :
-                  "bg-[#e5e7eb]"
-                }`}>
-                  {week.status === "completed" && (
-                    <CheckCircle2 size={14} className="text-white" />
-                  )}
-                  {week.status === "in-progress" && (
-                    <Zap size={12} className="text-white" />
-                  )}
-                  {week.status === "upcoming" && (
-                    <div className="size-2 rounded-full bg-gray-400" />
-                  )}
-                </div>
-
-                {/* Week badge and status */}
-                <div className="mb-3 flex items-center gap-3">
-                  <span className="text-sm font-semibold text-[#1d4ed8]">{week.week}</span>
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    week.status === "completed" ? "bg-green-100 text-green-700" :
-                    week.status === "in-progress" ? "bg-blue-100 text-blue-700" :
-                    "bg-gray-100 text-gray-600"
-                  }`}>
-                    {week.status === "completed" ? "✓ Completed" :
-                     week.status === "in-progress" ? "⟳ In Progress" :
-                     "○ Upcoming"}
-                  </span>
-                </div>
-
-                {/* Title */}
-                <h3 className="text-base font-extrabold text-black">{week.title}</h3>
-
-                {/* Description */}
-                <p className="mt-2 text-sm text-[#6b7280]">{week.description}</p>
-
-                {/* Progress bar */}
-                <div className="mt-4">
-                  <div className="flex items-center justify-between text-xs text-[#6b7280]">
-                    <span>Progress</span>
-                    <span className="font-semibold text-black">{week.progress}%</span>
-                  </div>
-                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#f3f4f6]">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      whileInView={{ width: `${week.progress}%` }}
-                      viewport={{ once: true, amount: 0.6 }}
-                      transition={{
-                        duration: 1,
-                        ease: [0.22, 1, 0.36, 1],
-                      }}
-                      className={`h-full rounded-full ${
-                        week.status === "completed" 
-                          ? "bg-gradient-to-r from-[#10b981] to-[#34d399]" 
-                          : week.status === "in-progress"
-                          ? "bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6]"
-                          : "bg-[#e5e7eb]"
-                      }`}
-                    />
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </Stagger>
-      </div>
-    </section>
-  );
-}
-
 function AINudgesSection() {
   const { state, getWeeklyStats } = useTracker();
   const { applications, todos } = state;
@@ -1174,77 +1077,6 @@ function AINudgesSection() {
             </Link>
           </div>
         </Reveal>
-      </div>
-    </section>
-  );
-}
-
-function SkillsToImproveSection() {
-  const { state } = useTracker();
-  const { skills } = state;
-
-  // Map skills to display format - use default data if no skills added yet
-  const displaySkills = skills.length > 0 ? skills.map(skill => ({
-    id: skill.id,
-    name: skill.name,
-    proficiency: skill.level,
-    priority: skill.level < 40 ? "high" : skill.level < 70 ? "medium" : "low" as "high" | "medium" | "low",
-    category: "User Added",
-  })) : [
-    { id: "default-1", name: "System Design", proficiency: 45, priority: "high" as const, category: "Backend" },
-    { id: "default-2", name: "TypeScript", proficiency: 72, priority: "medium" as const, category: "Frontend" },
-    { id: "default-3", name: "GraphQL", proficiency: 38, priority: "high" as const, category: "API" },
-  ];
-
-  return (
-    <section className="relative">
-      <div className="mx-auto max-w-6xl px-6">
-        <SectionHeader
-          eyebrow="Improvement Areas"
-          title="Skills to Develop"
-          description="Based on your target roles, here is what to focus on."
-        />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {displaySkills.slice(0, 6).map((skill, index) => (
-            <motion.div
-              key={skill.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.5 }}
-              transition={{ delay: index * 0.1, duration: 0.5 }}
-              className="group relative overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-4 transition-all duration-300 hover:border-[#1d4ed8]/30 hover:shadow-lg hover:shadow-[#1d4ed8]/10"
-            >
-              <div className="mb-3 flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-lg bg-[#1d4ed8]/10">
-                  <Target size={18} className="text-[#1d4ed8]" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-black">{skill.name}</h3>
-                  <p className="text-xs text-[#6b7280]">{skill.category}</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#6b7280]">Proficiency</span>
-                  <span className="font-semibold text-black">{skill.proficiency}%</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[#f3f4f6]">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    whileInView={{ width: `${skill.proficiency}%` }}
-                    viewport={{ once: true, amount: 0.5 }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className={`h-full rounded-full ${
-                      skill.priority === "high" ? "bg-gradient-to-r from-[#ef4444] to-[#f87171]" :
-                      skill.priority === "medium" ? "bg-gradient-to-r from-[#f59e0b] to-[#fbbf24]" :
-                      "bg-gradient-to-r from-[#10b981] to-[#34d399]"
-                    }`}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
       </div>
     </section>
   );

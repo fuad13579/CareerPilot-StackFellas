@@ -26,6 +26,184 @@ ARBEITNOW_SOURCE = "Arbeitnow"
 
 # Timeout for API requests (seconds)
 REQUEST_TIMEOUT = 10.0
+QUERY_STOP_WORDS = {
+    "a",
+    "an",
+    "and",
+    "backend",
+    "developer",
+    "engineer",
+    "for",
+    "in",
+    "intern",
+    "internship",
+    "job",
+    "of",
+    "on",
+    "or",
+    "remote",
+    "role",
+    "software",
+    "the",
+    "to",
+    "with",
+}
+REMOTE_HINTS = ("remote", "worldwide", "work from home", "distributed")
+HYBRID_HINTS = ("hybrid",)
+ONSITE_HINTS = ("on-site", "onsite", "on site", "office")
+SOURCE_BASE_SCORES = {
+    ADZUNA_SOURCE: 22.0,
+    ARBEITNOW_SOURCE: 15.0,
+    REMOTIVE_SOURCE: 8.0,
+}
+
+
+def _query_terms(query: str) -> list[str]:
+    return [
+        token
+        for token in ("".join(ch.lower() if ch.isalnum() else " " for ch in query)).split()
+        if len(token) >= 2 and token not in QUERY_STOP_WORDS
+    ]
+
+
+def _matches_query(raw_job: dict[str, Any], query: str) -> bool:
+    terms = _query_terms(query)
+    if not terms:
+        return True
+
+    haystack_parts = [
+        str(raw_job.get("title") or ""),
+        str(raw_job.get("company_name") or raw_job.get("company") or ""),
+        str(raw_job.get("description") or ""),
+        str(raw_job.get("candidate_required_location") or raw_job.get("location") or ""),
+    ]
+
+    tags = raw_job.get("tags")
+    if isinstance(tags, list):
+        haystack_parts.extend(str(tag) for tag in tags)
+
+    category = raw_job.get("category")
+    if isinstance(category, str):
+        haystack_parts.append(category)
+    elif isinstance(category, dict):
+        haystack_parts.extend(str(value) for value in category.values())
+
+    haystack = " ".join(haystack_parts).lower()
+    return any(term in haystack for term in terms)
+
+
+def _job_search_haystack(job: JobCard) -> str:
+    return " ".join(
+        [
+            job.role or "",
+            job.company or "",
+            job.location or "",
+            job.description or "",
+            " ".join(job.required_skills or []),
+            job.source or "",
+        ]
+    ).lower()
+
+
+def _location_mode(location: str) -> str:
+    normalized = (location or "").strip().lower()
+    if not normalized:
+        return "anywhere"
+    if normalized in {"remote", "worldwide", "anywhere"}:
+        return "remote"
+    if "hybrid" in normalized:
+        return "hybrid"
+    if any(hint in normalized for hint in ONSITE_HINTS):
+        return "onsite"
+    return "place"
+
+
+def _job_work_mode(job: JobCard) -> str:
+    haystack = _job_search_haystack(job)
+    if any(hint in haystack for hint in HYBRID_HINTS):
+        return "hybrid"
+    if any(hint in haystack for hint in REMOTE_HINTS):
+        return "remote"
+    if any(hint in haystack for hint in ONSITE_HINTS):
+        return "onsite"
+    return "unknown"
+
+
+def _job_relevance_score(job: JobCard, query: str, location: str) -> float:
+    haystack = _job_search_haystack(job)
+    query_terms = _query_terms(query)
+    score = SOURCE_BASE_SCORES.get(job.source, 10.0)
+
+    if query_terms:
+      title = (job.role or "").lower()
+      company = (job.company or "").lower()
+      description = (job.description or "").lower()
+      skills = [skill.lower() for skill in (job.required_skills or [])]
+
+      title_hits = sum(1 for term in query_terms if term in title)
+      description_hits = sum(1 for term in query_terms if term in description)
+      company_hits = sum(1 for term in query_terms if term in company)
+      skill_hits = sum(1 for term in query_terms if any(term in skill for skill in skills))
+      score += title_hits * 8.0
+      score += skill_hits * 5.0
+      score += description_hits * 2.5
+      score += company_hits * 1.5
+
+      if title_hits == 0 and description_hits == 0 and skill_hits == 0:
+          score -= 20.0
+
+    location_mode = _location_mode(location)
+    job_mode = _job_work_mode(job)
+    job_location = (job.location or "").lower()
+    normalized_location = (location or "").strip().lower()
+
+    if location_mode == "remote":
+        if job_mode == "remote":
+            score += 12.0
+        elif job.source == REMOTIVE_SOURCE:
+            score += 8.0
+        else:
+            score -= 6.0
+    elif location_mode == "hybrid":
+        if job_mode == "hybrid":
+            score += 12.0
+        elif job_mode == "remote":
+            score -= 4.0
+    elif location_mode == "onsite":
+        if job_mode == "onsite":
+            score += 12.0
+        elif job_mode == "remote":
+            score -= 8.0
+    elif location_mode == "place":
+        if normalized_location and normalized_location in job_location:
+            score += 14.0
+        elif job_mode == "remote":
+            score -= 6.0
+        elif normalized_location:
+            score -= 3.0
+
+    if job.job_url:
+        score += 2.0
+    if job.salary:
+        score += 1.0
+    if job.description:
+        score += min(len(job.description) / 250.0, 3.0)
+    if job.required_skills:
+        score += min(len(job.required_skills), 6) * 0.75
+
+    return score
+
+
+def rank_jobs(jobs: list[JobCard], query: str, location: str, limit: int) -> list[JobCard]:
+    ranked = sorted(
+        jobs,
+        key=lambda job: (
+            _job_relevance_score(job, query, location),
+            job.fetched_at,
+        ),
+        reverse=True,
+    )
+    return ranked[:limit]
 
 
 def _normalize_description(description: str | None, max_length: int = 500) -> str:
@@ -129,8 +307,10 @@ async def search_remotive(query: str, location: str, limit: int) -> tuple[str, l
                 logger.error("Remotive API 'jobs' field is not a list")
                 return REMOTIVE_SOURCE, [], True, "Invalid jobs format."
 
+            filtered_jobs_data = [raw_job for raw_job in jobs_data if _matches_query(raw_job, query)]
+
             # Convert jobs, filtering out invalid ones
-            jobs = [job for job in (_normalize_job(raw_job) for raw_job in jobs_data) if job]
+            jobs = [job for job in (_normalize_job(raw_job) for raw_job in filtered_jobs_data) if job]
 
             if not jobs:
                 logger.info("No jobs found on Remotive")
@@ -226,22 +406,8 @@ async def fetch_live_jobs(query: str, location: str, limit: int) -> tuple[str, l
             errors[0] if errors else "No live job sources are currently available.",
         )
 
-    # Interleave by source priority so each source contributes to the
-    # first page when there are more results than `limit`. Otherwise the
-    # first-priority source (Adzuna) would crowd out the others.
-    by_source: dict[str, list[JobCard]] = {}
-    for job in collected:
-        by_source.setdefault(job.source, []).append(job)
-    interleaved: list[JobCard] = []
-    queue: list[list[JobCard]] = [by_source[s] for s in (ADZUNA_SOURCE, ARBEITNOW_SOURCE, REMOTIVE_SOURCE) if s in by_source]
-    queue.extend(v for k, v in by_source.items() if k not in {ADZUNA_SOURCE, ARBEITNOW_SOURCE, REMOTIVE_SOURCE})
-    while queue and len(interleaved) < limit:
-        for bucket in queue:
-            if bucket and len(interleaved) < limit:
-                interleaved.append(bucket.pop(0))
-        queue = [b for b in queue if b]
-
-    return ("+".join(sources) if sources else "Live", interleaved, None)
+    ranked = rank_jobs(collected, query, location, limit)
+    return ("+".join(sources) if sources else "Live", ranked, None)
 
 
 # ---------------------------------------------------------------------------

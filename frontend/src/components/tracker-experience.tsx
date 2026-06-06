@@ -9,6 +9,7 @@ import { KanbanBoard } from "./kanban-board";
 export function TrackerExperience() {
   const { 
     state, 
+    dataSource,
     addApplication,
     removeApplication,
     updateApplicationStatus,
@@ -56,6 +57,11 @@ export function TrackerExperience() {
 
   return (
     <div className="space-y-8">
+      {dataSource === "local_fallback" && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-800">
+          Tracker is showing locally cached data because the backend could not be reached.
+        </div>
+      )}
       {/* Summary Stats */}
       <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PageShell } from "@/components/motion-shell";
 import { TodoList } from "@/components/todo-list";
 import { DeadlineList } from "@/components/deadline-list";
@@ -27,10 +27,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-const STORAGE_KEY_TODOS = "careerpilot-todos";
-const STORAGE_KEY_EVENTS = "careerpilot-events";
-const STORAGE_KEY_APPLICATIONS = "careerpilot-applications";
-
 async function fetchWithTimeout(url: string, timeoutMs = 3000) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
@@ -42,23 +38,6 @@ async function fetchWithTimeout(url: string, timeoutMs = 3000) {
     });
   } finally {
     window.clearTimeout(timeout);
-  }
-}
-
-function loadFromStorage<T>(key: string, fallback: T): T {
-  try {
-    const saved = window.localStorage.getItem(key);
-    return saved ? (JSON.parse(saved) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function saveToStorage<T>(key: string, data: T) {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(data));
-  } catch {
-    // Ignore storage errors
   }
 }
 
@@ -90,57 +69,6 @@ export default function ProductivityPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    const localTodos = loadFromStorage<Todo[]>(STORAGE_KEY_TODOS, []);
-    const localEvents = loadFromStorage<CalendarEvent[]>(STORAGE_KEY_EVENTS, []);
-    const localApps = loadFromStorage<JobApplication[]>(STORAGE_KEY_APPLICATIONS, []);
-
-    setTodos(localTodos);
-    setEvents(localEvents);
-    setApplications(localApps);
-    updateStats(localTodos);
-
-    try {
-      const [todosRes, eventsRes, appsRes, statsRes] = await Promise.all([
-        fetchWithTimeout("/api/todos"),
-        fetchWithTimeout("/api/calendar/events"),
-        fetchWithTimeout("/api/tracker/applications"),
-        fetchWithTimeout("/api/todos/stats"),
-      ]);
-
-      if (todosRes.ok) {
-        const todosData = await todosRes.json();
-        setTodos(todosData);
-        saveToStorage(STORAGE_KEY_TODOS, todosData);
-      }
-
-      if (eventsRes.ok) {
-        const eventsData = await eventsRes.json();
-        setEvents(eventsData);
-        saveToStorage(STORAGE_KEY_EVENTS, eventsData);
-      }
-
-      if (appsRes.ok) {
-        const appsData = await appsRes.json();
-        setApplications(appsData);
-        saveToStorage(STORAGE_KEY_APPLICATIONS, appsData);
-      }
-
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData);
-      }
-    } catch {
-      setError("Running in demo mode. Data saved locally.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const updateStats = (todoList: Todo[]) => {
     const total = todoList.length;
     const completed = todoList.filter((t) => t.is_completed).length;
@@ -154,6 +82,49 @@ export default function ProductivityPage() {
       progress_percentage: Math.round(progressPercentage * 10) / 10,
     });
   };
+
+  const loadData = useCallback(async () => {
+    try {
+      const [todosRes, eventsRes, appsRes, statsRes] = await Promise.all([
+        fetchWithTimeout("/api/todos"),
+        fetchWithTimeout("/api/calendar/events"),
+        fetchWithTimeout("/api/tracker/applications"),
+        fetchWithTimeout("/api/todos/stats"),
+      ]);
+
+      if (todosRes.ok) {
+        const todosData = await todosRes.json();
+        setTodos(todosData);
+        updateStats(todosData);
+      }
+
+      if (eventsRes.ok) {
+        const eventsData = await eventsRes.json();
+        setEvents(eventsData);
+      }
+
+      if (appsRes.ok) {
+        const appsData = await appsRes.json();
+        setApplications(appsData);
+      }
+
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData);
+      }
+    } catch {
+      setError("Productivity data is unavailable because the backend could not be reached.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      void loadData();
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, [loadData]);
 
   const handleCreateTodo = async (data: CreateTodoRequest) => {
     try {
@@ -170,26 +141,12 @@ export default function ProductivityPage() {
         const newTodo = await response.json();
         const updatedTodos = [newTodo, ...todos];
         setTodos(updatedTodos);
-        saveToStorage(STORAGE_KEY_TODOS, updatedTodos);
         updateStats(updatedTodos);
       } else {
         throw new Error("Failed to create todo");
       }
     } catch {
-      const newTodo: Todo = {
-        id: Date.now(),
-        title: data.title,
-        description: data.description || null,
-        is_completed: false,
-        due_date: data.due_date || null,
-        linked_type: data.linked_type || null,
-        linked_id: data.linked_id || null,
-        created_at: new Date().toISOString(),
-      };
-      const updatedTodos = [newTodo, ...todos];
-      setTodos(updatedTodos);
-      saveToStorage(STORAGE_KEY_TODOS, updatedTodos);
-      updateStats(updatedTodos);
+      setError("Could not create todo because the backend is unavailable.");
     }
   };
 
@@ -208,18 +165,12 @@ export default function ProductivityPage() {
         const updated = await response.json();
         const updatedTodos = todos.map((t) => (t.id === id ? updated : t));
         setTodos(updatedTodos);
-        saveToStorage(STORAGE_KEY_TODOS, updatedTodos);
         updateStats(updatedTodos);
       } else {
         throw new Error("Failed to update todo");
       }
     } catch {
-      const updatedTodos = todos.map((t) =>
-        t.id === id ? { ...t, is_completed: completed } : t
-      );
-      setTodos(updatedTodos);
-      saveToStorage(STORAGE_KEY_TODOS, updatedTodos);
-      updateStats(updatedTodos);
+      setError("Could not update todo because the backend is unavailable.");
     }
   };
 
@@ -233,16 +184,12 @@ export default function ProductivityPage() {
       if (response.ok) {
         const updatedTodos = todos.filter((t) => t.id !== id);
         setTodos(updatedTodos);
-        saveToStorage(STORAGE_KEY_TODOS, updatedTodos);
         updateStats(updatedTodos);
       } else {
         throw new Error("Failed to delete todo");
       }
     } catch {
-      const updatedTodos = todos.filter((t) => t.id !== id);
-      setTodos(updatedTodos);
-      saveToStorage(STORAGE_KEY_TODOS, updatedTodos);
-      updateStats(updatedTodos);
+      setError("Could not delete todo because the backend is unavailable.");
     }
   };
 
@@ -261,16 +208,11 @@ export default function ProductivityPage() {
         const updated = await response.json();
         const updatedTodos = todos.map((t) => (t.id === id ? updated : t));
         setTodos(updatedTodos);
-        saveToStorage(STORAGE_KEY_TODOS, updatedTodos);
       } else {
         throw new Error("Failed to update todo");
       }
     } catch {
-      const updatedTodos = todos.map((t) =>
-        t.id === id ? { ...t, ...data } : t
-      );
-      setTodos(updatedTodos);
-      saveToStorage(STORAGE_KEY_TODOS, updatedTodos);
+      setError("Could not update todo because the backend is unavailable.");
     }
   };
 
@@ -289,23 +231,11 @@ export default function ProductivityPage() {
         const newEvent = await response.json();
         const updatedEvents = [...events, newEvent];
         setEvents(updatedEvents);
-        saveToStorage(STORAGE_KEY_EVENTS, updatedEvents);
       } else {
         throw new Error("Failed to create event");
       }
     } catch {
-      const newEvent: CalendarEvent = {
-        id: Date.now(),
-        title: data.title,
-        description: data.description || null,
-        event_date: data.event_date,
-        related_application_id: data.related_application_id || null,
-        linked_type: data.linked_type || null,
-        created_at: new Date().toISOString(),
-      };
-      const updatedEvents = [...events, newEvent];
-      setEvents(updatedEvents);
-      saveToStorage(STORAGE_KEY_EVENTS, updatedEvents);
+      setError("Could not create event because the backend is unavailable.");
     }
   };
 
@@ -319,14 +249,11 @@ export default function ProductivityPage() {
       if (response.ok) {
         const updatedEvents = events.filter((e) => e.id !== id);
         setEvents(updatedEvents);
-        saveToStorage(STORAGE_KEY_EVENTS, updatedEvents);
       } else {
         throw new Error("Failed to delete event");
       }
     } catch {
-      const updatedEvents = events.filter((e) => e.id !== id);
-      setEvents(updatedEvents);
-      saveToStorage(STORAGE_KEY_EVENTS, updatedEvents);
+      setError("Could not delete event because the backend is unavailable.");
     }
   };
 
@@ -347,12 +274,12 @@ export default function ProductivityPage() {
   const weekMs = 7 * 24 * 60 * 60 * 1000;
   const pendingTodos = todos.filter((todo) => !todo.is_completed);
   const completedTodos = todos.filter((todo) => todo.is_completed);
-  const weeklyApplications = applications.filter((app: any) => {
+  const weeklyApplications = applications.filter((app) => {
     if (!app?.created_at) return false;
     return new Date(app.created_at).getTime() >= today.getTime() - weekMs;
   }).length;
   const interviewingCount = applications.filter(
-    (app: any) => app?.status === "Interviewing"
+    (app) => app?.status === "Interviewing"
   ).length;
   const dueThisWeek = pendingTodos.filter(
     (todo) => todo.due_date && isWithinNextDays(todo.due_date, 7)
@@ -437,6 +364,11 @@ export default function ProductivityPage() {
       description="Plan deadlines, manage weekly goals, and turn career progress into a routine instead of a one-off push."
     >
       <div className="space-y-6">
+        {error && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-700">
+            {error}
+          </div>
+        )}
         <section className="grid gap-4 xl:grid-cols-[1.35fr_.9fr]">
           <div className="overflow-hidden rounded-[28px] border border-[#D6E4FF] bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,.22),_transparent_34%),linear-gradient(135deg,#EFF6FF_0%,#FFFFFF_48%,#F8FAFC_100%)] p-6 shadow-[0_16px_48px_rgba(29,78,216,.08)]">
             <div className="flex flex-wrap items-start justify-between gap-4">
