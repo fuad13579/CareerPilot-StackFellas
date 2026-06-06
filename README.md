@@ -186,6 +186,67 @@ npm run dev
 
 ---
 
+##  Deployment
+
+CareerPilot is currently set up for a demo-friendly split deployment:
+
+- **Backend**: FastAPI on an **Azure Ubuntu VM**
+- **Frontend**: Next.js on **Vercel**
+
+### Backend deployment shape
+
+The backend is not serverless-friendly as-is because it persists:
+
+- SQLite data
+- uploaded CV files
+- processed CV text/sections
+- local vector index files
+
+That makes a normal VM a better fit than ephemeral/serverless platforms.
+
+Current backend entrypoint:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Current public health endpoint:
+
+- `http://104.211.90.209/health`
+
+### Frontend deployment shape
+
+Deploy the `frontend/` directory to Vercel and set:
+
+```env
+BACKEND_URL=http://104.211.90.209
+```
+
+Important:
+
+- `BACKEND_URL` is required for deployed frontend API routes
+- after changing Vercel environment variables, redeploy the frontend
+
+### Azure VM notes
+
+For the backend VM:
+
+- Ubuntu 22.04 LTS
+- `systemd` runs `uvicorn`
+- `nginx` reverse-proxies port `80` to `127.0.0.1:8000`
+- Azure NSG must allow inbound `80` and `22`
+
+Quick VM health checks:
+
+```bash
+sudo systemctl status careerpilot-backend
+sudo systemctl status nginx
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1/health
+```
+
+---
+
 ##  Dev Launcher Cheat-Sheet
 
 | Script | What it does |
