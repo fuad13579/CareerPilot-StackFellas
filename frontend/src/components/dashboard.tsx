@@ -111,8 +111,16 @@ export function DashboardHome() {
         const summary = getPersistedCvSummary();
         if (!summary) return;
 
-        const experience = extractSectionEntries(data?.sections?.experience);
-        const education = extractSectionEntries(data?.sections?.education);
+        const experience = extractSectionEntriesWithFallback(
+          data?.sections?.experience,
+          "experience",
+          summary.extractedText
+        );
+        const education = extractSectionEntriesWithFallback(
+          data?.sections?.education,
+          "education",
+          summary.extractedText
+        );
 
         if (cancelled) return;
 
@@ -570,6 +578,89 @@ function extractSectionEntries(value: unknown): string[] {
   }
 
   return entries.length > 0 ? entries : lines;
+}
+
+function extractSectionEntriesWithFallback(
+  value: unknown,
+  sectionName: "experience" | "education",
+  extractedText?: string
+): string[] {
+  const directEntries = extractSectionEntries(value);
+  if (directEntries.length > 0) {
+    return directEntries;
+  }
+
+  const recoveredSection = extractNamedSectionFromText(extractedText, sectionName);
+  if (!recoveredSection) {
+    return [];
+  }
+
+  return extractSectionEntries(recoveredSection);
+}
+
+function extractNamedSectionFromText(
+  extractedText: string | undefined,
+  sectionName: "experience" | "education"
+): string {
+  if (!extractedText) return "";
+
+  const aliasesBySection = {
+    experience: [
+      "experience",
+      "work experience",
+      "professional experience",
+      "employment history",
+      "career history",
+    ],
+    education: [
+      "education",
+      "academic background",
+      "academic qualifications",
+      "qualifications",
+    ],
+  } as const;
+
+  const allAliases = Array.from(
+    new Set(Object.values(aliasesBySection).flat().map((alias) => normalizeHeading(alias)))
+  );
+
+  const lines = extractedText
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.trim());
+
+  let collecting = false;
+  const collected: string[] = [];
+
+  for (const line of lines) {
+    if (!line) {
+      if (collecting && collected.length > 0) {
+        collected.push("");
+      }
+      continue;
+    }
+
+    const normalized = normalizeHeading(line);
+    const isHeading = allAliases.includes(normalized);
+
+    if (isHeading) {
+      if (collecting) break;
+      collecting = aliasesBySection[sectionName]
+        .map((alias) => normalizeHeading(alias))
+        .includes(normalized);
+      continue;
+    }
+
+    if (collecting) {
+      collected.push(line);
+    }
+  }
+
+  return collected.join("\n").trim();
+}
+
+function normalizeHeading(value: string): string {
+  return value.toLowerCase().replace(/[^a-z]+/g, " ").trim();
 }
 
 function isExperienceHeader(line: string): boolean {

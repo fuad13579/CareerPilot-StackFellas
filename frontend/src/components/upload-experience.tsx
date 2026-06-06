@@ -131,8 +131,16 @@ export function UploadExperience() {
         headers: getCareerPilotHeaders(),
       });
       const sectionsData = sectionsResponse.ok ? await sectionsResponse.json() : null;
-      const experienceSections = extractSectionEntries(sectionsData?.sections?.experience);
-      const educationSections = extractSectionEntries(sectionsData?.sections?.education);
+      const experienceSections = extractSectionEntriesWithFallback(
+        sectionsData?.sections?.experience,
+        "experience",
+        data.extracted_text
+      );
+      const educationSections = extractSectionEntriesWithFallback(
+        sectionsData?.sections?.education,
+        "education",
+        data.extracted_text
+      );
 
       // Save CV skills and ID to localStorage for Jobs page
       const snapshot: PersistedCvSummary = {
@@ -216,6 +224,88 @@ export function UploadExperience() {
 
     return entries.length > 0 ? entries : lines;
   };
+
+  const extractSectionEntriesWithFallback = (
+    value: unknown,
+    sectionName: "experience" | "education",
+    extractedText?: string
+  ): string[] => {
+    const directEntries = extractSectionEntries(value);
+    if (directEntries.length > 0) {
+      return directEntries;
+    }
+
+    const recoveredSection = extractNamedSectionFromText(extractedText, sectionName);
+    if (!recoveredSection) {
+      return [];
+    }
+
+    return extractSectionEntries(recoveredSection);
+  };
+
+  const extractNamedSectionFromText = (
+    extractedText: string | undefined,
+    sectionName: "experience" | "education"
+  ): string => {
+    if (!extractedText) return "";
+
+    const aliasesBySection = {
+      experience: [
+        "experience",
+        "work experience",
+        "professional experience",
+        "employment history",
+        "career history",
+      ],
+      education: [
+        "education",
+        "academic background",
+        "academic qualifications",
+        "qualifications",
+      ],
+    } as const;
+
+    const allAliases = Array.from(
+      new Set(Object.values(aliasesBySection).flat().map((alias) => normalizeHeading(alias)))
+    );
+
+    const lines = extractedText
+      .replace(/\r\n/g, "\n")
+      .split("\n")
+      .map((line) => line.trim());
+
+    let collecting = false;
+    const collected: string[] = [];
+
+    for (const line of lines) {
+      if (!line) {
+        if (collecting && collected.length > 0) {
+          collected.push("");
+        }
+        continue;
+      }
+
+      const normalized = normalizeHeading(line);
+      const isHeading = allAliases.includes(normalized);
+
+      if (isHeading) {
+        if (collecting) break;
+        collecting = aliasesBySection[sectionName]
+          .map((alias) => normalizeHeading(alias))
+          .includes(normalized);
+        continue;
+      }
+
+      if (collecting) {
+        collected.push(line);
+      }
+    }
+
+    return collected.join("\n").trim();
+  };
+
+  const normalizeHeading = (value: string): string =>
+    value.toLowerCase().replace(/[^a-z]+/g, " ").trim();
 
   const isExperienceHeader = (line: string): boolean => {
     const normalized = line.toLowerCase();
