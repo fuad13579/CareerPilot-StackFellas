@@ -881,7 +881,7 @@ function RecommendedJobsSection() {
                   href="/jobs"
                   className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-[#1d4ed8] px-4 py-2.5 text-sm font-bold text-white transition-all hover:bg-[#1e40af]"
                 >
-                  Apply Now <ArrowRight size={14} />
+                  View in Jobs <ArrowRight size={14} />
                 </Link>
               </div>
             </Reveal>
