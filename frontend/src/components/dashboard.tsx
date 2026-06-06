@@ -32,6 +32,7 @@ interface CvSnapshot {
   filename: string;
   fileType: string;
   extractedText: string;
+  analyzedAt?: string;
   profileSummary?: string;
   skills?: string[];
   experience?: string[];
@@ -75,6 +76,8 @@ interface LiveJobCardResponse {
   matched_skills?: string[];
   missing_skills?: string[];
   deadline?: string | null;
+  type?: string | null;
+  source?: string | null;
 }
 
 interface TrackerApplicationResponse {

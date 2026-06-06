@@ -37,7 +37,7 @@ interface FitScoreResponse {
 
 // Live API response types
 interface LiveJobSearchResponse {
-  jobs: Job[];
+  jobs: ApiJobResponse[];
   total: number;
   is_live: boolean;
   source: string | null;
@@ -343,7 +343,7 @@ export function JobsExperience() {
       location: job.location,
       status: "Applied",
       fitScore: fitScore ?? 0,
-      deadline: job.deadline,
+      deadline: job.deadline ?? "",
       nextAction: "Follow up with recruiter in 1 week",
       jobDescription: job.description || job.matchReason,
       requiredSkills: job.requiredSkills || [],

@@ -325,7 +325,6 @@ export function UploadExperience() {
 
   const resetUpload = () => {
     setStatus("idle");
-    setSelectedFile(null);
     setCvSummary(null);
     setError("");
     clearPersistedCvSnapshot();
