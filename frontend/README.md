@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CareerPilot Frontend
 
-## Getting Started
+Next.js frontend for CareerPilot, the StackFellas CodeSprint 2026 project.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- Framer Motion
+
+## Local Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the frontend:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app will be available at:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `http://localhost:3000`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Backend Connection
 
-## Learn More
+The frontend talks to the backend through Next.js API routes under `src/app/api/*`.
 
-To learn more about Next.js, take a look at the following resources:
+For local development, those routes forward to:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `http://localhost:8000`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+For deployed environments, set:
 
-## Deploy on Vercel
+```env
+BACKEND_URL=http://your-backend-host
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Examples:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- local backend: `BACKEND_URL=http://localhost:8000`
+- Azure VM backend: `BACKEND_URL=http://104.211.90.209`
+
+## Vercel Deployment
+
+Use these settings in Vercel:
+
+- Framework: `Next.js`
+- Root Directory: `frontend`
+- Build Command: default
+- Install Command: default
+- Output Directory: default
+
+Required environment variable:
+
+```env
+BACKEND_URL=http://104.211.90.209
+```
+
+After changing environment variables, redeploy the project.
+
+## Main User Flows
+
+- `/upload` - CV upload and parsing
+- `/jobs` - live job search and fit scoring
+- `/assistant` - CV-grounded assistant
+- `/cover-letter` - job-specific cover letter generation
+- `/tracker` - application Kanban board
+- `/productivity` - todos, calendar, goals, and nudges
+
+## Notes
+
+- The deployed frontend depends on the backend being reachable publicly.
+- If the frontend is on `https` and the backend is on `http`, some browser/security issues may appear. For a stronger deployment, put HTTPS in front of the backend later.
