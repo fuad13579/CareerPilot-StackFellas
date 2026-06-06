@@ -14,8 +14,7 @@ import {
   Target,
   Clock
 } from "lucide-react";
-import { Reveal, Stagger, GlassCard, AmbientBackground } from "@/components/motion-shell";
-import { Navigation } from "@/components/navigation";
+import { Reveal, Stagger, GlassCard } from "@/components/motion-shell";
 
 const pillars = [
   {
@@ -52,9 +51,6 @@ const demoSteps = [
 export default function HomePage() {
   return (
     <>
-      <AmbientBackground />
-      <Navigation />
-      
       <main className="min-h-screen">
         {/* Hero Section */}
         <section className="relative flex min-h-[85vh] flex-col items-center justify-center px-6 pt-1 text-center">
