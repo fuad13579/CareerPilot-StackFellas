@@ -1,30 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ClientOnly, GlassCard, Reveal, Stagger } from "./motion-shell";
 import { Briefcase, Calendar, Target, CheckCircle2, Clock, MessageSquare, AlertCircle } from "lucide-react";
 import { useTracker } from "./tracker-context";
-import { getCareerPilotUserId } from "./user-storage";
 import { KanbanBoard } from "./kanban-board";
 
-const columnColors: Record<string, string> = {
-  Applied: "border-l-[#3B82F6]",
-  Interviewing: "border-l-[#F59E0B]",
-  Offer: "border-l-[#10B981]",
-  Rejected: "border-l-[#EF4444]",
-};
-
-const badgeColors: Record<string, string> = {
-  Applied: "bg-blue-100 text-blue-700",
-  Interviewing: "bg-amber-100 text-amber-700",
-  Offer: "bg-green-100 text-green-700",
-  Rejected: "bg-red-100 text-red-700",
-};
-
 export function TrackerExperience() {
-  const [userId, setUserId] = useState<string | null>(null);
   const { 
     state, 
+    addApplication,
+    removeApplication,
+    updateApplicationStatus,
     getApplicationCount, 
     getApplicationCountByStatus, 
     getPendingTodos,
@@ -54,10 +41,6 @@ export function TrackerExperience() {
       })),
     [applications]
   );
-
-  useEffect(() => {
-    setUserId(getCareerPilotUserId() || null);
-  }, []);
 
   const totalApplications = getApplicationCount();
   const interviewingCount = getApplicationCountByStatus("Interviewing");
@@ -137,7 +120,30 @@ export function TrackerExperience() {
               </div>
             }
           >
-            <KanbanBoard initialApplications={kanbanApplications} userId={userId} />
+            <KanbanBoard
+              key={kanbanApplications.map((app) => `${app.id}:${app.status}`).join("|")}
+              initialApplications={kanbanApplications}
+              onAddApplication={({ role, company, location, notes, status }) =>
+                addApplication({
+                  role,
+                  company,
+                  location: location || "",
+                  jobDescription: "",
+                  fitScore: 0,
+                  deadline: "",
+                  nextAction: notes || "",
+                  requiredSkills: [],
+                  jobUrl: "",
+                  status,
+                })
+              }
+              onDeleteApplication={(applicationId) =>
+                removeApplication(String(applicationId))
+              }
+              onStatusChange={(applicationId, status) =>
+                updateApplicationStatus(String(applicationId), status)
+              }
+            />
           </ClientOnly>
         </GlassCard>
       </Reveal>

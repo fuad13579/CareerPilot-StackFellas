@@ -17,13 +17,19 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { KanbanColumn, COLUMNS, ColumnId } from "./kanban-column";
 import { JobCard, JobApplication } from "./job-card";
 import { AddApplicationModal } from "./add-application-modal";
+import { getCareerPilotHeaders, getCareerPilotUserId } from "./user-storage";
 
 interface KanbanBoardProps {
   initialApplications: JobApplication[];
-  // Per-user id so the localStorage cache does not collide between two
-  // demo users sharing a browser. Passed in from the parent (which already
-  // gets it from user-storage via tracker-context).
-  userId?: string | null;
+  onStatusChange?: (applicationId: number, status: ColumnId) => void;
+  onAddApplication?: (data: {
+    role: string;
+    company: string;
+    location?: string;
+    notes?: string;
+    status: ColumnId;
+  }) => void;
+  onDeleteApplication?: (applicationId: number) => void;
 }
 
 const STORAGE_KEY_PREFIX = "careerpilot-tracker-applications";
@@ -47,29 +53,35 @@ async function fetchWithTimeout(
 // /api/tracker/* routes. Without this, the kanban drag PATCH and the add
 // POST both return 400 from require_anonymous_user_id.
 function userHeaders(userId?: string | null): HeadersInit {
-  if (!userId) return {};
-  return { "x-careerpilot-user-id": userId };
+  if (userId) {
+    return { "x-careerpilot-user-id": userId };
+  }
+  return getCareerPilotHeaders();
 }
 
-export function KanbanBoard({ initialApplications, userId }: KanbanBoardProps) {
+export function KanbanBoard({
+  initialApplications,
+  onStatusChange,
+  onAddApplication,
+  onDeleteApplication,
+}: KanbanBoardProps) {
   const [applications, setApplications] = useState<JobApplication[]>(initialApplications);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState<ColumnId>("Applied");
+  const cacheKey = useMemo(() => {
+    const currentUserId = getCareerPilotUserId();
+    return currentUserId ? `${STORAGE_KEY_PREFIX}-${currentUserId}` : null;
+  }, []);
 
   useEffect(() => {
-    setApplications(initialApplications);
-  }, [initialApplications]);
-
-  useEffect(() => {
-    if (!userId) return;
-    const key = `${STORAGE_KEY_PREFIX}-${userId}`;
+    if (!cacheKey) return;
     try {
-      window.localStorage.setItem(key, JSON.stringify(applications));
+      window.localStorage.setItem(cacheKey, JSON.stringify(applications));
     } catch (error) {
       console.error("Failed to cache kanban state:", error);
     }
-  }, [applications, userId]);
+  }, [applications, cacheKey]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -161,6 +173,7 @@ export function KanbanBoard({ initialApplications, userId }: KanbanBoardProps) {
           app.id === activeId ? { ...app, status: targetColumn } : app
         )
       );
+      onStatusChange?.(activeId, targetColumn);
 
       try {
         const response = await fetchWithTimeout(
@@ -169,7 +182,7 @@ export function KanbanBoard({ initialApplications, userId }: KanbanBoardProps) {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
-              ...userHeaders(userId),
+              ...userHeaders(),
             },
             body: JSON.stringify({ status: targetColumn }),
           }
@@ -187,7 +200,7 @@ export function KanbanBoard({ initialApplications, userId }: KanbanBoardProps) {
         console.error("Failed to update status:", error);
       }
     },
-    [applications, userId]
+    [applications, onStatusChange]
   );
 
   const handleAddApplication = useCallback(
@@ -197,76 +210,20 @@ export function KanbanBoard({ initialApplications, userId }: KanbanBoardProps) {
       location?: string;
       notes?: string;
     }) => {
-      const now = new Date().toISOString();
-      // Use a negative timestamp for the local-only id so it can never
-      // collide with a real positive backend primary key, and so the
-      // reconciliation step (app.id === localApplication.id) only matches
-      // the optimistic placeholder we just inserted.
-      const localApplication: JobApplication = {
-        id: -Date.now(),
-        job_id: crypto.randomUUID(),
-        role: data.role,
-        company: data.company,
-        location: data.location || null,
-        notes: data.notes || null,
+      onAddApplication?.({
+        ...data,
         status: selectedColumn,
-        fit_score: null,
-        job_url: null,
-        created_at: now,
-        updated_at: now,
-      };
-
-      setApplications((apps) => [localApplication, ...apps]);
+      });
       setModalOpen(false);
-
-      try {
-        const response = await fetchWithTimeout("/api/tracker/applications", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...userHeaders(userId),
-          },
-          body: JSON.stringify({
-            job_id: localApplication.job_id,
-            role: localApplication.role,
-            company: localApplication.company,
-            location: localApplication.location,
-            notes: localApplication.notes,
-            status: localApplication.status,
-            fit_score: localApplication.fit_score,
-            job_url: localApplication.job_url,
-          }),
-        });
-
-        if (response.ok) {
-          const newApp = await response.json();
-          setApplications((apps) =>
-            apps.map((app) => (app.id === localApplication.id ? newApp : app))
-          );
-        }
-      } catch (error) {
-        console.error("Failed to add application:", error);
-      }
     },
-    [selectedColumn]
+    [onAddApplication, selectedColumn]
   );
 
   const handleDeleteApplication = useCallback(
     async (id: number) => {
-      setApplications((apps) => apps.filter((app) => app.id !== id));
-
-      try {
-        await fetchWithTimeout(`/api/tracker/applications/${id}`, {
-          method: "DELETE",
-          headers: {
-            ...userHeaders(userId),
-          },
-        });
-      } catch (error) {
-        console.error("Failed to delete application:", error);
-      }
+      onDeleteApplication?.(id);
     },
-    [userId]
+    [onDeleteApplication]
   );
 
   const openAddModal = useCallback((columnId: string) => {
