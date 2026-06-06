@@ -6,7 +6,7 @@ import { Search, MapPin, DollarSign, Calendar, Bookmark, Loader2, Briefcase, Tre
 import { GlassCard, Reveal, Stagger } from "./motion-shell";
 import { useTracker } from "./tracker-context";
 import { getPersistedCvId, getPersistedCvSkills, hasPersistedCv } from "./cv-storage";
-import { getCareerPilotHeaders } from "./user-storage";
+import { ensureCareerPilotUserId, getCareerPilotHeaders } from "./user-storage";
 import { setAssistantJobContext } from "./assistant-job-context";
 
 interface Job {
@@ -148,6 +148,24 @@ const loadCvSkills = (): string[] => {
   return getPersistedCvSkills();
 };
 
+function getSavedJobsStorageKey() {
+  const userId = ensureCareerPilotUserId();
+  return `careerpilot_saved_jobs_${userId || "anonymous"}`;
+}
+
+function loadSavedJobs(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+
+  try {
+    const raw = window.localStorage.getItem(getSavedJobsStorageKey());
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as string[];
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return new Set();
+  }
+}
+
 const getMatchColor = (fitScore: number) => {
   if (fitScore >= 80) return "bg-green-100 text-green-700";
   if (fitScore >= 65) return "bg-yellow-100 text-yellow-700";
@@ -175,11 +193,19 @@ export function JobsExperience() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [fitScoresEnabled, setFitScoresEnabled] = useState(false);
   const [resultsMessage, setResultsMessage] = useState<string | null>(null);
-  const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
+  const [savedJobs, setSavedJobs] = useState<Set<string>>(loadSavedJobs);
   const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set());
   const [cvSkills, setCvSkills] = useState<string[]>(loadCvSkills());
   const [hasCvUploaded, setHasCvUploaded] = useState(hasPersistedCv());
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      getSavedJobsStorageKey(),
+      JSON.stringify(Array.from(savedJobs))
+    );
+  }, [savedJobs]);
 
   // Reusable refresh function for live jobs only.
   // Uses a ref for the live query so the function identity stays stable
@@ -432,6 +458,11 @@ export function JobsExperience() {
             Cached
           </span>
         )}
+        {!isSearching && savedJobs.size > 0 && (
+          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
+            {savedJobs.size} saved on this device
+          </span>
+        )}
       </div>
 
       {activeSource && !isSearching && !apiError && (
@@ -611,18 +642,22 @@ export function JobsExperience() {
                 <button
                   onClick={() => handleApplyJob(job, displayFitScore)}
                   disabled={appliedJobs.has(job.id)}
-                  aria-label={appliedJobs.has(job.id) ? `Applied to ${job.role} at ${job.company}` : `Apply to ${job.role} at ${job.company}`}
+                  aria-label={
+                    appliedJobs.has(job.id)
+                      ? `Added ${job.role} at ${job.company} to your tracker`
+                      : `Add ${job.role} at ${job.company} to your tracker as applied`
+                  }
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1D4ED8] px-4 py-3 font-extrabold text-white transition-all hover:bg-[#1e40af] disabled:opacity-50 disabled:bg-green-600"
                 >
                   {appliedJobs.has(job.id) ? (
                     <>
                       <CheckCircle2 size={18} />
-                      Applied
+                      Added to Tracker
                     </>
                   ) : (
                     <>
                       <Briefcase size={18} />
-                      Apply Now
+                      Add to Tracker
                     </>
                   )}
                 </button>
@@ -652,6 +687,9 @@ export function JobsExperience() {
                   <Bookmark size={18} fill={savedJobs.has(job.id) ? "currentColor" : "none"} />
                 </button>
               </div>
+              <p className="mt-3 text-xs text-gray-500">
+                This does not submit an application to the employer. It only saves the job in your tracker.
+              </p>
             </GlassCard>
           </Reveal>
           );
