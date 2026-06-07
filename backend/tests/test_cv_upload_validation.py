@@ -144,7 +144,7 @@ def test_accepts_valid_cv_docx(client, monkeypatch, bypass_cv_processing):
 
 
 def test_rejects_oversized_file(client):
-    oversized = b"a" * (5 * 1024 * 1024 + 1)
+    oversized = b"a" * (10 * 1024 * 1024 + 1)
     response = client.post(
         "/api/cv/upload",
         headers=UPLOAD_HEADERS,
@@ -152,7 +152,7 @@ def test_rejects_oversized_file(client):
     )
 
     assert response.status_code == 413
-    assert "5 MB" in response.json()["detail"]
+    assert "10 MB" in response.json()["detail"]
 
 
 def test_validate_cv_likeness_requires_two_keywords():

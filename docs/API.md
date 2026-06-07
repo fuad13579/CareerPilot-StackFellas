@@ -116,7 +116,7 @@ Request format:
 - `multipart/form-data`
 - Field name: `file`
 - Allowed file types: `.pdf`, `.docx`
-- Maximum size: 5 MB
+- Maximum size: 10 MB
 
 JavaScript example:
 
@@ -198,7 +198,7 @@ File too large, `413`:
 
 ```json
 {
-  "detail": "Uploaded CV file is too large. Maximum size is 5 MB."
+  "detail": "Uploaded CV file is too large. Maximum size is 10 MB."
 }
 ```
 
@@ -639,4 +639,3 @@ Useful backend environment variables in `backend/.env`:
 | `INCLUDE_EXTRACTED_TEXT_IN_UPLOAD_RESPONSE` | `true` | Set to `false` to omit `extracted_text` from CV upload responses. |
 | `FIT_SCORE_SKILL_WEIGHT` | `0.75` | Weight for direct skill matching. |
 | `FIT_SCORE_KEYWORD_WEIGHT` | `0.25` | Weight for keyword matching. |
-
