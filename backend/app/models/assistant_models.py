@@ -26,6 +26,23 @@ class AssistantSource(BaseModel):
     score: float | None = None
 
 
+class AssistantJobResult(BaseModel):
+    """Structured job result returned by the assistant's job-search mode."""
+
+    job_id: str
+    role: str
+    company: str
+    location: str | None = None
+    salary: str | None = None
+    source: str | None = None
+    job_url: str | None = None
+    fit_score: float | None = None
+    required_skills: list[str] = Field(default_factory=list)
+    matched_skills: list[str] = Field(default_factory=list)
+    missing_skills: list[str] = Field(default_factory=list)
+    reason: str | None = None
+
+
 class AssistantQueryResponse(BaseModel):
     """Response from AI assistant."""
 
@@ -33,6 +50,26 @@ class AssistantQueryResponse(BaseModel):
     answer: str
     retrieved_context: str
     sources: list[AssistantSource]
+    intent: str = Field(
+        default="assistant",
+        description="assistant for CV-grounded Q&A, job_search when the assistant searched live jobs.",
+    )
+    job_results: list[AssistantJobResult] = Field(
+        default_factory=list,
+        description="Structured job results when intent=job_search.",
+    )
+    job_search_query: str | None = Field(
+        default=None,
+        description="Normalized job query used by the job-search assistant mode.",
+    )
+    job_search_location: str | None = Field(
+        default=None,
+        description="Location filter used by the job-search assistant mode.",
+    )
+    job_search_source: str | None = Field(
+        default=None,
+        description="Live provider label used by the job-search assistant mode.",
+    )
     provider: str | None = Field(
         default=None,
         description="Name of the LLM provider used (github_models / openrouter / rule_based_fallback).",

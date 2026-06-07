@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -17,11 +17,10 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { KanbanColumn, COLUMNS, ColumnId } from "./kanban-column";
 import { JobCard, JobApplication } from "./job-card";
 import { AddApplicationModal } from "./add-application-modal";
-import { getCareerPilotHeaders, getCareerPilotUserId } from "./user-storage";
 
 interface KanbanBoardProps {
   initialApplications: JobApplication[];
-  onStatusChange?: (applicationId: number, status: ColumnId) => void;
+  onStatusChange?: (applicationId: string | number, status: ColumnId) => void;
   onAddApplication?: (data: {
     role: string;
     company: string;
@@ -29,34 +28,7 @@ interface KanbanBoardProps {
     notes?: string;
     status: ColumnId;
   }) => void;
-  onDeleteApplication?: (applicationId: number) => void;
-}
-
-const STORAGE_KEY_PREFIX = "careerpilot-tracker-applications";
-
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit = {},
-  timeoutMs = 3000
-) {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    window.clearTimeout(timeout);
-  }
-}
-
-// Forward the anonymous-user header that the backend requires for
-// /api/tracker/* routes. Without this, the kanban drag PATCH and the add
-// POST both return 400 from require_anonymous_user_id.
-function userHeaders(userId?: string | null): HeadersInit {
-  if (userId) {
-    return { "x-careerpilot-user-id": userId };
-  }
-  return getCareerPilotHeaders();
+  onDeleteApplication?: (applicationId: string | number) => void;
 }
 
 export function KanbanBoard({
@@ -66,22 +38,9 @@ export function KanbanBoard({
   onDeleteApplication,
 }: KanbanBoardProps) {
   const [applications, setApplications] = useState<JobApplication[]>(initialApplications);
-  const [activeId, setActiveId] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<string | number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState<ColumnId>("Applied");
-  const cacheKey = useMemo(() => {
-    const currentUserId = getCareerPilotUserId();
-    return currentUserId ? `${STORAGE_KEY_PREFIX}-${currentUserId}` : null;
-  }, []);
-
-  useEffect(() => {
-    if (!cacheKey) return;
-    try {
-      window.localStorage.setItem(cacheKey, JSON.stringify(applications));
-    } catch (error) {
-      console.error("Failed to cache kanban state:", error);
-    }
-  }, [applications, cacheKey]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -121,14 +80,14 @@ export function KanbanBoard({
   );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    setActiveId(event.active.id as number);
+    setActiveId(event.active.id as string | number);
   }, []);
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const { active, over } = event;
     if (!over) return;
 
-    const activeId = active.id as number;
+    const activeId = active.id as string | number;
     const overId = over.id as string | number;
 
     // Check if we're dragging over a column
@@ -149,7 +108,7 @@ export function KanbanBoard({
 
       if (!over) return;
 
-      const activeId = active.id as number;
+      const activeId = active.id as string | number;
       const overId = over.id as string | number;
 
       // Determine the target column
@@ -174,31 +133,6 @@ export function KanbanBoard({
         )
       );
       onStatusChange?.(activeId, targetColumn);
-
-      try {
-        const response = await fetchWithTimeout(
-          `/api/tracker/applications/${activeId}/status`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              ...userHeaders(),
-            },
-            body: JSON.stringify({ status: targetColumn }),
-          }
-        );
-
-        if (response.ok) {
-          const updatedApp = await response.json();
-          setApplications((apps) =>
-            apps.map((app) =>
-              app.id === activeId ? { ...app, status: updatedApp.status } : app
-            )
-          );
-        }
-      } catch (error) {
-        console.error("Failed to update status:", error);
-      }
     },
     [applications, onStatusChange]
   );
@@ -220,7 +154,7 @@ export function KanbanBoard({
   );
 
   const handleDeleteApplication = useCallback(
-    async (id: number) => {
+    async (id: string | number) => {
       onDeleteApplication?.(id);
     },
     [onDeleteApplication]

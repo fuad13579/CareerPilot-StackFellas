@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Trash2 } from "lucide-react";
 
 export interface JobApplication {
-  id: number;
+  id: string | number;
   job_id: string;
   role: string;
   company: string;
@@ -20,7 +20,7 @@ export interface JobApplication {
 
 interface JobCardProps {
   application: JobApplication;
-  onDelete: (id: number) => void;
+  onDelete: (id: string | number) => void;
   isDragging?: boolean;
 }
 

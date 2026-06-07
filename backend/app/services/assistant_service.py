@@ -1,13 +1,21 @@
 """AI Assistant service with RAG context and session memory."""
-import os
+import asyncio
 
-from app.models.assistant_models import AssistantQueryResponse, AssistantSource
+from app.models.assistant_models import (
+    AssistantJobResult,
+    AssistantQueryResponse,
+    AssistantSource,
+)
+from app.models.job_models import JobCard
 from app.services.llm_provider import generate_chat_completion, active_provider_name
 from app.services.vector_store_service import retrieve_relevant_chunks
 from app.services.fallback_response_service import (
     generate_rule_based_response,
     extract_basic_skills_from_context,
 )
+from app.services.job_search_service import fetch_live_jobs
+from app.services.job_recommendation_service import calculate_fit_score
+from app.utils.job_search_filters import build_job_search_filters, filter_jobs_by_salary
 from app.models.database_models import AssistantSession
 from app.database import SessionLocal
 
@@ -15,6 +23,30 @@ from app.database import SessionLocal
 # In-memory session storage: anonymous_user_id:session_id -> list of messages
 SESSION_MEMORY: dict[str, list[dict[str, str]]] = {}
 MAX_HISTORY_MESSAGES = 10
+JOB_SEARCH_VERBS = (
+    "find",
+    "search",
+    "look for",
+    "show",
+    "list",
+    "recommend",
+    "discover",
+    "browse",
+)
+JOB_SEARCH_NOUNS = (
+    "job",
+    "jobs",
+    "role",
+    "roles",
+    "opening",
+    "openings",
+    "position",
+    "positions",
+    "internship",
+    "internships",
+    "opportunity",
+    "opportunities",
+)
 
 
 def _session_key(anonymous_user_id: str | None, session_id: str) -> str:
@@ -173,6 +205,93 @@ def generate_fallback_answer(context: str, question: str) -> str:
     )
 
 
+def _is_job_search_question(question: str) -> bool:
+    """Heuristically detect when the assistant should search live jobs."""
+    text = question.lower().strip()
+    if not text:
+        return False
+
+    has_search_verb = any(term in text for term in JOB_SEARCH_VERBS)
+    has_job_noun = any(term in text for term in JOB_SEARCH_NOUNS)
+
+    if has_search_verb and has_job_noun:
+        return True
+
+    return any(
+        phrase in text
+        for phrase in (
+            "who is hiring",
+            "remote jobs",
+            "job openings",
+            "open roles",
+            "hiring for",
+        )
+    )
+
+
+async def _search_jobs_for_assistant(
+    question: str,
+    cv_context: str,
+    limit: int = 5,
+) -> tuple[str, list[AssistantJobResult], str | None, str, str]:
+    """Run live job search for assistant job-hunter requests."""
+    query, location, parsed = build_job_search_filters(question)
+    source, jobs, error = await fetch_live_jobs(query, location, limit)
+    salary_min = parsed.get("salary_min")
+    if salary_min:
+        jobs = filter_jobs_by_salary(jobs, salary_min)
+
+    cv_skills = extract_basic_skills_from_context(cv_context)
+    structured_jobs: list[AssistantJobResult] = []
+    for job in jobs:
+        fit = calculate_fit_score(cv_skills, job) if cv_skills else None
+        structured_jobs.append(
+            AssistantJobResult(
+                job_id=job.job_id,
+                role=job.role,
+                company=job.company,
+                location=job.location,
+                salary=job.salary,
+                source=job.source,
+                job_url=job.job_url,
+                fit_score=fit.fit_score if fit else None,
+                required_skills=job.required_skills,
+                matched_skills=fit.matched_skills if fit else [],
+                missing_skills=fit.missing_skills if fit else [],
+                reason=job.reason,
+            )
+        )
+
+    if structured_jobs:
+        lines = [
+            f"I searched live jobs for '{query}' in {location} and found {len(structured_jobs)} match{'es' if len(structured_jobs) != 1 else ''}.",
+        ]
+        if source:
+            lines.append(f"Source: {source}.")
+        if cv_skills:
+            lines.append("I also estimated fit from the skills visible in your CV context.")
+        top_roles = [
+            f"{index + 1}. {job.role} at {job.company} ({job.location or 'Location not provided'})"
+            for index, job in enumerate(structured_jobs[:3])
+        ]
+        answer = "\n".join(lines + ["", *top_roles])
+    else:
+        if error:
+            answer = (
+                f"I searched live jobs for '{query}' in {location}, but the search did not return matches. "
+                f"{error}"
+            )
+        elif salary_min:
+            answer = (
+                f"I searched live jobs for '{query}' in {location} with a minimum salary of "
+                f"${salary_min:,}, but no returned jobs met that salary threshold."
+            )
+        else:
+            answer = f"I searched live jobs for '{query}' in {location}, but I could not find matching roles right now."
+
+    return answer, structured_jobs, source, query, location
+
+
 def generate_ai_response(
     prompt: str,
     cv_context: str,
@@ -317,6 +436,25 @@ def process_assistant_query(
     if job_context and job_context.strip():
         combined_context = f"{context}\n\nTarget Job Context:\n{job_context.strip()}".strip()
 
+    if _is_job_search_question(question):
+        answer, job_results, source, search_query, search_location = asyncio.run(
+            _search_jobs_for_assistant(question, combined_context)
+        )
+        add_to_conversation(session_id, cv_id, "assistant", answer, anonymous_user_id=anonymous_user_id)
+        return AssistantQueryResponse(
+            session_id=session_id,
+            answer=answer,
+            retrieved_context=combined_context,
+            sources=[],
+            intent="job_search",
+            job_results=job_results,
+            job_search_query=search_query,
+            job_search_location=search_location,
+            job_search_source=source,
+            provider=None,
+            fallback_used=False,
+        )
+
     # Generate answer (try LLM, fallback to rule-based response)
     detected_skills = extract_basic_skills_from_context(combined_context)
     answer, provider, fallback_used = generate_ai_response(
@@ -354,6 +492,7 @@ def process_assistant_query(
         answer=answer,
         retrieved_context=combined_context,
         sources=sources,
+        intent="assistant",
         provider=provider,
         fallback_used=fallback_used,
     )
