@@ -20,7 +20,7 @@ Job seekers usually juggle separate tools for resumes, job boards, cover letters
 
 ## Live Demo Links
 
-- Frontend: `Needs confirmation - add your Vercel production URL here`
+- Frontend: `https://careerpilot-stackfellas.vercel.app/`
 - Backend API: `http://104.211.90.209`
 - Swagger / OpenAPI: `http://104.211.90.209/docs`
 - GitHub Repository: `https://github.com/fuad13579/CareerPilot-StackFellas`
