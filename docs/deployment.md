@@ -21,7 +21,7 @@ It is written for judges and developers who want to reproduce the deployment sha
 Set in Vercel:
 
 ```env
-BACKEND_URL=http://<your-backend-host>
+BACKEND_URL=http://104.211.90.209
 ```
 
 After changing `BACKEND_URL`, redeploy the frontend.
@@ -31,7 +31,7 @@ After changing `BACKEND_URL`, redeploy the frontend.
 ### SSH command placeholder
 
 ```bash
-ssh <azure-user>@<azure-vm-ip>
+ssh azureuser@104.211.90.209
 ```
 
 ### System packages
@@ -46,7 +46,7 @@ sudo apt install -y git nginx python3.11 python3.11-venv python3-pip
 Initial clone:
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/fuad13579/CareerPilot-StackFellas.git
 cd CareerPilot-StackFellas
 ```
 
@@ -106,11 +106,11 @@ Description=CareerPilot backend
 After=network.target
 
 [Service]
-User=<vm-user>
-Group=<vm-user>
-WorkingDirectory=/home/<vm-user>/CareerPilot-StackFellas/backend
-EnvironmentFile=/home/<vm-user>/CareerPilot-StackFellas/backend/.env
-ExecStart=/home/<vm-user>/CareerPilot-StackFellas/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+User=azureuser
+Group=azureuser
+WorkingDirectory=/home/azureuser/CareerPilot-StackFellas/backend
+EnvironmentFile=/home/azureuser/CareerPilot-StackFellas/backend/.env
+ExecStart=/home/azureuser/CareerPilot-StackFellas/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5
 
@@ -125,6 +125,16 @@ sudo systemctl daemon-reload
 sudo systemctl enable careerpilot-backend
 sudo systemctl start careerpilot-backend
 ```
+
+Current public backend endpoints through `nginx`:
+
+- `http://104.211.90.209/health`
+- `http://104.211.90.209/docs`
+
+Direct backend-only endpoints on the VM:
+
+- `http://127.0.0.1:8000/health`
+- `http://127.0.0.1:8000/docs`
 
 ## nginx Reverse Proxy Example
 
