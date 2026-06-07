@@ -1,293 +1,258 @@
-# CareerPilot System Architecture
+# CareerPilot Architecture
 
-CareerPilot is a local-first career assistant with a Next.js frontend and a
-FastAPI backend. The backend stores uploaded CVs, extracts searchable context,
-builds a local vector index for RAG, searches live job sources, scores CV/job
-fit, and persists tracker data in SQLite.
+This document describes the current CareerPilot architecture as implemented in the repository. It is intentionally honest about MVP trade-offs: the app is deployable and demo-ready, but it is not a production-grade multi-region platform.
 
 ## High-Level Architecture
 
+CareerPilot is a split web application:
+
+- a Next.js frontend deployed on Vercel
+- a FastAPI backend deployed on an Azure VM
+- local backend persistence for CV files, processed artifacts, vectors, and SQLite data
+- external job APIs for live job discovery
+- hosted LLM providers with a built-in fallback path
+
 ```mermaid
 flowchart LR
-  User[User] --> FE[Next.js Frontend]
+  User[User]
+  FE[Vercel Next.js Frontend]
+  BE[FastAPI Backend on Azure VM]
+  Parser[CV Parser]
+  Vector[Vector / RAG Store]
+  Jobs[External Job APIs]
+  LLM[LLM API]
+  Tracker[Tracker Storage]
 
-  FE -->|CV upload<br/>multipart/form-data| CVAPI[FastAPI CV API]
-  FE -->|Assistant query| AssistantAPI[FastAPI Assistant API]
-  FE -->|Job search| JobsAPI[FastAPI Jobs API]
-  FE -->|Fit score| FitAPI[FastAPI Fit API]
-  FE -->|Save/update applications| TrackerAPI[FastAPI Tracker API]
-
-  CVAPI --> Extract[CV Extraction Service]
-  Extract --> Processed[(Processed CV Text<br/>and Sections)]
-  Extract --> Uploaded[(Uploaded CV Files)]
-  CVAPI --> CVRows[(SQLite CVProfile)]
-  CVAPI --> Chunk[CV Sectioning]
-  Chunk --> Embed[Embedding Service]
-  Embed --> Vector[(Local Vector Store<br/>JSON + NPY)]
-
-  AssistantAPI --> AssistantService[Assistant Service]
-  AssistantService --> Vector
-  AssistantService --> Provider[LLM Provider Chain<br/>GitHub Models<br/>OpenRouter<br/>Rule-Based Fallback]
-  AssistantService --> Sessions[(SQLite AssistantSession)]
-
-  JobsAPI --> JobSources[Live Job Sources<br/>Adzuna, Arbeitnow, Remotive]
-  JobsAPI --> Recommend[Job Recommendation Service]
-  Recommend --> CVRows
-  Recommend --> Processed
-
-  FitAPI --> FitScore[Fit Score Service]
-  FitScore --> Processed
-
-  TrackerAPI --> Applications[(SQLite Applications)]
+  User --> FE
+  FE --> BE
+  BE --> Parser
+  Parser --> Vector
+  BE --> Jobs
+  BE --> LLM
+  BE --> Tracker
 ```
 
-## Main Components
+## Main Runtime Components
 
-| Layer | Component | Responsibility |
+| Component | Location | Responsibility |
 | --- | --- | --- |
-| Frontend | `frontend/` Next.js app | Upload CVs, search jobs, ask assistant questions, display fit scores, manage tracker UI. |
-| API | `backend/app/main.py` | Registers FastAPI routers and configures CORS. |
-| API routes | `backend/app/api/*_routes.py` | Request validation, user header checks, and service orchestration. |
-| Services | `backend/app/services/` | CV extraction, chunking, embeddings, vector retrieval, LLM calls, job search, fit scoring. |
-| Database | SQLite at `backend/app/storage/careerpilot.db` | CV metadata, applications, todos, calendar events, assistant sessions. |
-| File storage | `backend/app/storage/` | Uploaded CVs, processed CV text/sections, vector index metadata and embeddings. |
-| External APIs | Adzuna, Arbeitnow, Remotive, GitHub Models, OpenRouter | Job search and AI generation providers. |
+| Frontend pages | `frontend/src/app` | Upload, jobs, assistant, cover letter, tracker, productivity UI |
+| Frontend API proxies | `frontend/src/app/api` | Forward browser requests to the backend via `BACKEND_URL` |
+| FastAPI app | `backend/app/main.py` | Router registration, CORS, startup setup, health endpoints |
+| API routes | `backend/app/api/*_routes.py` | Request validation and orchestration |
+| Service layer | `backend/app/services` | CV extraction, chunking, embeddings, retrieval, LLM calls, fit scoring, job search |
+| Database | `backend/app/storage/careerpilot.db` | CV metadata, tracker records, todos, calendar, assistant history, job cache |
+| File storage | `backend/app/storage` | Uploaded CVs, processed CV text and section JSON, vector artifacts |
 
-Most user-specific endpoints use `x-careerpilot-user-id` to isolate local
-profiles without a full authentication system.
+## Data Flow: CV Upload to AI Response
 
-## CV Upload To Agent Response Data Flow
+The uploaded CV becomes the core state object for the platform.
 
 ```mermaid
 sequenceDiagram
   participant U as User
-  participant FE as Frontend
-  participant CV as CV API
-  participant Store as Local Storage
-  participant DB as SQLite
-  participant Vec as Vector Store
+  participant FE as Next.js Frontend
+  participant CV as FastAPI CV API
+  participant P as CV Parser
+  participant S as Local Storage
+  participant V as Vector Store
   participant A as Assistant API
-  participant LLM as LLM/Fallback
+  participant L as LLM or Fallback
 
-  U->>FE: Select PDF/DOCX CV
-  FE->>CV: POST /api/cv/upload<br/>file + x-careerpilot-user-id
-  CV->>Store: Save original file
-  CV->>CV: Extract text from PDF/DOCX
-  CV->>Store: Save processed text and section JSON
-  CV->>DB: Insert CVProfile metadata
-  CV->>Vec: Embed sections and write vector index
-  CV-->>FE: cv_id, filename, file_type, skills
-
-  U->>FE: Ask career question
-  FE->>A: POST /api/assistant/query<br/>cv_id, session_id, question
-  A->>DB: Validate CV ownership
-  A->>DB: Save user message
-  A->>Vec: Retrieve top CV chunks for question
-  A->>LLM: Send question + retrieved CV context + history
-  LLM-->>A: Answer, or rule-based fallback
-  A->>DB: Save assistant message
-  A-->>FE: answer, retrieved_context, sources, provider, fallback_used
-  FE-->>U: Render assistant answer
+  U->>FE: Upload PDF/DOCX CV
+  FE->>CV: POST /api/cv/upload
+  CV->>S: Save uploaded file
+  CV->>P: Extract text
+  P->>S: Save processed text + sections JSON
+  CV->>V: Build local vector index
+  CV-->>FE: cv_id, skills, rag status
+  U->>FE: Ask assistant question
+  FE->>A: POST /api/assistant/query
+  A->>V: Retrieve relevant CV chunks
+  A->>L: Send prompt with retrieved context
+  L-->>A: Answer
+  A-->>FE: response + provider + sources
 ```
 
-The upload response gives the frontend a `cv_id`. That ID becomes the join key
-for assistant questions, fit scoring, RAG retrieval, and personalized job
-recommendations.
+## CV Upload and RAG Pipeline
 
-## RAG Pipeline
+### CV upload flow
 
-RAG is built around local CV content rather than a remote vector database.
+1. Frontend calls `POST /api/cv/upload`.
+2. Backend validates file type and size.
+3. `cv_extraction_service.py` extracts text from:
+   - PDF via `pypdf`
+   - DOCX via `python-docx`
+4. `cv_chunking_service.py` stores:
+   - raw processed text
+   - section JSON
+5. Skills are extracted from the CV text.
+6. `vector_store_service.py` builds a local index from CV chunks.
+7. Upload response returns `cv_id`, `skills`, and RAG status fields.
 
-1. The frontend uploads a CV to `POST /api/cv/upload`.
-2. `cv_extraction_service` extracts readable text from PDF or DOCX.
-3. `cv_chunking_service.save_processed_cv` writes:
-   - `backend/app/storage/processed_cvs/{cv_id}.txt`
-   - `backend/app/storage/processed_cvs/{cv_id}_sections.json`
-4. The section splitter groups content into `skills`, `education`,
-   `experience`, `projects`, and `other`.
-5. `vector_store_service.build_cv_rag_index` embeds section text through
-   `embedding_service`.
-6. The vector store writes:
-   - `backend/app/storage/vector_db/{cv_id}.json`
-   - `backend/app/storage/vector_db/{cv_id}_embeddings.npy`
-7. Assistant queries call `retrieve_relevant_chunks(cv_id, query, top_k=3)`.
-8. Retrieved chunks become `retrieved_context` and `sources` in the assistant
-   response.
+### Chunking strategy
+
+Chunking is section-first, not purely fixed-window:
+
+- `skills`
+- `education`
+- `experience`
+- `projects`
+- `other`
+
+Longer sections are then split into smaller chunks for retrieval.
+
+### Embeddings and retrieval
+
+Primary embedding path:
+
+- `sentence-transformers`
+- model: `all-MiniLM-L6-v2`
+
+Fallback embedding path:
+
+- `scikit-learn` `HashingVectorizer`
+
+Vector artifacts are stored in:
+
+- `backend/app/storage/vector_db/{cv_id}.json`
+- `backend/app/storage/vector_db/{cv_id}_embeddings.npy`
+
+At query time:
+
+1. the question is embedded
+2. stored chunk vectors are loaded
+3. cosine similarity is computed
+4. top chunks are returned to the assistant or cover-letter flow
+
+## Job Hunter Agent Flow
+
+The job search pipeline is live-source based and supports natural-language search input.
 
 ```mermaid
 flowchart TD
-  Upload[CV Upload] --> Extract[Extract Text]
-  Extract --> Sections[Split Into CV Sections]
-  Sections --> SaveText[Save Text + Sections JSON]
-  Sections --> Embeddings[Generate Embeddings]
-  Embeddings --> Index[Save Vector Index]
-
-  Question[Assistant Question] --> QueryEmbed[Embed Query]
-  QueryEmbed --> Similarity[Cosine Similarity]
-  Index --> Similarity
-  Similarity --> TopChunks[Top Relevant Chunks]
-  TopChunks --> Prompt[Prompt With CV Context]
-  Prompt --> Answer[LLM Answer or Rule-Based Fallback]
+  Query[User job query] --> JobsAPI[GET /api/jobs/search]
+  JobsAPI --> Parse[Parse query and infer filters]
+  Parse --> Cache{Fresh cache hit?}
+  Cache -- Yes --> Cached[Return cached jobs]
+  Cache -- No --> Fanout[Fetch live jobs]
+  Fanout --> Adzuna[Adzuna]
+  Fanout --> Arbeitnow[Arbeitnow]
+  Fanout --> Remotive[Remotive]
+  Adzuna --> Normalize[Normalize and deduplicate]
+  Arbeitnow --> Normalize
+  Remotive --> Normalize
+  Normalize --> Salary[Optional salary filtering]
+  Salary --> Fit[Optional fit-score enrichment]
+  Fit --> Response[Return jobs to frontend]
+  Cached --> Response
 ```
 
-If the vector index is missing when an assistant query arrives, the assistant
-service attempts to rebuild it from the saved CV section JSON before answering.
+Notes:
 
-## Assistant And Agent Response Flow
+- Adzuna is only used when its credentials are configured.
+- Arbeitnow and Remotive are keyless live sources.
+- Results are normalized into a shared `JobCard` shape.
+- Live results are cached in SQLite with a TTL.
 
-`POST /api/assistant/query` coordinates the agent-like assistant behavior.
+## Fit Score Computation Flow
 
-Request inputs:
+Fit score is computed programmatically rather than delegated to an LLM.
 
-- `cv_id`: uploaded CV identifier.
-- `session_id`: conversation identifier.
-- `question`: user question.
-- `job_id`: optional tracked job context for readiness or skill-gap questions.
-- `x-careerpilot-user-id`: local profile identifier.
+1. The backend extracts normalized skills from the CV.
+2. It extracts required skills from the job posting.
+3. It calculates matched and missing skills.
+4. It computes a score based on overlap.
+5. It returns both the numeric score and the structured evidence.
 
-Processing steps:
+This separation is important because the visible score is deterministic and explainable.
 
-1. Validate that the CV belongs to the current `x-careerpilot-user-id`.
-2. Persist the user message to `AssistantSession`.
-3. Load recent conversation history from SQLite, with in-memory cache as a
-   fallback.
-4. Retrieve the top CV chunks from the vector store.
-5. Optionally load tracked job data when `job_id` is supplied.
-6. Generate an answer through the provider chain:
-   - GitHub Models when `GITHUB_MODELS_TOKEN` is configured.
-   - OpenRouter when `OPENROUTER_API_KEY` is configured.
-   - Rule-based fallback when no provider is available or provider generation
-     fails.
-7. Persist the assistant answer to `AssistantSession`.
-8. Return the answer, retrieved context, source chunks, provider name, and
-   fallback flag.
+## Assistant Flow
 
-## Job Search And Fit Scoring
+The assistant is a routed CV-grounded service.
 
-### Job Search Flow
+1. Validate anonymous user id and CV ownership.
+2. Load conversation history from SQLite.
+3. Retrieve top CV chunks from the local vector store.
+4. If the prompt is a job-hunter request, parse the natural-language job request and call live job search.
+5. Otherwise send question plus retrieved context to the provider chain:
+   - GitHub Models
+   - OpenRouter
+   - built-in fallback
+6. Persist the assistant response.
+7. Return answer, provider, fallback flag, and retrieved sources.
 
-`GET /api/jobs/search` searches live job sources and optionally personalizes
-results with CV skills.
+## Cover Letter Flow
 
-```mermaid
-flowchart TD
-  FE[Frontend Search Form] --> Jobs[GET /api/jobs/search]
-  Jobs --> Header[Validate x-careerpilot-user-id]
-  Jobs --> HasCV{cv_id provided?}
-  HasCV -- No --> Live[Fetch Live Jobs]
-  HasCV -- Yes --> CVSkills[Load CV Text and Extract Skills]
-  CVSkills --> Live
-  Live --> Sources[Adzuna + Arbeitnow + Remotive]
-  Sources --> Normalize[Normalize To JobCard]
-  Normalize --> Personalize{Have CV skills?}
-  Personalize -- No --> General[Return jobs with fit_score null]
-  Personalize -- Yes --> Enrich[Compute per-job fit score]
-  Enrich --> Sort[Sort by fit score]
-  Sort --> Response[Return personalized jobs]
-  General --> Response
-```
+1. User selects a job context.
+2. Frontend calls the cover-letter route with CV id and job/job-description context.
+3. Backend retrieves relevant CV chunks.
+4. Backend combines:
+   - user CV context
+   - job title
+   - company
+   - job description
+5. The provider chain generates a draft, or the built-in fallback produces a structured version.
 
-Job source behavior:
+## Tracker and Productivity Flow
 
-- Adzuna is used when `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` are configured.
-- Arbeitnow is used as a no-key live source.
-- Remotive is kept as another no-key source.
-- Results are normalized into the shared `JobCard` shape and deduplicated by
-  URL or `(company, role)`.
+Tracker data is persisted in SQLite and scoped by anonymous user id.
 
-When `cv_id` is missing, the frontend receives general job results with
-`personalized=false` and `fit_scores_enabled=false`. The UI should not display a
-fit score in that state.
+Implemented persistence flows include:
 
-### Fit Scoring Flow
+- application save and status updates
+- tracker / Kanban board retrieval
+- todo creation and completion
+- calendar event CRUD
+- assistant session history
 
-`POST /api/fit/score` compares a processed CV against a specific job posting.
+The tracker workflow is:
 
-```mermaid
-flowchart LR
-  FE[Frontend] --> FitAPI[POST /api/fit/score]
-  FitAPI --> LoadCV[Load processed CV text]
-  LoadCV --> Score[calculate_fit_score]
-  Score --> Skills[Skill overlap]
-  Score --> Keywords[Keyword overlap]
-  Skills --> Weighted[Weighted final score]
-  Keywords --> Weighted
-  Weighted --> FitResponse[fit_score, skill_score,<br/>keyword_score, matched/missing skills]
-```
+1. user searches jobs
+2. user saves a job to tracker
+3. tracker record is written to SQLite
+4. user updates stage in Kanban
+5. updated state persists across reloads
 
-The fit score service:
+## Storage Model
 
-- extracts skills from the CV and job posting,
-- calculates explicit skill overlap,
-- calculates keyword overlap,
-- combines the weighted components,
-- returns matched skills, missing skills, matched keywords, and an explanation.
+| Data | Storage |
+| --- | --- |
+| Uploaded CV files | `backend/app/storage/uploaded_cvs/` |
+| Processed CV text | `backend/app/storage/processed_cvs/*.txt` |
+| Processed CV sections | `backend/app/storage/processed_cvs/*_sections.json` |
+| Vector metadata | `backend/app/storage/vector_db/*.json` |
+| Vector arrays | `backend/app/storage/vector_db/*_embeddings.npy` |
+| Structured app data | SQLite in `backend/app/storage/careerpilot.db` |
 
-## Tracker Data Flow
+This local VM persistence was chosen for hackathon speed and simplicity.
 
-The tracker stores selected jobs and their application state in SQLite.
+## Deployment Architecture
 
-```mermaid
-sequenceDiagram
-  participant FE as Frontend Tracker UI
-  participant API as Tracker API
-  participant DB as SQLite Applications
+### Frontend
 
-  FE->>API: POST /api/tracker/applications<br/>job details + fit score
-  API->>API: Validate x-careerpilot-user-id
-  API->>DB: Insert Application row
-  API-->>FE: Saved application
+- Hosted on Vercel
+- Uses App Router pages
+- Uses route handlers under `src/app/api/*`
+- Reads `BACKEND_URL` to reach the backend
 
-  FE->>API: GET /api/tracker/applications
-  API->>DB: Query applications for user
-  API-->>FE: Application list
+### Backend
 
-  FE->>API: PATCH /api/tracker/applications/{id}/status
-  API->>DB: Update status and updated_at
-  API-->>FE: Updated application
+- Hosted on Azure Ubuntu VM
+- Runs `uvicorn app.main:app`
+- Managed by `systemd`
+- Typically reverse-proxied by `nginx`
 
-  FE->>API: DELETE /api/tracker/applications/{id}
-  API->>DB: Delete matching user-owned row
-  API-->>FE: Deletion message
-```
+### Operational endpoints
 
-Tracker records are keyed by the anonymous user header and include:
+- `/health`
+- `/api/health`
+- `/api/health/providers`
+- `/docs`
 
-- external `job_id`
-- role, company, location, deadline, and job URL
-- saved job description and required skills
-- application status
-- fit score
-- notes and timestamps
+## Architectural Trade-offs
 
-The common frontend flow is:
-
-1. User searches jobs.
-2. User reviews a job and optional fit score.
-3. Frontend saves the job to `/api/tracker/applications`.
-4. Tracker board loads saved jobs through `GET /api/tracker/applications`.
-5. Status changes update the same record through the status endpoint.
-
-## Persistence Summary
-
-| Data | Stored In | Written By | Read By |
-| --- | --- | --- | --- |
-| Uploaded CV file | `storage/uploaded_cvs/` | CV upload API | Audit/debug, original file retention |
-| Extracted CV text | `storage/processed_cvs/{cv_id}.txt` | CV chunking service | Fit scoring, job personalization, RAG rebuild |
-| CV sections | `storage/processed_cvs/{cv_id}_sections.json` | CV chunking service | RAG build/rebuild, CV section endpoint |
-| Vector metadata | `storage/vector_db/{cv_id}.json` | Vector store service | Assistant retrieval |
-| Vector embeddings | `storage/vector_db/{cv_id}_embeddings.npy` | Vector store service | Assistant retrieval |
-| CV metadata | SQLite `cv_profiles` | CV upload API | Ownership validation, job personalization |
-| Assistant messages | SQLite `assistant_sessions` | Assistant service | Conversation history |
-| Applications | SQLite `applications` | Tracker API | Tracker board, optional assistant job context |
-
-## Operational Notes
-
-- The backend creates SQLite tables at startup.
-- CORS is controlled by `CORS_ORIGINS`; the local default is permissive.
-- LLM provider status is available at `GET /api/health/providers`.
-- The assistant can answer with a rule-based fallback when no LLM key is
-  configured.
-- Job search can return a successful `200` response with empty jobs and an
-  `error` or `message` field when live sources fail or no results match.
-
+- Local filesystem storage is simple and demo-reliable, but not horizontally scalable.
+- SQLite is easy to ship and inspect, but it is not ideal for large concurrency.
+- Hosted LLMs improve quality, but the built-in fallback is necessary for judge/demo reliability.
+- Local vector files reduce infrastructure complexity, but a managed vector database would be better at scale.

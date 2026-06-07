@@ -1,401 +1,244 @@
-#  CareerPilot
+# CareerPilot
 
-> **AI Career Co-pilot** -- upload a CV, get a real-time job feed with personalized fit scores, draft a cover letter, and track every application. Built for the **CodeSprint 2026** hackathon by **StackFellas**.
+CareerPilot is an agentic career co-pilot for CodeSprint 2026. A user uploads a CV, the backend parses and indexes it, the app searches live job sources, computes fit scores, answers CV-grounded assistant questions, drafts cover letters, and tracks applications in one workflow.
 
----
+## Problem Summary
 
-##  Overview
+Job seekers usually juggle separate tools for resumes, job boards, cover letters, and tracking. CareerPilot makes the uploaded CV the source of truth so search, fit analysis, assistant responses, and tracking all stay connected.
 
-CareerPilot turns a static CV into a working job-search workspace. You upload a resume (PDF/DOCX), the backend parses it into structured sections and skills, an LLM ranks live job listings against your profile, and a Kanban-style tracker keeps your applications organized end-to-end.
+## Key Features
 
-It's intentionally a **hackathon MVP** -- fast, opinionated, and demo-ready, with a clear path toward production hardening after the event.
+- CV upload with PDF and DOCX support
+- CV parsing into structured sections and extracted skills
+- Local RAG over the uploaded CV
+- Live job search across Adzuna, Arbeitnow, and Remotive
+- Programmatic fit scoring with matched and missing skills
+- AI assistant with hosted-model and built-in fallback modes
+- Cover letter generation from CV plus job context
+- Application tracker with Kanban workflow
+- Todo, calendar, and productivity views
 
----
+## Live Demo Links
 
-##  Key Features
+- Frontend: `<add-vercel-url>`
+- Backend API: `http://104.211.90.209`
+- Swagger / OpenAPI: `http://104.211.90.209/docs`
 
-- **CV parsing & skills extraction** -- PDF/DOCX upload, section chunking, RAG-ready profile with a normalized skill list.
-- **Live multi-source job search** -- Adzuna + Arbeitnow + Remotive fanned out in parallel, deduplicated, and ranked.
-- **Personalized fit scores** -- per-job score (0-100) with matched/missing skills, recomputed live from your CV.
-- **RAG-powered AI assistant** -- ask "what skills am I missing for backend roles?" and get answers grounded in your CV + the live job pool.
-- **Cover letter generation** -- one-click drafts tuned to a specific job listing and your profile.
-- **Kanban application tracker** -- `Applied -> Interview -> Offer / Rejected` with todos and calendar events per application.
-- **15-minute response cache** -- SQLite-backed TTL cache on live job searches to protect free-tier API quotas (`force_refresh` opt-out).
-- **Anonymous sessions** -- no login required; an anonymous user id is generated on first visit and persisted to `localStorage`.
+## Tech Stack
 
----
+| Layer | Stack |
+| --- | --- |
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4, Framer Motion, Lucide React |
+| Backend | FastAPI, Uvicorn, Python 3.11, SQLAlchemy, SQLite, Pydantic |
+| CV Processing | `pypdf`, `python-docx` |
+| RAG / Retrieval | `sentence-transformers` (`all-MiniLM-L6-v2`) with `HashingVectorizer` fallback |
+| Live Job Sources | Adzuna, Arbeitnow, Remotive |
+| AI Providers | GitHub Models, OpenRouter, built-in fallback pipeline |
+| Deployment | Vercel frontend, Azure VM backend, `systemd`, `nginx` |
 
-##  Tech Stack
+## Architecture Overview
 
-### Frontend (`frontend/`)
-- **Next.js** 16.2.6 (App Router) + **React** 19.2.4
-- **TypeScript** ^5
-- **Tailwind CSS** ^4
-- **Framer Motion** ^12.40.0 (page transitions, micro-interactions)
-- **Lucide React** ^1.16.0 (icons)
-- **@fontsource/inter** + **@fontsource/manrope** (self-hosted fonts)
-- **uuid** ^9.0.0 (anonymous session id)
+- The Next.js frontend handles pages and user interaction.
+- Next.js route handlers under `frontend/src/app/api/*` proxy browser requests to the FastAPI backend using `BACKEND_URL`.
+- The FastAPI backend parses CVs, stores local artifacts, fans out to external job APIs, computes fit scores, and persists tracker data.
+- RAG is local-first: processed CV sections are stored on disk and embedded into local JSON plus NPY vector artifacts.
+- SQLite stores application data, assistant history, todos, calendar events, and job-search cache rows.
 
-### Backend (`backend/`)
-- **FastAPI** 0.136.3 + **uvicorn** 0.47.0
-- **SQLAlchemy** 2.0.40 + SQLite (auto-created on startup)
-- **Pydantic** (request/response models)
-- **python-multipart** 0.0.29 (file uploads)
-- **pypdf** 6.1.3 + **python-docx** 1.2.0 (CV text extraction)
-- **sentence-transformers** 5.1.1 (embeddings)
-- **scikit-learn** 1.7.2 + **numpy** 2.3.4 (vector math)
-- **httpx** 0.28.1 (job API fan-out)
-- **python-dotenv** 1.2.2 (env loading)
-- **pytest** 8.3.5 (test suite)
+Detailed architecture: [docs/architecture.md](docs/architecture.md)
 
-### AI Providers (priority chain)
-1. **GitHub Models** (recommended) -- uses a PAT with `models: read` scope. **Real LLM** answer, green chip in the UI.
-2. **OpenRouter** (fallback) -- `openrouter/auto:free` routes to free-tier models. **Real LLM** answer, green chip in the UI.
-3. **Rule-based CV/RAG fallback** (always available, no key required). **Not** an LLM -- it is a deterministic, intent-routed pipeline over the parsed CV sections (`fallback_response_service.py`). The UI shows an amber "Built-in CV analysis" chip so the user can always tell which engine answered. See `docs/evaluation.md` section 6 for the full contract.
+## Project Structure
 
-### Job APIs
-- **Adzuna** -- env-gated, free tier 250 calls/month
-- **Arbeitnow** -- keyless
-- **Remotive** -- keyless (remote-only)
-
----
-
-##  Project Layout
-
-```
+```text
 CareerPilot-StackFellas/
- backend/                 FastAPI app, SQLAlchemy models, services
-    app/
-       api/             Route modules (cv, jobs, fit, rag, assistant, )
-       models/          Pydantic + SQLAlchemy schemas
-       services/        Business logic (parsing, scoring, caching, LLM)
-       storage/         Uploaded CVs, processed sections, vector DB
-       utils/           Shared helpers
-       database.py      SQLAlchemy engine + session factory
-       main.py          FastAPI app + router wiring
-    tests/               Pytest suite
-    .env.example         Sample environment variables
-    requirements.txt
- frontend/                Next.js 16 app
-    src/app/             App Router pages (upload, jobs, assistant, )
-    src/components/      UI components (Kanban, job cards, modals, )
-    package.json
- docs/                    Architecture, evaluation, and demo runbook (see Documentation)
- start-dev.ps1            One-shot dev launcher (Windows / PowerShell)
- start-dev.js             Cross-platform Node variant of the launcher
- dev-down.ps1             Stops the dev servers cleanly
- create-labels.sh         GitHub label helpers
- create-labels-unix.sh    Unix variant
- README.md                You are here
+|- frontend/          Next.js application
+|- backend/           FastAPI application
+|- docs/              Judge-facing technical documentation
+|- start-dev.js       Cross-platform local dev launcher
+|- start-dev.ps1      PowerShell local dev launcher
+`- dev-down.ps1       Stops local frontend and backend ports
 ```
 
----
+## Required Environment Variables
 
-##  Setup
+### Frontend
 
-### 1. Clone the repository
+Copy `frontend/.env.example` to `frontend/.env.local`:
 
-```bash
-git clone <your-fork-url> CareerPilot-StackFellas
-cd CareerPilot-StackFellas
+```env
+BACKEND_URL=http://127.0.0.1:8000
 ```
 
-### 2. Backend setup
+### Backend
+
+Copy `backend/.env.example` to `backend/.env`. Main variables:
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `CORS_ORIGINS` | Recommended | Comma-separated allowed frontend origins |
+| `DATABASE_PATH` | Optional | SQLite database path override |
+| `GITHUB_MODELS_TOKEN` | Optional | Primary hosted LLM provider |
+| `GITHUB_MODELS_MODEL` | Optional | GitHub Models model id |
+| `OPENROUTER_API_KEY` | Optional | Fallback hosted LLM provider |
+| `OPENROUTER_MODEL` | Optional | OpenRouter model id |
+| `OPENROUTER_APP_NAME` | Optional | Analytics label for OpenRouter |
+| `OPENROUTER_APP_URL` | Optional | Referer URL for OpenRouter |
+| `ADZUNA_APP_ID` | Optional | Adzuna API id |
+| `ADZUNA_APP_KEY` | Optional | Adzuna API key |
+| `ADZUNA_COUNTRY` | Optional | Adzuna country code, default `us` |
+| `JOB_CACHE_TTL_SECONDS` | Optional | Live jobs cache TTL |
+| `INCLUDE_EXTRACTED_TEXT_IN_UPLOAD_RESPONSE` | Optional | Include raw extracted text in upload response |
+| `SENTENCE_TRANSFORMER_LOCAL_ONLY` | Optional | Restrict transformer loading to local cache |
+| `FIT_SCORE_COMMON_SKILLS` | Optional | Skill normalization seed list |
+| `FIT_SCORE_SKILL_WEIGHT` | Optional | Skill-overlap weight |
+| `FIT_SCORE_KEYWORD_WEIGHT` | Optional | Keyword-overlap weight |
+
+## Local Setup
+
+### Backend
 
 ```bash
 cd backend
 python -m venv .venv
-
-# Windows (PowerShell)
-.venv\Scripts\Activate.ps1
-# macOS / Linux
-source .venv/bin/activate
-
-pip install -r requirements.txt
-cp .env.example .env
-# (optional) fill in AI provider + Adzuna keys -- see below
 ```
 
-### 3. Frontend setup
-
-```bash
-cd ../frontend
-npm install
-```
-
----
-
-##  Environment Variables
-
-All backend configuration lives in `backend/.env` (git-ignored). Copy from `.env.example`.
-
-| Variable | Required? | Purpose |
-| --- | --- | --- |
-| `GITHUB_MODELS_TOKEN` | Optional | GitHub PAT with `models: read` scope. Recommended primary LLM provider. |
-| `GITHUB_MODELS_MODEL` | Optional | Model id, defaults to `openai/gpt-4o`. |
-| `OPENROUTER_API_KEY` | Optional | Fallback LLM provider. |
-| `OPENROUTER_MODEL` | Optional | Defaults to `openrouter/auto:free`. |
-| `OPENROUTER_APP_NAME` | Optional | Branding in OpenRouter analytics. |
-| `OPENROUTER_APP_URL` | Optional | Referer URL in OpenRouter analytics. |
-| `CORS_ORIGINS` | Optional | Comma-separated origins, default `http://localhost:3000,http://127.0.0.1:3000`. |
-| `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` | Optional | Upgrade the job search to real free-text + location filtering. Free at https://developer.adzuna.com/ (250 calls/month). |
-| `ADZUNA_COUNTRY` | Optional | Two-letter country code (`us`, `gb`, `de`, ), default `us`. |
-| `JOB_CACHE_TTL_SECONDS` | Optional | Override the 15-minute default for the job-search cache. |
-
-> **No key = demo still works.** With no API keys configured, the app still runs end-to-end on the rule-based fallback LLM and the keyless job sources (Arbeitnow + Remotive).
-
----
-
-##  Run
-
-The included launcher starts both servers in the background and logs to the repo root.
-
-### Windows / PowerShell (recommended)
+Windows PowerShell:
 
 ```powershell
-# Start both servers (detached, logs in backend-dev.{out,err}.log, frontend-dev.{out,err}.log)
-.\start-dev.ps1
-
-# Open the app
-# Frontend  http://localhost:3000
-# Backend   http://127.0.0.1:8000
-# API docs  http://127.0.0.1:8000/docs
-
-# Stop both servers
-.\dev-down.ps1
+.venv\Scripts\Activate.ps1
 ```
 
-### Cross-platform Node launcher
+macOS / Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Install dependencies and create env file:
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local
+```
+
+## Run Locally
+
+### Recommended launcher
+
+From the repo root:
 
 ```bash
 node start-dev.js
 ```
 
-### Manual start
+This starts:
+
+- Frontend: `http://localhost:3000`
+- Backend: `http://127.0.0.1:8000`
+- Swagger: `http://127.0.0.1:8000/docs`
+
+### Manual run
+
+Backend:
 
 ```bash
-# Terminal 1  backend
 cd backend
-.venv\Scripts\Activate.ps1   # or: source .venv/bin/activate
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
 
-# Terminal 2  frontend
+Frontend:
+
+```bash
 cd frontend
 npm run dev
 ```
 
----
-
-##  Deployment
-
-CareerPilot is currently set up for a demo-friendly split deployment:
-
-- **Backend**: FastAPI on an **Azure Ubuntu VM**
-- **Frontend**: Next.js on **Vercel**
-
-### Backend deployment shape
-
-The backend is not serverless-friendly as-is because it persists:
-
-- SQLite data
-- uploaded CV files
-- processed CV text/sections
-- local vector index files
-
-That makes a normal VM a better fit than ephemeral/serverless platforms.
-
-Current backend entrypoint:
+## Frontend Commands
 
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+cd frontend
+npm run dev
+npm run build
+npm run start
+npm run lint
 ```
 
-Current public health endpoint:
-
-- `http://104.211.90.209/health`
-
-### Frontend deployment shape
-
-Deploy the `frontend/` directory to Vercel and set:
-
-```env
-BACKEND_URL=http://104.211.90.209
-```
-
-Important:
-
-- `BACKEND_URL` is required for deployed frontend API routes
-- after changing Vercel environment variables, redeploy the frontend
-
-### Azure VM notes
-
-For the backend VM:
-
-- Ubuntu 22.04 LTS
-- `systemd` runs `uvicorn`
-- `nginx` reverse-proxies port `80` to `127.0.0.1:8000`
-- Azure NSG must allow inbound `80` and `22`
-
-Quick VM health checks:
-
-```bash
-sudo systemctl status careerpilot-backend
-sudo systemctl status nginx
-curl http://127.0.0.1:8000/health
-curl http://127.0.0.1/health
-```
-
----
-
-##  Dev Launcher Cheat-Sheet
-
-| Script | What it does |
-| --- | --- |
-| `start-dev.ps1` | Spawns detached `uvicorn` (port 8000) and `next dev` (port 3000) processes. Safe to re-run. |
-| `start-dev.js` | Node-based cross-platform equivalent of the launcher. |
-| `dev-down.ps1` | Kills whatever is listening on ports 8000 / 3000. Safe to re-run. |
-| `backend/check-env.py` | Prints the resolved env (no secrets leaked). |
-| `backend/probe-*.ps1` | Ad-hoc curl-style probes against the live job sources. |
-
-Logs land at the repo root: `backend-dev.out.log`, `backend-dev.err.log`, `frontend-dev.out.log`, `frontend-dev.err.log`.
-
----
-
-##  AI Provider Setup
-
-The backend uses a **priority chain** -- the first provider with a valid key wins.
-
-### 1. GitHub Models (recommended)
-
-1. Create a personal access token at https://github.com/settings/tokens with the **`models: read`** scope.
-2. Set in `backend/.env`:
-   ```env
-   GITHUB_MODELS_TOKEN=<your_github_pat_here>
-   GITHUB_MODELS_MODEL=openai/gpt-4o
-   ```
-3. Verify with `GET /api/health/providers` -- should report GitHub Models as `ready`.
-
-> All values above are placeholders. Never commit real keys. `backend/.env` is git-ignored; only `.env.example` (with empty placeholders) is tracked.
-
-### 2. OpenRouter (fallback)
-
-1. Sign up at https://openrouter.ai and create an API key.
-2. Set in `backend/.env`:
-   ```env
-   OPENROUTER_API_KEY=<your_openrouter_key_here>
-   OPENROUTER_MODEL=openrouter/auto:free
-   ```
-3. `GET /api/health/providers` should report OpenRouter as `ready` and GitHub Models as `not_configured`.
-
-### 3. Rule-based fallback (default)
-
-No configuration needed. The `assistant`, `cover-letter`, and `fit` services fall back to a deterministic rule-based pipeline built on top of the parsed CV sections and the live job pool.
-
----
-
-##  Job API Setup
-
-Out of the box, CareerPilot fans out to **Arbeitnow** and **Remotive** (both keyless). To unlock the real **Adzuna** free-text + location search:
-
-1. Register at https://developer.adzuna.com/ (free, 250 calls/month).
-2. Set in `backend/.env`:
-   ```env
-   ADZUNA_APP_ID=<your_adzuna_app_id_here>
-   ADZUNA_APP_KEY=<your_adzuna_app_key_here>
-   ADZUNA_COUNTRY=us
-   ```
-3. Restart the backend. The `/api/jobs/search` route will start including Adzuna results in its fan-out.
-
-**Rate-limit protection:** every successful live fetch is cached in SQLite (`job_search_cache` table, SHA-1 keyed on `query|location|limit`) for **15 minutes**. Pass `?force_refresh=true` to bust the cache for a single request.
-
----
-
-##  Demo Flow (90-second walkthrough)
-
-1. **Land on `/`** -- animated hero, "Get Started" CTA.
-2. **Upload your CV** at `/upload` -- drag a PDF/DOCX, hit "Analyze". Sections + skills appear within a few seconds.
-3. **Browse jobs** at `/jobs` -- live results from Arbeitnow / Remotive (and Adzuna if configured). Each card shows a **fit score** with matched/missing skills.
-4. **Ask the assistant** at `/assistant` -- try *"What backend skills am I missing for senior Python roles?"* The RAG pipeline grounds the answer in your CV chunks + the visible job pool.
-5. **Generate a cover letter** at `/cover-letter` -- pick a job, get a tailored draft, copy to clipboard.
-6. **Track it** at `/tracker` -- drag an application from `Applied` to `Interview` to `Offer` / `Rejected` on the Kanban board. Todos and calendar events update in place.
-
----
-
-##  Screenshots
-
-> **Placeholders below -- no real screenshots have been added yet.** Drop PNGs at the suggested paths and they will render automatically.
-> Suggested paths: `docs/screenshots/upload.png`, `docs/screenshots/jobs.png`, `docs/screenshots/assistant.png`, `docs/screenshots/tracker.png`.
-
-| Upload | Jobs | Assistant | Tracker |
-| --- | --- | --- | --- |
-| _(screenshot pending -- `docs/screenshots/upload.png`)_ | _(screenshot pending -- `docs/screenshots/jobs.png`)_ | _(screenshot pending -- `docs/screenshots/assistant.png`)_ | _(screenshot pending -- `docs/screenshots/tracker.png`)_ |
-
----
-
-##  Testing
-
-### Backend (pytest)
+## Backend Commands
 
 ```bash
 cd backend
-.venv\Scripts\Activate.ps1
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 pytest -q
 ```
 
-The suite covers:
-- `test_cv_upload_validation.py` -- upload happy path + rejection cases
-- `test_database_persistence.py` -- SQLite round-trip for all models
-- `test_anonymous_user_persistence.py` -- anonymous user id flow
-- `test_job_search.py` -- live job fan-out + cache behavior
-- `test_skills_fit.py` -- fit-score math
+## Deployment Notes
 
-### Manual smoke tests
+### Frontend
 
-- `python backend/test_rag.py` -- exercises the RAG pipeline end-to-end against the in-memory DB.
+- Deploy `frontend/` to Vercel
+- Set `BACKEND_URL` in Vercel environment variables
+- Redeploy after changing the backend URL
 
----
+### Backend
 
-##  Documentation
+- Deploy `backend/` to an Azure Ubuntu VM
+- Run `uvicorn app.main:app`
+- Keep the process alive with `systemd`
+- Optionally reverse-proxy with `nginx`
 
-| Doc | What it covers |
-| --- | --- |
-| [`docs/stack-report.md`](docs/stack-report.md) | Judge-facing stack report and architecture decision document: project goal, chosen technologies, FastAPI rationale, CV pipeline, RAG flow, fit score logic, assistant flow, cover letter flow, tracker/dashboard flow, limitations, and future improvements. |
-| [`docs/architecture.md`](docs/architecture.md) | C4-style context + container diagram, component breakdown, end-to-end data flow (CV upload -> ingestion -> RAG -> assistant / cover letter / tracker), storage layout, and deployment topology. The architecture diagram the brief asks for. |
-| [`docs/evaluation.md`](docs/evaluation.md) | Evaluation suite: 5 Pillar 3 benchmark query cases (readiness, skill gap, roadmap, cover letter, conversational memory), the full pytest contract, manual end-to-end cases, and adversarial / guard-rail cases with pass/fail verdicts. |
-| [`docs/demo-runbook.md`](docs/demo-runbook.md) | 5-minute recorded-demo script. Time-boxed steps for CV upload, job search, fit score, AI assistant, cover letter, and tracker update, with the exact UI actions, expected visible output, and failure-mode talking points. |
+Full deployment notes: [docs/deployment.md](docs/deployment.md)
 
----
+## Demo Flow
 
-##  Anonymous Session Note
+The intended CodeSprint flow is:
 
-> **Current version uses anonymous browser-based user sessions. Full login/auth can be added later for cross-device persistence.**
+1. Upload a CV on `/upload`
+2. Search live jobs on `/jobs`
+3. Review fit score on a returned job card
+4. Ask an assistant question on `/assistant`
+5. Generate a cover letter on `/cover-letter`
+6. Save the job to tracker and update status on `/tracker`
 
-CareerPilot ships **without authentication** by design -- it's a hackathon demo, and we wanted a zero-friction first run. The first time a browser hits the app:
+Demo script: [docs/demo-runbook.md](docs/demo-runbook.md)
 
-1. A `careerpilot_user_id` (UUID v4) is generated and stored in `localStorage`.
-2. Every API call sends it as the `x-careerpilot-user-id` header (with `?user_id=` as a query-string alias for tools that strip headers).
-3. All DB rows (CVs, applications, todos, assistant sessions) are scoped to that id.
+## Known Limitations
 
-> **Implication:** clearing site data = fresh user. Multi-device sync is explicitly out of scope for the hackathon.
+- The backend is a hackathon MVP, not a production-grade multi-tenant platform.
+- Persistence is local-first: SQLite and VM disk rather than managed cloud storage.
+- Anonymous browser-scoped identity is used instead of full authentication.
+- Job freshness depends on external API availability and quotas.
+- RAG quality is best when `sentence-transformers` is available locally; otherwise retrieval falls back to hashing.
+- The deployed backend is currently documented by IP rather than a proper domain.
 
----
+## Future Improvements
 
-##  Roadmap (post-hackathon)
+- PostgreSQL instead of SQLite
+- Azure Blob Storage or similar for CV and derived artifacts
+- Managed vector database or `pgvector`
+- Real authentication and cross-device sync
+- Background workers for CV processing and heavier jobs
+- HTTPS plus domain-based backend deployment
+- Structured monitoring and alerting
 
-- **Auth & multi-device sync** -- replace the anonymous id with a real identity layer.
-- **Job application auto-apply** -- browser automation behind a feature flag.
-- **More job sources** -- LinkedIn, Indeed, Greenhouse, Lever scrapers.
-- **Resume versioning** -- keep a history of CVs and A/B test cover letters.
-- **Calendar integration** -- Google / Outlook OAuth for interview scheduling.
-- **Production observability** -- structured logs, request tracing, Prometheus metrics.
-- **Background job queue** -- Celery / RQ for long-running CV processing.
+## Team
 
----
+- Member 1: `<name / role>`
+- Member 2: `<name / role>`
+- Member 3: `<name / role>`
 
-##  Team  StackFellas
+## Additional Docs
 
-- **Fuad Bin Sattar** (`fuad13579`) -- Team Lead / Backend & Integrations
-- **Tahmeed Ahmed** (`tahmeedahmed06-pixel`) -- Frontend & Design
-- **Imtiaz Alam** (`Imtiazalam11`) -- Dashboard & Tracker
-
-Built for **CodeSprint 2026**.
+- [docs/dependencies-and-setup.md](docs/dependencies-and-setup.md)
+- [docs/architecture.md](docs/architecture.md)
+- [docs/stack-report.md](docs/stack-report.md)
+- [docs/evaluation-suite.md](docs/evaluation-suite.md)
+- [docs/demo-runbook.md](docs/demo-runbook.md)
+- [docs/deployment.md](docs/deployment.md)

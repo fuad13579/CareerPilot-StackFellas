@@ -1,5 +1,6 @@
 from pathlib import Path
 from uuid import uuid4
+import logging
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile, status
 from pydantic import BaseModel
@@ -19,6 +20,7 @@ from app.services.vector_store_service import build_cv_rag_index
 
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 UPLOAD_DIRECTORY = Path(__file__).resolve().parent.parent / "storage" / "uploaded_cvs"
 ALLOWED_UPLOAD_TYPES = {
@@ -40,6 +42,8 @@ class CVUploadResponse(BaseModel):
     file_type: str
     extracted_text: str | None = None
     skills: list[str] = []
+    rag_index_built: bool = True
+    rag_warning: str | None = None
 
 
 class CVSectionsResponse(BaseModel):
@@ -149,6 +153,9 @@ async def upload_cv(
         # Don't fail upload if database save fails
         pass
 
+    rag_index_built = True
+    rag_warning: str | None = None
+
     # Build RAG index automatically after CV upload
     try:
         sections = load_processed_cv_sections(cv_id)
@@ -157,9 +164,10 @@ async def upload_cv(
             for section_name, section_content in sections.items()
         ]
         build_cv_rag_index(cv_id, chunks)
-    except Exception:
-        # Don't fail upload if RAG build fails
-        pass
+    except Exception as exc:
+        rag_index_built = False
+        rag_warning = "CV uploaded, but the RAG index could not be built automatically."
+        logger.warning("RAG auto-build failed for cv_id=%s: %s", cv_id, exc)
 
     return CVUploadResponse(
         message="CV uploaded and processed successfully",
@@ -168,6 +176,8 @@ async def upload_cv(
         file_type=suffix.lstrip("."),
         extracted_text=extracted_text if INCLUDE_EXTRACTED_TEXT else None,
         skills=extracted_skills,
+        rag_index_built=rag_index_built,
+        rag_warning=rag_warning,
     )
 
 

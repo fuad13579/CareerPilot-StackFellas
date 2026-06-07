@@ -1,23 +1,47 @@
 node_modules/
-.env
-backend/.env
+.next/
+dist/
+coverage/
 .cache/
-__pycache__/
-*.pyc
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
+backend/.env
+frontend/.env.local
 venv/
 .venv/
 backend/.venv/
-.puku/
-backend/app/storage/vector_db/
+frontend/.pytest_cache/
 .pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.tsbuildinfo
+.puku/
 
-# Local database
-*.db
+# Local backend storage and generated artifacts
+backend/app/storage/uploaded_cvs/*
+!backend/app/storage/uploaded_cvs/.gitkeep
+backend/app/storage/processed_cvs/*
+!backend/app/storage/processed_cvs/.gitkeep
+backend/app/storage/vector_db/*
+!backend/app/storage/vector_db/.gitkeep
 backend/app/storage/*.db
+backend/careerpilot.db
+*.db
 
-# Debug logs
+# Logs and caches
 debug.log
 *.log
+*.out
+*.err
+
+# Python test and type caches
+.mypy_cache/
+.ruff_cache/
 
 # Local deployment keys
 careerpilot-backend_key.pem

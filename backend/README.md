@@ -1,261 +1,158 @@
-﻿# CareerPilot Backend
+# CareerPilot Backend
 
-FastAPI backend for CareerPilot, the StackFellas CodeSprint 2026 project.
+The backend is a FastAPI application that powers CV ingestion, local RAG, live job search, fit scoring, assistant responses, cover-letter generation, tracker persistence, todos, and calendar events.
 
-## Overview
-
-The backend is responsible for:
-- CV upload and text extraction
-- section chunking and local RAG preparation
-- live job search aggregation
-- fit score calculation
-- assistant and cover letter generation
-- tracker, todo, and calendar persistence
-- anonymous user scoping via `x-careerpilot-user-id`
-
-The current deployment model is:
-- backend on an Azure Ubuntu VM
-- frontend on Vercel
-- frontend API routes proxying to the backend through `BACKEND_URL`
-
-## Stack
+## Backend Stack
 
 - FastAPI
 - Uvicorn
+- Python 3.11
 - SQLAlchemy
 - SQLite
 - Pydantic
-- python-multipart
-- pypdf
-- python-docx
-- sentence-transformers
-- scikit-learn
-- numpy
-- httpx
-- python-dotenv
-- pytest
+- `python-multipart`
+- `pypdf`
+- `python-docx`
+- `sentence-transformers`
+- `scikit-learn`
+- `numpy`
+- `httpx`
+- `python-dotenv`
+- `pytest`
 
-## Requirements
+## Python Version
 
-- Python `3.11`
-- `pip`
-- virtual environment support
+- Required Python version: `3.11`
 
-Install dependencies:
+## Main API Modules and Routes
 
-```bash
-pip install -r requirements.txt
-```
+The FastAPI entrypoint is `app.main:app`.
 
-## Local Setup
+Main route groups:
+
+- `/api/cv`
+  - CV upload
+  - CV sections retrieval
+- `/api/jobs`
+  - live job search
+  - personalized recommendations
+- `/api/fit`
+  - fit-score APIs
+- `/api/rag`
+  - RAG status and retrieval diagnostics
+- `/api/assistant`
+  - assistant query
+  - assistant history
+- `/api/cover-letter`
+  - cover-letter generation
+- `/api/tracker`
+  - saved applications and status updates
+- `/api/todos`
+  - todo CRUD and stats
+- `/api/calendar`
+  - calendar event CRUD
+- `/health`
+- `/api/health`
+- `/api/health/providers`
+
+## Virtual Environment Setup
 
 From the repo root:
 
 ```bash
 cd backend
-python3.11 -m venv .venv
+python -m venv .venv
 ```
 
-Activate the environment:
+Windows PowerShell:
 
 ```powershell
 .venv\Scripts\Activate.ps1
 ```
 
+macOS / Linux:
+
 ```bash
 source .venv/bin/activate
 ```
 
-Install dependencies:
+## Install Command
 
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Create env file:
+## Run Command
 
-```bash
-cp .env.example .env
-```
-
-## Environment Variables
-
-All backend configuration lives in `backend/.env`.
-
-Important variables:
-
-| Variable | Purpose |
-| --- | --- |
-| `GITHUB_MODELS_TOKEN` | Primary hosted LLM provider token |
-| `GITHUB_MODELS_MODEL` | GitHub Models model id |
-| `OPENROUTER_API_KEY` | Fallback hosted LLM provider |
-| `OPENROUTER_MODEL` | OpenRouter model id |
-| `OPENROUTER_APP_NAME` | Optional OpenRouter analytics label |
-| `OPENROUTER_APP_URL` | Optional OpenRouter referer |
-| `ADZUNA_APP_ID` | Adzuna job API id |
-| `ADZUNA_APP_KEY` | Adzuna job API key |
-| `ADZUNA_COUNTRY` | Adzuna country code, default `us` |
-| `CORS_ORIGINS` | Allowed browser origins |
-| `JOB_CACHE_TTL_SECONDS` | Live job cache TTL override |
-| `INCLUDE_EXTRACTED_TEXT_IN_UPLOAD_RESPONSE` | Include extracted CV text in upload response |
-
-The app still works without hosted model keys. In that case it falls back to built-in CV-grounded logic.
-
-## FastAPI Entrypoint
-
-The backend entrypoint is:
-
-```text
-app.main:app
-```
-
-Manual local run:
+Local development:
 
 ```bash
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Production-style run:
+Production-style process:
 
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-## Health Routes
+## Swagger and API Docs
 
-Available health endpoints:
-
-- `/health`
-- `/api/health`
-- `/api/health/providers`
-
-Examples:
-
-```bash
-curl http://127.0.0.1:8000/health
-curl http://127.0.0.1:8000/api/health/providers
-```
-
-## API Docs
-
-When the backend is running locally:
+When running locally:
 
 - Swagger UI: `http://127.0.0.1:8000/docs`
 - ReDoc: `http://127.0.0.1:8000/redoc`
 
-## Storage Model
+Current documented deployed backend:
 
-The backend currently uses local persistent storage under `backend/app/storage`.
+- API base: `http://104.211.90.209`
+- Swagger UI: `http://104.211.90.209/docs`
+- Health: `http://104.211.90.209/health`
 
-Key paths:
-- SQLite database: `backend/app/storage/careerpilot.db`
-- uploaded CVs: `backend/app/storage/uploaded_cvs`
-- processed CV text and section files: `backend/app/storage/processed_cvs`
-- vector data: `backend/app/storage/vector_db`
+## Environment Variables
 
-This is suitable for demo deployment on a persistent VM, but not ideal for production-grade multi-user scale.
+Create `backend/.env` from `backend/.env.example`.
 
-## Core Flows
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `CORS_ORIGINS` | Recommended | Comma-separated allowed frontend origins |
+| `DATABASE_PATH` | Optional | SQLite path override |
+| `INCLUDE_EXTRACTED_TEXT_IN_UPLOAD_RESPONSE` | Optional | Include extracted text in upload response |
+| `SENTENCE_TRANSFORMER_LOCAL_ONLY` | Optional | Load `sentence-transformers` from local cache only |
+| `FIT_SCORE_COMMON_SKILLS` | Optional | Normalization seed list for fit scoring |
+| `FIT_SCORE_SKILL_WEIGHT` | Optional | Skill-overlap weight |
+| `FIT_SCORE_KEYWORD_WEIGHT` | Optional | Keyword-overlap weight |
+| `JOB_CACHE_TTL_SECONDS` | Optional | Job search cache TTL override |
+| `ADZUNA_APP_ID` | Optional | Adzuna API id |
+| `ADZUNA_APP_KEY` | Optional | Adzuna API key |
+| `ADZUNA_COUNTRY` | Optional | Adzuna country code |
+| `GITHUB_MODELS_TOKEN` | Optional | Primary hosted LLM provider |
+| `GITHUB_MODELS_MODEL` | Optional | GitHub Models model id |
+| `OPENROUTER_API_KEY` | Optional | Fallback hosted LLM provider |
+| `OPENROUTER_MODEL` | Optional | OpenRouter model id |
+| `OPENROUTER_APP_NAME` | Optional | OpenRouter analytics label |
+| `OPENROUTER_APP_URL` | Optional | OpenRouter referer URL |
 
-### CV Upload
+## Azure VM Deployment Notes
 
-1. Frontend sends `POST /api/cv/upload`
-2. Backend validates file type and size
-3. Text is extracted from PDF or DOCX
-4. Text is split into sections
-5. Skills are extracted
-6. Processed text and sections are saved locally
-7. Vector index is built for later retrieval
+Current deployment shape:
 
-### RAG and Assistant
-
-1. User uploads CV
-2. CV sections are chunked and indexed locally
-3. Assistant query retrieves relevant CV chunks
-4. If available, hosted LLM provider is used
-5. Otherwise, built-in fallback response logic is used
-
-### Job Search and Fit Score
-
-1. Backend fans out to supported job sources
-2. Results are normalized and deduplicated
-3. Required skills are extracted from job content
-4. CV skills are compared against job skills
-5. Fit score and matched or missing skill sets are returned
-
-### Tracker and Productivity
-
-Applications, todos, calendar events, and assistant sessions are persisted in SQLite and scoped by anonymous user id.
-
-## Anonymous User Model
-
-This backend is intentionally demo-first and does not require login.
-
-Each request is scoped using:
-
-- `x-careerpilot-user-id`
-
-The frontend generates and persists that identifier in browser storage. Backend routes validate that id before reading or writing user-specific records.
-
-Implication:
-- clearing browser storage resets the local profile
-- there is no cross-device sync yet
-
-## Testing
-
-Run backend tests:
-
-```bash
-cd backend
-pytest -q
-```
-
-Useful targeted test:
-
-```bash
-pytest backend/tests/test_job_search.py -q
-```
-
-## Deployment Notes
-
-### Current Demo Deployment
-
-Current demo architecture:
 - backend hosted on Azure Ubuntu VM
 - `uvicorn` managed by `systemd`
-- `nginx` reverse-proxying port `80` to `127.0.0.1:8000`
-- frontend hosted on Vercel
+- `nginx` reverse-proxy in front of the app
+- frontend deployed separately on Vercel
 
-Public health check currently used in deployment:
-
-```text
-http://104.211.90.209/health
-```
-
-### Azure VM Service Pattern
-
-Typical service command:
-
-```text
-uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-
-Typical checks on the VM:
+Typical dependency install on the VM:
 
 ```bash
-sudo systemctl status careerpilot-backend
-sudo systemctl status nginx
-curl http://127.0.0.1:8000/health
-curl http://127.0.0.1/health
+sudo apt update
+sudo apt install -y python3.11 python3.11-venv python3-pip nginx git
 ```
 
-### If You Change Backend Code
-
-For the current Azure VM deployment flow:
+Deploy/update flow:
 
 ```bash
-cd ~/CareerPilot-StackFellas
 git pull
 cd backend
 source .venv/bin/activate
@@ -263,27 +160,93 @@ pip install -r requirements.txt
 sudo systemctl restart careerpilot-backend
 ```
 
-## Known Limitations
+## Example systemd Service
 
-- local filesystem persistence instead of object storage
-- SQLite instead of a production database
-- anonymous browser identity instead of full authentication
-- hosted LLM behavior depends on configured provider keys
-- external job freshness depends on provider availability and SSL/network health
-- raw IP deployment is acceptable for demo, but not ideal long term
+```ini
+[Unit]
+Description=CareerPilot FastAPI backend
+After=network.target
 
-## Future Improvements
+[Service]
+User=<vm-user>
+Group=<vm-user>
+WorkingDirectory=/home/<vm-user>/CareerPilot-StackFellas/backend
+EnvironmentFile=/home/<vm-user>/CareerPilot-StackFellas/backend/.env
+ExecStart=/home/<vm-user>/CareerPilot-StackFellas/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
 
-- PostgreSQL instead of SQLite
-- object storage for uploaded CVs and derived artifacts
-- real authentication and cross-device sync
-- HTTPS plus domain for the backend
-- hosted vector database or cleaner storage abstraction
-- background job queue for heavier processing
+[Install]
+WantedBy=multi-user.target
+```
+
+## How to Check Logs
+
+systemd logs:
+
+```bash
+sudo journalctl -u careerpilot-backend -n 200 --no-pager
+sudo journalctl -u careerpilot-backend -f
+```
+
+Useful local/dev logs in the repo:
+
+- `backend-dev.out.log`
+- `backend-dev.err.log`
+- `backend/uvicorn.out.log`
+- `backend/uvicorn.err.log`
+
+## How to Restart the Backend
+
+On the VM:
+
+```bash
+sudo systemctl restart careerpilot-backend
+sudo systemctl status careerpilot-backend
+```
+
+If `nginx` sits in front:
+
+```bash
+sudo systemctl restart nginx
+sudo systemctl status nginx
+```
+
+## Storage and Persistence Notes
+
+The backend is local-first and persists data on the VM disk.
+
+Key storage paths:
+
+- SQLite database:
+  - `backend/app/storage/careerpilot.db`
+- Uploaded CV files:
+  - `backend/app/storage/uploaded_cvs/`
+- Processed CV text and section JSON:
+  - `backend/app/storage/processed_cvs/`
+- Local vector metadata and embeddings:
+  - `backend/app/storage/vector_db/`
+
+This works well for a hackathon MVP on a persistent VM, but it is not the right long-term design for multi-instance production scaling.
+
+## Testing
+
+Run the backend test suite:
+
+```bash
+pytest -q
+```
+
+Run provider and health checks:
+
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/api/health/providers
+```
 
 ## Related Docs
 
 - [Root README](../README.md)
-- [Stack Report](../docs/stack-report.md)
 - [Architecture](../docs/architecture.md)
-- [API Guide](../docs/API.md)
+- [Stack Report](../docs/stack-report.md)
+- [Deployment Guide](../docs/deployment.md)
