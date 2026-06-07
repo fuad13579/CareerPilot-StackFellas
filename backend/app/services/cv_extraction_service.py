@@ -7,7 +7,7 @@ from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
 
-MAX_CV_FILE_SIZE_BYTES = 5 * 1024 * 1024
+MAX_CV_FILE_SIZE_BYTES = 10 * 1024 * 1024
 MAX_PDF_PAGES = 20
 VALID_CV_SUFFIXES = {".pdf", ".docx"}
 CV_KEYWORDS = (
@@ -62,7 +62,7 @@ def extract_text_from_docx(file_path: Path) -> str:
 
 def validate_file_size(file_path: Path) -> None:
     if file_path.stat().st_size > MAX_CV_FILE_SIZE_BYTES:
-        raise ValueError("Uploaded CV file is too large. Maximum size is 5 MB.")
+        raise ValueError("Uploaded CV file is too large. Maximum size is 10 MB.")
 
 
 def validate_extracted_text(extracted_text: str) -> str:
