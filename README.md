@@ -21,8 +21,8 @@ Job seekers usually juggle separate tools for resumes, job boards, cover letters
 ## Live Demo Links
 
 - Frontend: `https://careerpilot-stackfellas.vercel.app/`
-- Backend API: `http://104.211.90.209`
-- Swagger / OpenAPI: `http://104.211.90.209/docs`
+- Backend API: `http://104.211.90.209:8000`
+- Swagger / OpenAPI: `http://104.211.90.209:8000/docs`
 - GitHub Repository: `https://github.com/fuad13579/CareerPilot-StackFellas`
 
 ## Tech Stack
@@ -35,7 +35,7 @@ Job seekers usually juggle separate tools for resumes, job boards, cover letters
 | RAG / Retrieval | `sentence-transformers` (`all-MiniLM-L6-v2`) with `HashingVectorizer` fallback |
 | Live Job Sources | Adzuna, Arbeitnow, Remotive |
 | AI Providers | GitHub Models, OpenRouter, built-in fallback pipeline |
-| Deployment | Vercel frontend, Azure VM backend, `systemd`, `nginx` |
+| Deployment | Vercel frontend, Azure VM backend, `systemd`, optional `nginx` |
 
 ## Architecture Overview
 
@@ -145,7 +145,7 @@ This starts:
 - Frontend: `http://localhost:3000`
 - Backend: `http://127.0.0.1:8000`
 - Swagger: `http://127.0.0.1:8000/docs`
-- Public deployed docs: `http://104.211.90.209/docs`
+- Public deployed docs: `http://104.211.90.209:8000/docs`
 
 ### Manual run
 
@@ -186,7 +186,7 @@ pytest -q
 ### Frontend
 
 - Deploy `frontend/` to Vercel
-- Set `BACKEND_URL=http://104.211.90.209` in Vercel environment variables
+- Set `BACKEND_URL=http://104.211.90.209:8000` in Vercel environment variables
 - Redeploy after changing the backend URL
 
 ### Backend
@@ -198,9 +198,9 @@ pytest -q
 
 Current public backend routes:
 
-- API base: `http://104.211.90.209`
-- Public docs: `http://104.211.90.209/docs`
-- Public health: `http://104.211.90.209/health`
+- API base: `http://104.211.90.209:8000`
+- Public docs: `http://104.211.90.209:8000/docs`
+- Public health: `http://104.211.90.209:8000/health`
 
 Full deployment notes: [docs/deployment.md](docs/deployment.md)
 
