@@ -1,6 +1,15 @@
 # CareerPilot Dependencies and Setup
 
-This document is the practical install and run guide for judges and developers. It covers the exact dependency managers in this repository, required versions, environment variables, installation commands, local run commands, and common setup issues.
+This document is the practical install and run guide for judges and developers.
+
+It covers:
+
+- dependency managers used in this repository
+- required runtime versions
+- environment variables
+- installation commands
+- local run commands
+- common setup issues
 
 ## Repository Structure
 
@@ -187,14 +196,14 @@ Expected local endpoints:
 
 Current deployed backend endpoints:
 
-- Public backend API: `http://104.211.90.209`
-- Public Swagger docs: `http://104.211.90.209/docs`
-- Public health check: `http://104.211.90.209/health`
+- Public backend API: `http://104.211.90.209:8000`
+- Public Swagger docs: `http://104.211.90.209:8000/docs`
+- Public health check: `http://104.211.90.209:8000/health`
 
 Note:
 
-- the public docs URL is `http://104.211.90.209/docs` without `:8000`
-- `:8000` is used for direct local or VM-internal access before `nginx`
+- use `:8000` for the currently documented public backend
+- only use port `80` URLs if `nginx` has been configured to proxy traffic
 
 ### Manual backend start
 
@@ -258,7 +267,7 @@ Fix:
 
 For deployed frontend on Vercel, use:
 
-- `BACKEND_URL=http://104.211.90.209`
+- `BACKEND_URL=http://104.211.90.209:8000`
 
 ### No hosted AI response appears
 

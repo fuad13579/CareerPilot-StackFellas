@@ -7,6 +7,9 @@ This document describes the current deployment model used by CareerPilot:
 
 It is written for judges and developers who want to reproduce the deployment shape without guessing the commands.
 
+The currently documented public backend is exposed directly on port `8000`.
+Use the `:8000` URLs below unless you have explicitly configured `nginx` to proxy port `80`.
+
 ## Frontend Deployment on Vercel
 
 ### Project settings
@@ -21,17 +24,17 @@ It is written for judges and developers who want to reproduce the deployment sha
 Set in Vercel:
 
 ```env
-BACKEND_URL=http://104.211.90.209
+BACKEND_URL=http://104.211.90.209:8000
 ```
 
 After changing `BACKEND_URL`, redeploy the frontend.
 
 ## Backend Deployment on Azure VM
 
-### SSH command placeholder
+### SSH command
 
 ```bash
-ssh azureuser@104.211.90.209
+ssh -i careerpilot-key.pem azureuser@104.211.90.209
 ```
 
 ### System packages
@@ -126,17 +129,17 @@ sudo systemctl enable careerpilot-backend
 sudo systemctl start careerpilot-backend
 ```
 
-Current public backend endpoints through `nginx`:
+Current public backend endpoints:
 
-- `http://104.211.90.209/health`
-- `http://104.211.90.209/docs`
+- `http://104.211.90.209:8000/health`
+- `http://104.211.90.209:8000/docs`
 
 Direct backend-only endpoints on the VM:
 
 - `http://127.0.0.1:8000/health`
 - `http://127.0.0.1:8000/docs`
 
-## nginx Reverse Proxy Example
+## Optional nginx Reverse Proxy Example
 
 Example `/etc/nginx/sites-available/careerpilot`:
 
@@ -167,8 +170,8 @@ sudo systemctl restart nginx
 Make sure the Azure NSG allows:
 
 - `22` for SSH
-- `80` for HTTP if using nginx
-- optionally `8000` if you expose uvicorn directly during testing
+- `8000` for the current public backend
+- `80` for HTTP only if using `nginx`
 
 ## How to Check Backend Status
 
@@ -176,7 +179,7 @@ Make sure the Azure NSG allows:
 sudo systemctl status careerpilot-backend
 sudo systemctl status nginx
 curl http://127.0.0.1:8000/health
-curl http://127.0.0.1/health
+curl http://104.211.90.209:8000/health
 ```
 
 ## How to Restart the Backend

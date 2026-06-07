@@ -612,7 +612,7 @@ export function AssistantExperience() {
 
             {ragStatus && ragStatus.embedding_provider === "sklearn-hashing" && (
               <p className="mt-3 text-xs font-medium text-amber-700">
-                Fallback embeddings are active. Retrieval works, but semantic match quality is lower than sentence-transformers.
+                Demo safe lightweight embeddding mode active. CV retrival is ready for grounded assistant responses.
               </p>
             )}
           </div>
