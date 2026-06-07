@@ -9,6 +9,7 @@ from app.services import cv_extraction_service as extraction_service
 INVALID_CV_FILE_MESSAGE = "Please upload a valid CV file in PDF or DOCX format."
 EMPTY_TEXT_MESSAGE = "Could not extract text from the uploaded CV."
 NON_CV_MESSAGE = "This file does not look like a CV. Please upload a resume/CV."
+UPLOAD_HEADERS = {"x-careerpilot-user-id": "test-user"}
 
 
 @pytest.fixture
@@ -41,6 +42,7 @@ def bypass_cv_processing(monkeypatch):
 def test_rejects_unsupported_file_types(client, filename, mime_type):
     response = client.post(
         "/api/cv/upload",
+        headers=UPLOAD_HEADERS,
         files={"file": (filename, b"not a cv", mime_type)},
     )
 
@@ -51,6 +53,7 @@ def test_rejects_unsupported_file_types(client, filename, mime_type):
 def test_rejects_mime_type_mismatch(client):
     response = client.post(
         "/api/cv/upload",
+        headers=UPLOAD_HEADERS,
         files={"file": ("resume.pdf", b"not a pdf", "image/png")},
     )
 
@@ -61,6 +64,7 @@ def test_rejects_mime_type_mismatch(client):
 def test_rejects_empty_pdf(client):
     response = client.post(
         "/api/cv/upload",
+        headers=UPLOAD_HEADERS,
         files={"file": ("empty.pdf", b"", "application/pdf")},
     )
 
@@ -77,6 +81,7 @@ def test_rejects_non_cv_content(client, monkeypatch, bypass_cv_processing):
 
     response = client.post(
         "/api/cv/upload",
+        headers=UPLOAD_HEADERS,
         files={"file": ("portfolio.pdf", b"fake pdf bytes", "application/pdf")},
     )
 
@@ -101,6 +106,7 @@ def test_accepts_valid_cv_pdf(client, monkeypatch, bypass_cv_processing):
 
     response = client.post(
         "/api/cv/upload",
+        headers=UPLOAD_HEADERS,
         files={"file": ("resume.pdf", b"fake pdf bytes", "application/pdf")},
     )
 
@@ -127,6 +133,7 @@ def test_accepts_valid_cv_docx(client, monkeypatch, bypass_cv_processing):
 
     response = client.post(
         "/api/cv/upload",
+        headers=UPLOAD_HEADERS,
         files={"file": ("resume.docx", b"fake docx bytes", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
     )
 
@@ -140,6 +147,7 @@ def test_rejects_oversized_file(client):
     oversized = b"a" * (5 * 1024 * 1024 + 1)
     response = client.post(
         "/api/cv/upload",
+        headers=UPLOAD_HEADERS,
         files={"file": ("resume.pdf", oversized, "application/pdf")},
     )
 

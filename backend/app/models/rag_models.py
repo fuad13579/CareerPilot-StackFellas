@@ -29,3 +29,15 @@ class RetrieveRAGResponse(BaseModel):
     query: str
     retrieved_chunks: list[RetrievedChunk]
     context: str
+
+
+class RAGStatusResponse(BaseModel):
+    cv_id: str
+    index_exists: bool
+    embeddings_exists: bool
+    processed_sections_exists: bool
+    chunk_count: int = 0
+    sections_indexed: list[str] = Field(default_factory=list)
+    embedding_provider: str | None = None
+    embedding_model: str | None = None
+    last_built_at: str | None = None

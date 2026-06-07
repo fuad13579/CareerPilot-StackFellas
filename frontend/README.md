@@ -1,14 +1,54 @@
 # CareerPilot Frontend
 
-Next.js frontend for CareerPilot, the StackFellas CodeSprint 2026 project.
+The frontend is a Next.js App Router application for CareerPilot. It renders the user-facing flows for CV upload, jobs, fit-score review, assistant chat, cover-letter generation, tracker, and productivity tools.
 
-## Stack
+## Frontend Stack
 
-- Next.js 16 (App Router)
+- Next.js 16
 - React 19
 - TypeScript
 - Tailwind CSS 4
 - Framer Motion
+- Lucide React
+- `@dnd-kit/*` for tracker drag-and-drop
+
+## Pages and Routes
+
+Implemented pages in `src/app/`:
+
+- `/` landing page
+- `/dashboard`
+- `/upload`
+- `/jobs`
+- `/assistant`
+- `/cover-letter`
+- `/tracker`
+- `/productivity`
+
+The frontend also defines proxy route handlers under `src/app/api/*` for:
+
+- CV upload and section lookup
+- assistant query and history
+- jobs search
+- cover letter generation
+- tracker CRUD
+- todo CRUD and stats
+- calendar CRUD
+- RAG status
+
+## Environment Variables
+
+Create `frontend/.env.local` from `frontend/.env.example`.
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `BACKEND_URL` | Yes for deployed/proxy use | Base URL of the FastAPI backend |
+
+Example:
+
+```env
+BACKEND_URL=http://127.0.0.1:8000
+```
 
 ## Local Development
 
@@ -18,63 +58,54 @@ Install dependencies:
 npm install
 ```
 
-Run the frontend:
+Start the development server:
 
 ```bash
 npm run dev
 ```
 
-The app will be available at:
+Frontend default URL:
 
 - `http://localhost:3000`
 
-## Backend Connection
+## Build and Quality Commands
 
-The frontend talks to the backend through Next.js API routes under `src/app/api/*`.
-
-For local development, those routes forward to:
-
-- `http://localhost:8000`
-
-For deployed environments, set:
-
-```env
-BACKEND_URL=http://your-backend-host
+```bash
+npm run build
+npm run start
+npm run lint
 ```
 
-Examples:
+## How the Frontend Connects to the Backend
 
-- local backend: `BACKEND_URL=http://localhost:8000`
-- Azure VM backend: `BACKEND_URL=http://104.211.90.209`
+The browser mostly talks to Next.js route handlers inside `src/app/api/*`. Those handlers forward requests to:
+
+- `process.env.BACKEND_URL`, or
+- `http://localhost:8000` if `BACKEND_URL` is not set
+
+There is also a rewrite in `next.config.ts` for `/api/:path*` to `http://localhost:8000/api/:path*`, which supports local development. For deployed environments, the route handlers and `BACKEND_URL` are the important path to document and configure.
+
+This design keeps backend secrets off the client and gives one place to swap backend hosts between local and deployed environments.
 
 ## Vercel Deployment
 
-Use these settings in Vercel:
+Recommended Vercel settings:
 
-- Framework: `Next.js`
-- Root Directory: `frontend`
-- Build Command: default
-- Install Command: default
-- Output Directory: default
+- Framework preset: `Next.js`
+- Root directory: `frontend`
+- Install command: `npm install`
+- Build command: `npm run build`
 
-Required environment variable:
+Required Vercel environment variable:
 
 ```env
-BACKEND_URL=http://104.211.90.209
+BACKEND_URL=http://<your-backend-host>
 ```
 
-After changing environment variables, redeploy the project.
-
-## Main User Flows
-
-- `/upload` - CV upload and parsing
-- `/jobs` - live job search and fit scoring
-- `/assistant` - CV-grounded assistant
-- `/cover-letter` - job-specific cover letter generation
-- `/tracker` - application Kanban board
-- `/productivity` - todos, calendar, goals, and nudges
+After changing `BACKEND_URL`, redeploy the frontend.
 
 ## Notes
 
-- The deployed frontend depends on the backend being reachable publicly.
-- If the frontend is on `https` and the backend is on `http`, some browser/security issues may appear. For a stronger deployment, put HTTPS in front of the backend later.
+- The frontend depends on a reachable backend for core product flows.
+- If the frontend is served over HTTPS and the backend is still plain HTTP, mixed-content issues may appear in stricter environments.
+- Anonymous user state is stored in browser `localStorage`, including the generated CareerPilot user id and assistant session id.

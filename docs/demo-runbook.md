@@ -1,164 +1,172 @@
-# 5-Minute Demo Runbook
+# CareerPilot Demo Runbook
 
-This is the exact script the team uses to record the Codesprint 2026 demo
-video. It hits the six required beats the brief calls out - CV upload,
-job search, fit score, AI assistant query, cover letter draft, tracker
-update - in a tight 5-minute window. Each step lists the UI action, the
-visible expected output, and the time budget.
+This runbook is designed for a 5-minute CodeSprint demo that proves the full product flow:
 
-## Pre-flight (run the day before recording)
+CV upload -> job search -> fit score -> AI assistant query -> cover letter draft -> tracker update
 
-1. `git pull` and `git status` - working tree clean, on the latest
-   `main`.
-2. Backend env (`backend/.env`):
-   - `GITHUB_MODELS_TOKEN=<token>` is set so the assistant can answer
-     with the real LLM.
-   - `OPENROUTER_API_KEY` is optional but recommended as a backup.
-3. Start the stack:
+## Pre-Demo Checklist
 
-   ```powershell
-   node start-dev.js
-   ```
+- Confirm the frontend is reachable
+- Confirm the backend health endpoint returns success:
+  - `GET /health`
+  - `GET /api/health/providers`
+- Prepare a valid sample CV in PDF or DOCX format
+- Clear the browser tab only if you want to start with a fresh anonymous user
+- Confirm the backend can reach at least one live job API
+- If you want the hosted-model demo path, confirm either:
+  - `GITHUB_MODELS_TOKEN` is configured, or
+  - `OPENROUTER_API_KEY` is configured
 
-   - Backend on `http://127.0.0.1:8000`
-   - Frontend on `http://localhost:3000`
-4. Open `http://localhost:3000` in the recording browser, dismiss any
-   dev-tool overlays, and set the window to 1280x720 (16:9) for the
-   recording.
-5. Have a sample CV PDF ready on the desktop - any real one-page resume
-   works. The brief says "any CV"; we use `sample-cv.pdf` from the
-   desktop for the recording.
-6. Quick health check:
+## Recommended Local Demo Start
 
-   ```powershell
-   curl http://127.0.0.1:8000/health
-   curl http://127.0.0.1:8000/api/health/providers
-   ```
+From the repo root:
 
-   Both should return 200; the second one should list `github_models:
-   ready`.
+```bash
+node start-dev.js
+```
 
-## 0:00 - 0:30 - Cold open (30 s)
+Expected local URLs:
 
-- **On screen:** landing page, full browser window, then a quick zoom
-  into the upload card.
-- **Voiceover:** "CareerPilot turns one CV into a personalised job
-  search, an AI coach grounded in your experience, and a tracker that
-  keeps you organised. Here is the full flow in five minutes."
-- **Cut to:** the upload page.
+- Frontend: `http://localhost:3000`
+- Backend: `http://127.0.0.1:8000`
+- Swagger: `http://127.0.0.1:8000/docs`
 
-## 0:30 - 1:30 - CV upload (60 s)
+## Sample CV Instruction
 
-- **Action:** drag `sample-cv.pdf` onto the upload card.
-- **Visible result:**
-  - Spinner shows for ~3-5 s.
-  - The upload flow completes and the app shows parsed CV data such as
-    skills, experience, and education.
-  - The dashboard reflects the uploaded CV without requiring a manual
-    reload.
-- **Voiceover (mid-step):** "The CV is parsed locally, the sections are
-  indexed for retrieval, and the dashboard updates without a reload."
-- **What this proves:** the RAG ingestion pipeline works end-to-end
-  (`cv_extraction_service.py` -> `cv_chunking_service.py` ->
-  `vector_store_service.py`).
+Use a real-looking one-page or two-page software CV with clear sections such as:
 
-## 1:30 - 2:30 - Job search + fit score (60 s)
+- experience
+- projects
+- skills
+- education
 
-- **Action:** click the "Jobs" tab, type `python backend` in the
-  search box, hit Enter.
-- **Visible result:**
-  - At least 5 job cards appear, each with company, location,
-    remote/hybrid badge, and a salary band where available.
-  - Each card carries a coloured fit-score gauge (0-100) computed
-    against the just-uploaded CV.
-  - Clicking a card opens a side panel with the full description and a
-    "matched skills / missing skills" breakdown.
-- **Voiceover (mid-step):** "We fan out to Arbeitnow, Remotive, and
-  Adzuna if you have configured it. Each role is scored against the
-  parsed CV in real time."
-- **What this proves:** the multi-source job pipeline
-  (`job_search_service.py`) and the deterministic fit scoring
-  (`fit_score.py` / `skills_fit_service.py`).
+The demo works best when the CV includes recognizable technologies such as `Python`, `React`, `SQL`, `FastAPI`, or `AWS`, because those are easy to map visibly into fit scoring and assistant answers.
 
-## 2:30 - 4:00 - AI assistant query (90 s)
+## 5-Minute Demo Script
 
-- **Action:** open the assistant panel (chat icon, bottom-right).
-  Type: "Am I ready for a Senior Python Developer role at a fintech
-  startup?"
-- **Visible result:**
-  - Assistant message appears within ~3 s.
-  - A green "AI - GitHub Models" chip is visible on the assistant
-    bubble (proves the real LLM answered, not the rule-based
-    fallback).
-  - The answer names concrete skills from the CV (e.g. "FastAPI,
-    PostgreSQL") and gives a clear "nearly ready" verdict.
-- **Follow-up (no extra click):** "Turn that into a 3-month roadmap."
-- **Visible result:** the assistant returns a month-by-month plan that
-  references the same context.
-- **What this proves:** the assistant is RAG-grounded
-  (`assistant_service.py` -> `llm_provider.py` -> `vector_store`),
-  uses the live CV (not a canned answer), and threads conversation
-  history.
+### 1. CV Upload
 
-## 4:00 - 4:45 - Cover letter draft (45 s)
+- Go to `/upload`
+- Upload a sample PDF or DOCX CV
+- Wait for processing to finish
 
-- **Action:** go back to the open job card from step 1:30, click
-  "Generate cover letter".
-- **Visible result:**
-  - Modal opens, spinner for ~5-8 s, then a 250-400 word letter
-    appears in a text area.
-  - The letter opens with "Dear [Company] team" and references at
-    least 2 CV skills that match the job posting.
-  - "Copy" and "Save to tracker" buttons are visible.
-- **Voiceover:** "The cover letter is generated by joining the parsed
-  CV with the live job posting - it is not a template."
-- **What this proves:** `cover_letter_service.py` actually consumes
-  both the CV and the job; no hardcoded letter.
+What to say:
 
-## 4:45 - 5:15 - Tracker update (30 s)
+`CareerPilot starts with the user's CV. We extract text, split it into sections, save the processed CV, and build a local retrieval index for later assistant and cover-letter flows.`
 
-- **Action:** click "Save to tracker", then navigate to the
-  "Tracker" tab.
-- **Visible result:**
-  - The new application appears in the tracker board.
-  - Move it into the `Applied` stage.
-  - Refresh the page - the card stays in "Applied".
-- **Voiceover (closing):** "Everything is persisted, including the
-  anonymous session, so a refresh does not lose the candidate's work.
-  That is CareerPilot: one CV, six surfaces, no fakes."
+What judges should see:
 
-## 5:15 - 5:30 - Outro (15 s)
+- successful upload state
+- extracted skills
+- RAG status information
 
-- **On screen:** dashboard view with a final wide shot.
-- **Voiceover:** "The repo, the architecture diagram, and the
-  evaluation suite are linked in the README. Thanks for watching."
+### 2. Job Search
 
-## Failure-mode talking points (use if a judge asks)
+- Go to `/jobs`
+- Use a natural-language query such as:
 
-- **"What if the LLM token is missing?"** - open
-  `http://127.0.0.1:8000/api/health/providers`; the assistant chip
-  turns amber and the rule-based pipeline in
-  `fallback_response_service.py` still answers. **Be explicit**: the
-  amber chip means the local RAG pipeline, not an LLM. The seven
-  specialised handlers in `fallback_response_service.py` still produce
-  a CV-grounded, intent-routed response - it is real, it is not
-  hardcoded, but it is not AI-generated. If a judge wants a real
-  AI-generated answer live, they need to drop a `GITHUB_MODELS_TOKEN`
-  or `OPENROUTER_API_KEY` into `backend/.env` first.
-- **"How do you prevent IDOR?"** - show
-  `test_jobs_search_rejects_foreign_cv` in the pytest output.
-- **"How do you know the CV is real?"** - show
-  `test_rejects_non_cv_content`; the CV-likeness heuristic rejects
-  random prose.
-- **"Where is the architecture diagram?"** - point to
-  `docs/architecture.md`, linked from the README.
+`remote python backend internship`
 
-## Recording tips
+or
 
-- Use OBS (or the Windows Game Bar) at 1280x720, 30 fps, 4 Mbps
-  bitrate. The whole recording should land around 200 MB.
-- Mute notifications so product feedback is the only visible UI change.
-- If the LLM is slow on the day, the 90 s assistant step has 15 s of
-  slack.
-- Re-record the assistant turn last - it is the one most likely to
-  need a re-take if the model has an off day.
+`hybrid data analyst jobs in New York at least 100k`
+
+What to say:
+
+`The search is live. The backend fans out to external job sources, normalizes the results, applies query parsing, and returns jobs with source metadata.`
+
+What judges should see:
+
+- returned job cards
+- source/provider labels
+- live search state rather than a static fixture list
+
+## 3. Fit Score
+
+- Open one of the returned job cards
+- Highlight the visible fit score and matched or missing skills
+
+What to say:
+
+`The fit score is computed programmatically from the uploaded CV and the returned job, so it is explainable and not just generated text.`
+
+What judges should see:
+
+- fit score
+- matched skills
+- missing skills
+
+## 4. AI Assistant Query
+
+- Go to `/assistant`
+- Ask one of these prompts:
+  - `Am I ready for this kind of backend role?`
+  - `What skills am I missing for the jobs I just searched?`
+  - `Build me a 3-month roadmap based on my CV`
+
+What to say:
+
+`The assistant retrieves relevant chunks from the user's uploaded CV and then answers with either a hosted model or the built-in fallback path. The UI indicates which provider answered.`
+
+What judges should see:
+
+- grounded answer
+- provider or fallback indicator
+- response that references the uploaded CV rather than generic advice
+
+## 5. Cover Letter Draft
+
+- Go to `/cover-letter`
+- Generate a cover letter for a selected job
+
+What to say:
+
+`The cover letter is generated from the selected job plus the user's CV context, so it should reference actual skills and experience from the uploaded profile.`
+
+What judges should see:
+
+- generated draft
+- job-aware personalization
+
+## 6. Tracker Update
+
+- Save the selected job to tracker if that path is available from the UI flow
+- Go to `/tracker`
+- Move the application through a stage such as `Applied` or `Interviewing`
+
+What to say:
+
+`The platform is not just an analyzer. It persists application workflow so the user can keep working after the AI step.`
+
+What judges should see:
+
+- saved application
+- Kanban stage update
+- state persistence after reload
+
+## Backup Plan if a Live API Fails
+
+If one external job source is unavailable:
+
+- explain that CareerPilot uses multiple live providers
+- show the remaining sources still returning results if available
+- mention that search uses a short TTL cache to reduce quota pressure
+
+If hosted LLM access is unavailable:
+
+- show `/api/health/providers`
+- explain that the app falls back to the built-in CV-grounded response path
+- be explicit that fallback is deterministic, not pretending to be a hosted model
+
+## What to Say During the Demo
+
+Short judge-friendly narrative:
+
+`CareerPilot turns one uploaded CV into a full job-search workspace. We parse the CV, build retrieval context, search live jobs, compute fit programmatically, answer career questions with grounded context, generate a tailored cover letter, and persist the application in tracker. The system is built as a hackathon MVP, so the architecture favors demo reliability and honest live integrations over large-scale infrastructure.`
+
+## Optional Recovery Steps
+
+- Refresh the frontend if local anonymous session state appears stale
+- Re-run the backend health checks
+- Re-run the search with a simpler query such as `python` or `react`
+- If job APIs are degraded, switch to explaining the architecture using the already-uploaded CV, assistant, and tracker flows

@@ -75,6 +75,18 @@ interface QuickAction {
   navigateTo?: string;
 }
 
+interface RagStatus {
+  cv_id: string;
+  index_exists: boolean;
+  embeddings_exists: boolean;
+  processed_sections_exists: boolean;
+  chunk_count: number;
+  sections_indexed: string[];
+  embedding_provider?: string | null;
+  embedding_model?: string | null;
+  last_built_at?: string | null;
+}
+
 const NO_CV_MESSAGE = "Please upload your CV first.";
 const SEED_ASSISTANT_MESSAGE: Message = {
   id: "assistant-seed",
@@ -150,6 +162,9 @@ export function AssistantExperience() {
   const [selectedJob, setSelectedJob] = useState<AssistantJobContext | null>(null);
   const [sessionId, setSessionId] = useState("");
   const [isRehydrating, setIsRehydrating] = useState(false);
+  const [ragStatus, setRagStatus] = useState<RagStatus | null>(null);
+  const [ragStatusError, setRagStatusError] = useState("");
+  const [isLoadingRagStatus, setIsLoadingRagStatus] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -163,6 +178,10 @@ export function AssistantExperience() {
       setCvName(summary?.filename || "");
       setCvSkills(getPersistedCvSkills().slice(0, 5));
       setSelectedJob(getAssistantJobContext());
+      if (!activeCvId) {
+        setRagStatus(null);
+        setRagStatusError("");
+      }
 
       if (activeCvId) {
         setError((current) => (current === NO_CV_MESSAGE ? "" : current));
@@ -247,6 +266,61 @@ export function AssistantExperience() {
       cancelled = true;
     };
   }, [sessionId]);
+
+  useEffect(() => {
+    if (!cvId) return;
+
+    let cancelled = false;
+    const loadRagStatus = async () => {
+      setIsLoadingRagStatus(true);
+      setRagStatusError("");
+      try {
+        const response = await fetch(`/api/rag/status?cv_id=${encodeURIComponent(cvId)}`, {
+          headers: {
+            ...getCareerPilotHeaders(),
+            Accept: "application/json",
+          },
+          cache: "no-store",
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!response.ok) {
+          throw new Error(extractErrorMessage(payload, "Failed to load RAG status."));
+        }
+
+        setRagStatus({
+          cv_id: typeof payload.cv_id === "string" ? payload.cv_id : cvId,
+          index_exists: Boolean(payload.index_exists),
+          embeddings_exists: Boolean(payload.embeddings_exists),
+          processed_sections_exists: Boolean(payload.processed_sections_exists),
+          chunk_count: typeof payload.chunk_count === "number" ? payload.chunk_count : 0,
+          sections_indexed: Array.isArray(payload.sections_indexed) ? payload.sections_indexed : [],
+          embedding_provider:
+            typeof payload.embedding_provider === "string" ? payload.embedding_provider : null,
+          embedding_model:
+            typeof payload.embedding_model === "string" ? payload.embedding_model : null,
+          last_built_at:
+            typeof payload.last_built_at === "string" ? payload.last_built_at : null,
+        });
+      } catch (err) {
+        if (cancelled) return;
+        setRagStatus(null);
+        setRagStatusError(
+          err instanceof Error && err.message ? err.message : "Failed to load RAG status."
+        );
+      } finally {
+        if (!cancelled) {
+          setIsLoadingRagStatus(false);
+        }
+      }
+    };
+
+    void loadRagStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [cvId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -450,6 +524,99 @@ export function AssistantExperience() {
             </span>
           )}
         </div>
+
+        {hasCv && (
+          <div className="mt-4 rounded-2xl border border-[#D6E4FF] bg-white/90 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B]">
+                  RAG Status
+                </p>
+                <p className="mt-1 text-sm font-medium text-[#475569]">
+                  {isLoadingRagStatus
+                    ? "Checking index readiness..."
+                    : ragStatus
+                      ? ragStatus.index_exists && ragStatus.embeddings_exists
+                        ? "Index ready for grounded retrieval."
+                        : "Index is incomplete."
+                      : ragStatusError || "RAG status unavailable."}
+                </p>
+              </div>
+              {ragStatus && (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
+                    ragStatus.index_exists && ragStatus.embeddings_exists
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  <span
+                    className={`size-1.5 rounded-full ${
+                      ragStatus.index_exists && ragStatus.embeddings_exists
+                        ? "bg-emerald-500"
+                        : "bg-amber-500"
+                    }`}
+                  />
+                  {ragStatus.index_exists && ragStatus.embeddings_exists ? "Ready" : "Needs rebuild"}
+                </span>
+              )}
+            </div>
+
+            {ragStatus && (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl bg-[#F8FAFC] p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                    Chunks
+                  </p>
+                  <p className="mt-1 text-lg font-extrabold text-[#0F172A]">{ragStatus.chunk_count}</p>
+                </div>
+                <div className="rounded-xl bg-[#F8FAFC] p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                    Embeddings
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-[#0F172A]">
+                    {ragStatus.embedding_provider || "Unknown"}
+                  </p>
+                  <p className="mt-1 text-xs text-[#64748B]">
+                    {ragStatus.embedding_model || "No model metadata"}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-[#F8FAFC] p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                    Sections
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-[#0F172A]">
+                    {ragStatus.sections_indexed.length > 0
+                      ? ragStatus.sections_indexed.join(", ")
+                      : "None indexed"}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-[#F8FAFC] p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                    Last Built
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-[#0F172A]">
+                    {ragStatus.last_built_at
+                      ? new Date(ragStatus.last_built_at).toLocaleString([], {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "Unknown"}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {ragStatus && ragStatus.embedding_provider === "sklearn-hashing" && (
+              <p className="mt-3 text-xs font-medium text-amber-700">
+                Fallback embeddings are active. Retrieval works, but semantic match quality is lower than sentence-transformers.
+              </p>
+            )}
+          </div>
+        )}
 
         {cvSkills.length > 0 && (
           <div className="mt-4">
