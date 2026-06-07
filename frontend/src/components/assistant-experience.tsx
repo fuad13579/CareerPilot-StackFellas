@@ -349,7 +349,7 @@ export function AssistantExperience() {
   const hasCv = Boolean(cvId);
 
   return (
-    <div className="flex h-[760px] flex-col rounded-[28px] border border-[#E5E7EB] bg-[linear-gradient(180deg,#FFFFFF_0%,#F8FAFC_100%)] p-5 shadow-[0_18px_48px_rgba(15,23,42,.06)]">
+    <div className="flex min-h-[780px] flex-col rounded-[28px] border border-[#E5E7EB] bg-[linear-gradient(180deg,#FFFFFF_0%,#F8FAFC_100%)] p-5 shadow-[0_18px_48px_rgba(15,23,42,.06)] lg:min-h-[860px]">
       <div className="mb-4 rounded-[24px] border border-[#DBEAFE] bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,.18),_transparent_38%),linear-gradient(135deg,#EFF6FF_0%,#FFFFFF_58%,#F8FAFC_100%)] p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-2xl">
@@ -475,7 +475,7 @@ export function AssistantExperience() {
         </div>
       )}
 
-      <div className="flex-1 space-y-3 overflow-y-auto pr-1.5">
+      <div className="min-h-[320px] flex-1 space-y-3 overflow-y-auto pr-1.5 lg:min-h-[420px]">
         {isRehydrating && (
           <div className="flex items-center gap-2 text-xs font-medium text-[#6B7280]">
             <Loader2 size={12} className="animate-spin" />
@@ -495,7 +495,7 @@ export function AssistantExperience() {
             )}
 
             <div
-              className={`max-w-[75%] rounded-2xl p-4 ${
+              className={`max-w-[85%] rounded-2xl p-4 lg:max-w-[78%] ${
                 msg.role === "user"
                   ? "ml-auto bg-[#1D4ED8] text-white"
                   : "border border-[#E5E7EB] bg-white text-[#374151]"
