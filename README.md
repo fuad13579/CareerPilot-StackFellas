@@ -242,6 +242,12 @@ Demo script: [docs/demo-runbook.md](docs/demo-runbook.md)
 - Tahmeed Ahmed (`tahmeedahmed06-pixel`) - Frontend and Design
 - Imtiaz Alam (`Imtiazalam11`) - Dashboard and Tracker
 
+## AI-Assisted Development Disclosure
+
+During development, the team used AI-assisted tools including OpenAI Codex and Puku AI to improve productivity. These tools were used for code scaffolding suggestions, debugging assistance, documentation drafting, and implementation guidance.
+
+All final architecture decisions, feature selection, code review, integration, testing, deployment, and demo validation were performed by the team. These tools are not required to run the deployed application.
+
 ## Additional Docs
 
 - [docs/dependencies-and-setup.md](docs/dependencies-and-setup.md)
