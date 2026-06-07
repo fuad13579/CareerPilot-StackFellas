@@ -17,7 +17,7 @@ export type ColumnId = (typeof COLUMNS)[number]["id"];
 interface KanbanColumnProps {
   column: (typeof COLUMNS)[number];
   applications: JobApplication[];
-  onDelete: (id: number) => void;
+  onDelete: (id: string | number) => void;
   onAddClick: (columnId: string) => void;
 }
 
