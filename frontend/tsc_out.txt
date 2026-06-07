@@ -1,6 +1,0 @@
-﻿src/components/job-card.tsx(3,29): error TS2307: Cannot find module '@dnd-kit/sortable' or its corresponding type declarations.
-src/components/job-card.tsx(4,21): error TS2307: Cannot find module '@dnd-kit/utilities' or its corresponding type declarations.
-src/components/kanban-board.tsx(15,8): error TS2307: Cannot find module '@dnd-kit/core' or its corresponding type declarations.
-src/components/kanban-board.tsx(16,45): error TS2307: Cannot find module '@dnd-kit/sortable' or its corresponding type declarations.
-src/components/kanban-column.tsx(3,30): error TS2307: Cannot find module '@dnd-kit/core' or its corresponding type declarations.
-src/components/kanban-column.tsx(4,62): error TS2307: Cannot find module '@dnd-kit/sortable' or its corresponding type declarations.
