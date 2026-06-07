@@ -28,7 +28,7 @@ export function TrackerExperience() {
   const kanbanApplications = useMemo(
     () =>
       applications.map((app) => ({
-        id: Number(app.id),
+        id: app.id,
         job_id: app.id,
         role: app.role,
         company: app.company,

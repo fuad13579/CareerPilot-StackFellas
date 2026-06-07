@@ -270,12 +270,29 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         const created = await response.json().catch(() => null);
         if (!created?.id) return null;
 
+        let resolvedStatus: Application["status"] = newApp.status;
+
         setState((prev) => ({
           ...prev,
-          applications: prev.applications.map((item) =>
-            item.id === newApp.id ? { ...item, id: String(created.id) } : item
-          ),
+          applications: prev.applications.map((item) => {
+            if (item.id !== newApp.id) return item;
+            resolvedStatus = item.status;
+            return { ...item, id: String(created.id) };
+          }),
         }));
+
+        if (resolvedStatus !== created.status) {
+          void fetch(`/api/tracker/applications/${encodeURIComponent(String(created.id))}/status`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              ...getCareerPilotHeaders(),
+            },
+            body: JSON.stringify({ status: resolvedStatus }),
+          }).catch((error) =>
+            console.error("Failed to reconcile application status after create:", error)
+          );
+        }
         return created;
       })
       .catch((error) => console.error("Failed to persist application:", error));

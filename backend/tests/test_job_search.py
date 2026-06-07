@@ -5,6 +5,8 @@ from datetime import datetime
 
 from app.main import app
 from app.models.job_models import JobCard, FitScoreResponse
+from app.api.job_routes import _resolve_search_filters
+from app.utils.job_search_filters import estimate_salary_floor, filter_jobs_by_salary
 from app.services.job_recommendation_service import calculate_fit_score, sort_jobs_by_fit_score
 from app.services.job_search_service import fetch_live_jobs, _normalize_job, rank_jobs
 
@@ -272,6 +274,46 @@ class TestLiveJobSearch:
         ranked = rank_jobs(jobs, "data analyst", "remote", 10)
         assert ranked[0].job_id == "remotive-2"
 
+    def test_filter_jobs_by_salary_keeps_only_jobs_meeting_threshold(self):
+        jobs = [
+            JobCard(
+                job_id="salary-low",
+                role="Data Engineer",
+                company="Low Corp",
+                location="Remote",
+                deadline=None,
+                salary="90,000 - 110,000",
+                required_skills=["Python"],
+                description="Data role",
+                job_url="https://example.com/low",
+                source="Adzuna",
+                is_live=True,
+                fetched_at=datetime.utcnow(),
+            ),
+            JobCard(
+                job_id="salary-high",
+                role="Data Engineer",
+                company="High Corp",
+                location="Remote",
+                deadline=None,
+                salary="$120k - $150k",
+                required_skills=["Python"],
+                description="Data role",
+                job_url="https://example.com/high",
+                source="Adzuna",
+                is_live=True,
+                fetched_at=datetime.utcnow(),
+            ),
+        ]
+
+        filtered = filter_jobs_by_salary(jobs, 120000)
+        assert [job.job_id for job in filtered] == ["salary-high"]
+
+    def test_estimate_salary_floor_handles_common_formats(self):
+        assert estimate_salary_floor("120,000 - 150,000") == 120000
+        assert estimate_salary_floor("$120k - $150k") == 120000
+        assert estimate_salary_floor("Competitive") is None
+
 
 class TestJobSearchEndpoint:
     """Tests for GET /api/jobs/search endpoint."""
@@ -334,6 +376,53 @@ class TestJobSearchEndpoint:
             if data["jobs"]:
                 for job in data["jobs"]:
                     assert "is_live" in job
+
+    def test_resolve_search_filters_infers_city_from_query(self):
+        query, location = _resolve_search_filters(
+            "Find data analyst jobs in Chicago",
+            "",
+        )
+
+        assert query == "data analyst"
+        assert location == "Chicago"
+
+    def test_resolve_search_filters_infers_hybrid_when_single_bar_is_used(self):
+        query, location = _resolve_search_filters(
+            "Show me hybrid backend roles in New York",
+            "",
+        )
+
+        assert query == "backend new york"
+        assert location == "hybrid"
+
+    def test_search_endpoint_returns_salary_threshold_message_when_all_jobs_are_filtered(self, client):
+        jobs = [
+            JobCard(
+                job_id="salary-low",
+                role="Data Engineer",
+                company="Low Corp",
+                location="Remote",
+                deadline=None,
+                salary="90,000 - 110,000",
+                required_skills=["Python"],
+                description="Data role",
+                job_url="https://example.com/low",
+                source="Adzuna",
+                is_live=True,
+                fetched_at=datetime.utcnow(),
+            )
+        ]
+
+        with patch("app.api.job_routes.resolve_live_jobs", new=AsyncMock(return_value=(jobs, "Adzuna", None, {"cached": False, "fetched_at": None, "cache_expires_at": None}))):
+            response = client.get(
+                "/api/jobs/search?query=find%20data%20engineer%20jobs%20at%20least%20120k%20salary",
+                headers={"x-careerpilot-user-id": "user-1"},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["jobs"] == []
+        assert data["error"] == "No returned jobs met the minimum salary of $120,000."
 
 
 class TestJobRecommendEndpoint:

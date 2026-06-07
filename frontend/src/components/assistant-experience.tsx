@@ -48,6 +48,24 @@ interface Message {
     score?: number | null;
   }>;
   retrievedContext?: string | null;
+  intent?: "assistant" | "job_search";
+  jobResults?: Array<{
+    job_id: string;
+    role: string;
+    company: string;
+    location?: string | null;
+    salary?: string | null;
+    source?: string | null;
+    job_url?: string | null;
+    fit_score?: number | null;
+    required_skills?: string[];
+    matched_skills?: string[];
+    missing_skills?: string[];
+    reason?: string | null;
+  }>;
+  jobSearchQuery?: string | null;
+  jobSearchLocation?: string | null;
+  jobSearchSource?: string | null;
 }
 
 interface QuickAction {
@@ -67,6 +85,7 @@ const SEED_ASSISTANT_MESSAGE: Message = {
 };
 
 const quickActions: QuickAction[] = [
+  { icon: Briefcase, label: "Job Hunt", prompt: "Find me remote backend internship jobs." },
   { icon: Briefcase, label: "Job Readiness", prompt: "Am I ready for this data engineer role?" },
   { icon: Lightbulb, label: "Skill Gaps", prompt: "What skills am I missing for a Google internship?" },
   { icon: Map, label: "Learning Roadmap", prompt: "Build me a 3-month roadmap to become job-ready" },
@@ -301,6 +320,38 @@ export function AssistantExperience() {
         : [];
       const retrievedContext =
         typeof payload.retrieved_context === "string" ? payload.retrieved_context : null;
+      const jobResults = Array.isArray(payload.job_results)
+        ? payload.job_results
+            .filter(
+              (job: { job_id?: unknown; role?: unknown; company?: unknown }) =>
+                typeof job?.job_id === "string" &&
+                typeof job?.role === "string" &&
+                typeof job?.company === "string"
+            )
+            .map(
+              (job: {
+                job_id: string;
+                role: string;
+                company: string;
+                location?: string | null;
+                salary?: string | null;
+                source?: string | null;
+                job_url?: string | null;
+                fit_score?: number | null;
+                required_skills?: string[];
+                matched_skills?: string[];
+                missing_skills?: string[];
+                reason?: string | null;
+              }) => ({
+                ...job,
+                fit_score: typeof job.fit_score === "number" ? job.fit_score : null,
+                required_skills: Array.isArray(job.required_skills) ? job.required_skills : [],
+                matched_skills: Array.isArray(job.matched_skills) ? job.matched_skills : [],
+                missing_skills: Array.isArray(job.missing_skills) ? job.missing_skills : [],
+              })
+            )
+        : [];
+      const intent = payload.intent === "job_search" ? "job_search" : "assistant";
 
       setMessages((prev) => [
         ...prev,
@@ -310,6 +361,14 @@ export function AssistantExperience() {
           fallbackUsed: Boolean(payload.fallback_used),
           sources,
           retrievedContext,
+          intent,
+          jobResults,
+          jobSearchQuery:
+            typeof payload.job_search_query === "string" ? payload.job_search_query : null,
+          jobSearchLocation:
+            typeof payload.job_search_location === "string" ? payload.job_search_location : null,
+          jobSearchSource:
+            typeof payload.job_search_source === "string" ? payload.job_search_source : null,
         },
       ]);
     } catch (err) {
@@ -361,8 +420,8 @@ export function AssistantExperience() {
             </h2>
             <p className="mt-3 text-sm font-medium leading-7 text-[#64748B]">
               Ask about role readiness, benchmark skill gaps, personalized learning
-              roadmaps, or cover-letter drafting. The assistant uses your uploaded CV
-              as the source of truth.
+              roadmaps, cover-letter drafting, or ask it to search jobs in natural
+              language. The assistant uses your uploaded CV as the source of truth.
             </p>
           </div>
 
@@ -503,6 +562,12 @@ export function AssistantExperience() {
             >
               <p className="whitespace-pre-wrap text-sm font-medium leading-8">{msg.content}</p>
               <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                {msg.role === "assistant" && msg.intent === "job_search" && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 font-semibold text-sky-700">
+                    <span className="size-1.5 rounded-full bg-sky-500" />
+                    Job Hunter
+                  </span>
+                )}
                 {msg.role === "assistant" &&
                   (msg.fallbackUsed ? (
                     <span
@@ -528,6 +593,70 @@ export function AssistantExperience() {
                   </span>
                 )}
               </div>
+
+              {msg.role === "assistant" && msg.jobResults && msg.jobResults.length > 0 && (
+                <div className="mt-3 rounded-xl border border-[#E0F2FE] bg-[#F8FCFF] p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0369A1]">
+                      Live Job Matches
+                    </p>
+                    {msg.jobSearchQuery && (
+                      <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#0F172A]">
+                        {msg.jobSearchQuery}
+                      </span>
+                    )}
+                    {msg.jobSearchLocation && (
+                      <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#475569]">
+                        {msg.jobSearchLocation}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {msg.jobResults.slice(0, 5).map((job) => (
+                      <div key={job.job_id} className="rounded-lg border border-[#DBEAFE] bg-white p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-bold text-[#0F172A]">{job.role}</p>
+                            <p className="text-xs font-semibold text-[#1D4ED8]">{job.company}</p>
+                          </div>
+                          {typeof job.fit_score === "number" && (
+                            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                              {Math.round(job.fit_score)}% fit
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-medium text-[#64748B]">
+                          {job.location && <span>{job.location}</span>}
+                          {job.salary && <span>{job.salary}</span>}
+                          {job.source && <span>{job.source}</span>}
+                        </div>
+                        {job.required_skills && job.required_skills.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {job.required_skills.slice(0, 4).map((skill) => (
+                              <span
+                                key={`${job.job_id}-${skill}`}
+                                className="rounded-full bg-[#EFF6FF] px-2 py-0.5 text-[11px] font-semibold text-[#1E40AF]"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {job.job_url && (
+                          <a
+                            href={job.job_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-3 inline-flex text-xs font-semibold text-[#0369A1] underline underline-offset-4"
+                          >
+                            Open job
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
                 <div className="mt-3 rounded-xl border border-[#DBEAFE] bg-[#F8FBFF] p-3">
@@ -622,7 +751,7 @@ export function AssistantExperience() {
           <Sparkles size={18} className="shrink-0 text-[#1D4ED8]" />
           <input
             className="flex-1 bg-transparent text-base font-medium text-[#111827] outline-none placeholder:text-[#9CA3AF]"
-            placeholder="Ask about your CV, job readiness, skills, or roadmap..."
+            placeholder="Ask about your CV, or say: find me remote React internships..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             disabled={!hasCv || isLoading}

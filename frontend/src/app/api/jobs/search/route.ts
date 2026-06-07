@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const cvId = searchParams.get('cv_id') || '';
     const query = searchParams.get('query') || 'software internship';
-    const location = searchParams.get('location') || 'remote';
+    const location = searchParams.get('location') ?? '';
     const limit = searchParams.get('limit') || '10';
     const forceRefresh = searchParams.get('force_refresh') || 'false';
     const allowDemo = searchParams.get('allow_demo') || 'false';

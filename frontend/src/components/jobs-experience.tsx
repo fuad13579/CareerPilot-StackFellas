@@ -183,7 +183,6 @@ export function JobsExperience() {
   const router = useRouter();
   const { addApplication } = useTracker();
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchLocation, setSearchLocation] = useState("remote");
   const [isSearching, setIsSearching] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLive, setIsLive] = useState(false);
@@ -212,18 +211,12 @@ export function JobsExperience() {
   // across keystrokes — otherwise the initial-load effect below would
   // re-fire on every character typed in the search bar.
   const searchQueryRef = useRef(searchQuery);
-  const searchLocationRef = useRef(searchLocation);
   useEffect(() => {
     searchQueryRef.current = searchQuery;
   }, [searchQuery]);
-  useEffect(() => {
-    searchLocationRef.current = searchLocation;
-  }, [searchLocation]);
-
-  const refreshJobs = useCallback(async (options?: { query?: string; location?: string; forceRefresh?: boolean }) => {
+  const refreshJobs = useCallback(async (options?: { query?: string; forceRefresh?: boolean }) => {
     const currentCvId = getPersistedCvId();
     const query = options?.query !== undefined ? options.query : searchQueryRef.current;
-    const location = options?.location !== undefined ? options.location : searchLocationRef.current;
     const forceRefresh = Boolean(options?.forceRefresh);
 
     setIsSearching(true);
@@ -234,11 +227,11 @@ export function JobsExperience() {
       const params = new URLSearchParams({
         cv_id: currentCvId,
         limit: "12",
-        location: location.trim() || "remote",
       });
 
       if (query && query.trim()) {
         params.set("query", query.trim());
+        params.set("location", "");
       }
       if (forceRefresh) {
         params.set("force_refresh", "true");
@@ -304,7 +297,7 @@ export function JobsExperience() {
     }, 350);
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, searchLocation, isInitialLoad]);
+  }, [searchQuery, isInitialLoad]);
 
   // CV update listeners (same-tab and cross-tab).
   useEffect(() => {
@@ -345,7 +338,6 @@ export function JobsExperience() {
     e.preventDefault();
     void refreshJobs({
       query: searchQuery,
-      location: searchLocation,
       forceRefresh: true,
     });
   };
@@ -402,14 +394,14 @@ export function JobsExperience() {
   return (
     <div className="space-y-8">
       {/* Search Bar */}
-      <form onSubmit={handleSearch} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+      <form onSubmit={handleSearch}>
         <div className="relative">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search frontend internships, backend roles, or data jobs..."
+            placeholder="Search jobs in natural language: remote React internships, hybrid data roles in New York..."
             className="w-full rounded-2xl border-2 border-gray-200 bg-white py-4 pl-14 pr-32 text-lg font-medium shadow-lg transition-all focus:border-[#1D4ED8] focus:outline-none focus:ring-4 focus:ring-blue-100"
           />
           <button
@@ -423,16 +415,6 @@ export function JobsExperience() {
               "Search"
             )}
           </button>
-        </div>
-        <div className="relative">
-          <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="text"
-            value={searchLocation}
-            onChange={(e) => setSearchLocation(e.target.value)}
-            placeholder="Location or remote"
-            className="w-full rounded-2xl border-2 border-gray-200 bg-white py-4 pl-14 pr-4 text-lg font-medium shadow-lg transition-all focus:border-[#1D4ED8] focus:outline-none focus:ring-4 focus:ring-blue-100"
-          />
         </div>
       </form>
 

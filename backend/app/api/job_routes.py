@@ -21,6 +21,7 @@ from app.services.job_cache_service import (
     save_cache,
 )
 from app.services.user_context_service import require_anonymous_user_id
+from app.utils.job_search_filters import build_job_search_filters, filter_jobs_by_salary
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,26 @@ async def get_cv_skills(cv_id: str, anonymous_user_id: str, db: Session) -> list
 
 def _empty_cache_metadata() -> dict[str, Any]:
     return {"cached": False, "fetched_at": None, "cache_expires_at": None}
+
+
+def _resolve_search_filters(query: str, location: str) -> tuple[str, str]:
+    """Infer query/location from natural language when no explicit location is supplied."""
+    normalized_query, inferred_location, parsed = build_job_search_filters(query)
+
+    explicit_location = location.strip()
+    should_infer_location = not explicit_location or (
+        explicit_location.lower() == "remote"
+        and (
+            parsed.get("location")
+            or parsed.get("is_hybrid")
+            or parsed.get("is_onsite")
+        )
+    )
+
+    if not should_infer_location:
+        return normalized_query, explicit_location
+
+    return normalized_query, inferred_location
 
 
 async def resolve_live_jobs(
@@ -195,15 +216,21 @@ async def search_jobs(
             }
         personalized = True
 
+    resolved_query, resolved_location = _resolve_search_filters(query, location)
+    _, _, parsed_query = build_job_search_filters(query)
+    salary_min = parsed_query.get("salary_min")
+
     logger.info(
-        f"Searching jobs: query='{query}', location='{location}', limit={limit}, "
+        f"Searching jobs: query='{resolved_query}', location='{resolved_location}', limit={limit}, "
         f"has_cv={'yes' if cv_skills else 'no'}, force_refresh={force_refresh}"
     )
 
     # Cache-aware live fetch.
     jobs, source, error, cache_info = await resolve_live_jobs(
-        db, query, location, limit, force_refresh
+        db, resolved_query, resolved_location, limit, force_refresh
     )
+    if jobs and salary_min:
+        jobs = filter_jobs_by_salary(jobs, salary_min)
 
     # If no jobs available, return empty response
     if not jobs:
@@ -212,7 +239,14 @@ async def search_jobs(
             "total": 0,
             "is_live": False,
             "source": source,
-            "error": error or "No jobs found matching your criteria. Try a different search.",
+            "error": (
+                error
+                or (
+                    f"No returned jobs met the minimum salary of ${salary_min:,}."
+                    if salary_min
+                    else "No jobs found matching your criteria. Try a different search."
+                )
+            ),
             "requires_cv": False,
             "message": (
                 "Showing general live jobs. Upload a CV to get personalized fit scores."
