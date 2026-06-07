@@ -20,9 +20,10 @@ Job seekers usually juggle separate tools for resumes, job boards, cover letters
 
 ## Live Demo Links
 
-- Frontend: `<add-vercel-url>`
+- Frontend: `Needs confirmation - add your Vercel production URL here`
 - Backend API: `http://104.211.90.209`
 - Swagger / OpenAPI: `http://104.211.90.209/docs`
+- GitHub Repository: `https://github.com/fuad13579/CareerPilot-StackFellas`
 
 ## Tech Stack
 
@@ -144,6 +145,7 @@ This starts:
 - Frontend: `http://localhost:3000`
 - Backend: `http://127.0.0.1:8000`
 - Swagger: `http://127.0.0.1:8000/docs`
+- Public deployed docs: `http://104.211.90.209/docs`
 
 ### Manual run
 
@@ -184,7 +186,7 @@ pytest -q
 ### Frontend
 
 - Deploy `frontend/` to Vercel
-- Set `BACKEND_URL` in Vercel environment variables
+- Set `BACKEND_URL=http://104.211.90.209` in Vercel environment variables
 - Redeploy after changing the backend URL
 
 ### Backend
@@ -193,6 +195,12 @@ pytest -q
 - Run `uvicorn app.main:app`
 - Keep the process alive with `systemd`
 - Optionally reverse-proxy with `nginx`
+
+Current public backend routes:
+
+- API base: `http://104.211.90.209`
+- Public docs: `http://104.211.90.209/docs`
+- Public health: `http://104.211.90.209/health`
 
 Full deployment notes: [docs/deployment.md](docs/deployment.md)
 
@@ -230,9 +238,9 @@ Demo script: [docs/demo-runbook.md](docs/demo-runbook.md)
 
 ## Team
 
-- Member 1: `<name / role>`
-- Member 2: `<name / role>`
-- Member 3: `<name / role>`
+- Fuad Bin Sattar (`fuad13579`) - Team Lead / Backend and Integrations
+- Tahmeed Ahmed (`tahmeedahmed06-pixel`) - Frontend and Design
+- Imtiaz Alam (`Imtiazalam11`) - Dashboard and Tracker
 
 ## Additional Docs
 

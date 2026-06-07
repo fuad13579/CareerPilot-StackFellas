@@ -185,6 +185,17 @@ Expected local endpoints:
 - Backend: `http://127.0.0.1:8000`
 - Swagger: `http://127.0.0.1:8000/docs`
 
+Current deployed backend endpoints:
+
+- Public backend API: `http://104.211.90.209`
+- Public Swagger docs: `http://104.211.90.209/docs`
+- Public health check: `http://104.211.90.209/health`
+
+Note:
+
+- the public docs URL is `http://104.211.90.209/docs` without `:8000`
+- `:8000` is used for direct local or VM-internal access before `nginx`
+
 ### Manual backend start
 
 ```bash
@@ -244,6 +255,10 @@ Fix:
 - confirm backend health at `http://127.0.0.1:8000/health`
 - set `BACKEND_URL=http://127.0.0.1:8000`
 - restart the frontend dev server
+
+For deployed frontend on Vercel, use:
+
+- `BACKEND_URL=http://104.211.90.209`
 
 ### No hosted AI response appears
 

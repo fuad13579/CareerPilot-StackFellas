@@ -2,7 +2,7 @@
 
 This runbook is designed for a 5-minute CodeSprint demo that proves the full product flow:
 
-CV upload -> job search -> fit score -> AI assistant query -> cover letter draft -> tracker update
+`CV upload -> job search -> fit score -> AI assistant query -> cover letter draft -> tracker update`
 
 ## Pre-Demo Checklist
 
