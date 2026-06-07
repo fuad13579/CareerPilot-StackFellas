@@ -326,11 +326,29 @@ export function JobsExperience() {
     };
   }, [refreshJobs]);
 
-  // Calculate fit scores based on CV skills
+  // Prefer backend-enriched fit data so the numeric badge, reason text, and
+  // matched/missing skills stay consistent. Only fall back to client-side
+  // calculation if the backend did not provide any fit result.
   const getJobFitScore = (job: Job): FitScoreResponse | null => {
+    const hasBackendFitData =
+      typeof job.fitScore === "number" ||
+      job.matchingSkills.length > 0 ||
+      job.missingSkills.length > 0;
+
+    if (hasBackendFitData) {
+      return {
+        fit_score: job.fitScore,
+        matched_skills: job.matchingSkills,
+        missing_skills: job.missingSkills,
+        match_count: job.matchingSkills.length,
+        total_required: job.requiredSkills?.length || (job.matchingSkills.length + job.missingSkills.length),
+      };
+    }
+
     if (!job.requiredSkills || job.requiredSkills.length === 0) {
       return null;
     }
+
     return calculateFitScore(cvSkills, job.requiredSkills);
   };
 
