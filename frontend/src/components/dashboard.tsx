@@ -1313,14 +1313,58 @@ function buildDashboardSkillFocus(
   },
   cvSnapshot: CvSnapshot | null
 ) {
-  const cvSkills = normalizeSkills(cvSnapshot?.skills || []);
-  const missingSkillCards = collectMissingApplicationSkills(state.applications, cvSkills).map((skill, index) => ({
-    id: `gap-${skill.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${index}`,
-    name: skill,
-    proficiency: 20,
-    priority: "high" as const,
-    category: "Job Gap",
-  }));
+  const cvSkillNames = cvSnapshot?.skills || [];
+  const cvSkills = normalizeSkills(cvSkillNames);
+  const trackerSkillsByName = new Map(
+    state.skills.map((skill) => [skill.name.trim().toLowerCase(), skill])
+  );
+  const skillDemand = new Map<string, { label: string; demandCount: number }>();
+
+  for (const application of state.applications) {
+    for (const rawSkill of application.requiredSkills || []) {
+      const label = rawSkill.trim();
+      const normalized = label.toLowerCase();
+      if (!normalized) continue;
+
+      const current = skillDemand.get(normalized);
+      if (current) {
+        current.demandCount += 1;
+      } else {
+        skillDemand.set(normalized, { label, demandCount: 1 });
+      }
+    }
+  }
+
+  const demandDrivenCards = Array.from(skillDemand.entries())
+    .sort((a, b) => b[1].demandCount - a[1].demandCount)
+    .map(([normalized, info], index) => {
+      const trackedSkill = trackerSkillsByName.get(normalized);
+      const hasCvEvidence = cvSkills.has(normalized);
+      const proficiency = trackedSkill?.level ?? (hasCvEvidence ? 75 : 0);
+      const category = trackedSkill
+        ? "Tracked Skill"
+        : hasCvEvidence
+          ? "CV Skill"
+          : info.demandCount > 1
+            ? "High-Demand Gap"
+            : "Job Gap";
+
+      return {
+        id: `focus-${normalized.replace(/[^a-z0-9]+/g, "-")}-${index}`,
+        name: info.label,
+        proficiency,
+        priority: (
+          proficiency === 0
+            ? "high"
+            : proficiency < 40
+              ? "high"
+              : proficiency < 70
+                ? "medium"
+                : "low"
+        ) as "high" | "medium" | "low",
+        category,
+      };
+    });
 
   const trackerSkillCards = state.skills.map((skill) => ({
     id: skill.id,
@@ -1339,7 +1383,7 @@ function buildDashboardSkillFocus(
   }));
 
   const seen = new Set<string>();
-  return [...missingSkillCards, ...trackerSkillCards, ...cvSkillCards].filter((skill) => {
+  return [...demandDrivenCards, ...trackerSkillCards, ...cvSkillCards].filter((skill) => {
     const key = skill.name.toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);
