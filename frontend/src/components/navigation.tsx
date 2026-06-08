@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, Moon, Sun, X } from "lucide-react";
+import { useTheme } from "./theme-provider";
 
 const navLinks = [
   { name: "Home", href: "/", isRoute: true },
@@ -19,6 +20,7 @@ const navLinks = [
 
 export function Navigation() {
   const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
   const [activeSection, setActiveSection] = useState("");
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -71,18 +73,18 @@ export function Navigation() {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className={`fixed left-0 right-0 top-0 z-50 transition-all duration-500 ${
           isScrolled
-            ? "bg-white/80 shadow-[0_1px_0_rgba(229,231,235,0.6)]"
+            ? "bg-[var(--nav-surface)] shadow-[0_1px_0_var(--nav-shadow)]"
             : "bg-transparent"
         }`}
       >
         <nav
           className={`mx-auto flex h-16 max-w-7xl items-center justify-between px-6 backdrop-blur-xl transition-all duration-500 ${
-            isScrolled ? "border-b border-[#E5E7EB]/50" : ""
+            isScrolled ? "border-b border-[var(--nav-border)]" : ""
           }`}
         >
           <Link
             href="#"
-            className="text-xl font-extrabold tracking-tight text-[#111827]"
+            className="text-xl font-extrabold tracking-tight text-[var(--foreground)]"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
             CareerPilot
@@ -97,7 +99,7 @@ export function Navigation() {
                     className={`group relative px-4 py-2.5 text-sm font-semibold transition-colors duration-300 ${
                       pathname === link.href
                         ? "text-[#1D4ED8]"
-                        : "text-[#6B7280] hover:text-[#111827]"
+                        : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                     }`}
                   >
                     {link.name}
@@ -114,7 +116,7 @@ export function Navigation() {
                     className={`group relative px-4 py-2.5 text-sm font-semibold transition-colors duration-300 ${
                       activeSection === link.href.slice(1)
                         ? "text-[#1D4ED8]"
-                        : "text-[#6B7280] hover:text-[#111827]"
+                        : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                     }`}
                   >
                     {link.name}
@@ -131,6 +133,15 @@ export function Navigation() {
           </ul>
 
           <div className="hidden items-center gap-3 md:flex">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--nav-border)] bg-[var(--card-surface)] text-[var(--foreground)] shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--hover-surface)]"
+            >
+              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
             <Link
               href="/upload"
               className="rounded-lg bg-[#1D4ED8] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:bg-[#1E40AF] hover:shadow-md"
@@ -141,7 +152,7 @@ export function Navigation() {
 
           <button
             onClick={() => setIsMobileOpen(!isMobileOpen)}
-            className="rounded-lg p-2 text-[#111827] transition-colors hover:bg-[#F3F4F6] md:hidden"
+            className="rounded-lg p-2 text-[var(--foreground)] transition-colors hover:bg-[var(--hover-surface)] md:hidden"
           >
             {isMobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -154,7 +165,7 @@ export function Navigation() {
             opacity: isMobileOpen ? 1 : 0,
           }}
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="overflow-hidden border-b border-[#E5E7EB] bg-white/95 backdrop-blur-xl md:hidden"
+          className="overflow-hidden border-b border-[var(--nav-border)] bg-[var(--nav-mobile-surface)] backdrop-blur-xl md:hidden"
         >
           <ul className="flex flex-col gap-1 px-6 py-4">
             {navLinks.map((link) => (
@@ -165,8 +176,8 @@ export function Navigation() {
                     onClick={() => setIsMobileOpen(false)}
                     className={`block w-full rounded-lg px-4 py-3 text-left text-sm font-semibold transition-colors ${
                       pathname === link.href
-                        ? "bg-[#EFF6FF] text-[#1D4ED8]"
-                        : "text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#111827]"
+                        ? "bg-[var(--accent-soft)] text-[#1D4ED8]"
+                        : "text-[var(--muted-foreground)] hover:bg-[var(--hover-surface)] hover:text-[var(--foreground)]"
                     }`}
                   >
                     {link.name}
@@ -176,8 +187,8 @@ export function Navigation() {
                     onClick={() => handleNavClick(link.href)}
                     className={`w-full rounded-lg px-4 py-3 text-left text-sm font-semibold transition-colors ${
                       activeSection === link.href.slice(1)
-                        ? "bg-[#EFF6FF] text-[#1D4ED8]"
-                        : "text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#111827]"
+                        ? "bg-[var(--accent-soft)] text-[#1D4ED8]"
+                        : "text-[var(--muted-foreground)] hover:bg-[var(--hover-surface)] hover:text-[var(--foreground)]"
                     }`}
                   >
                     {link.name}
@@ -185,6 +196,19 @@ export function Navigation() {
                 )}
               </li>
             ))}
+            <li className="mt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  toggleTheme();
+                  setIsMobileOpen(false);
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--nav-border)] bg-[var(--card-surface)] px-4 py-3 text-sm font-semibold text-[var(--foreground)]"
+              >
+                {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+                {theme === "dark" ? "Light Mode" : "Dark Mode"}
+              </button>
+            </li>
             <li className="mt-2">
               <Link
                 href="/upload"
