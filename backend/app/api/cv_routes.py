@@ -58,6 +58,7 @@ class CVSectionsResponse(BaseModel):
 )
 async def upload_cv(
     file: UploadFile = File(...),
+    db: Session = Depends(get_db),
     x_careerpilot_user_id: str | None = Header(default=None, alias="x-careerpilot-user-id"),
 ) -> CVUploadResponse:
     anonymous_user_id = require_anonymous_user_id(x_careerpilot_user_id)
@@ -135,23 +136,23 @@ async def upload_cv(
     processed_path = str(get_processed_cv_text_path(cv_id))
     
     try:
-        db: Session = next(get_db())
-        try:
-            cv_profile = CVProfile(
-                anonymous_user_id=anonymous_user_id,
-                cv_id=cv_id,
-                filename=file.filename,
-                file_type=suffix.lstrip("."),
-                file_path=str(saved_path),
-                processed_text_path=processed_path,
-            )
-            db.add(cv_profile)
-            db.commit()
-        finally:
-            db.close()
-    except Exception:
-        # Don't fail upload if database save fails
-        pass
+        cv_profile = CVProfile(
+            anonymous_user_id=anonymous_user_id,
+            cv_id=cv_id,
+            filename=file.filename,
+            file_type=suffix.lstrip("."),
+            file_path=str(saved_path),
+            processed_text_path=processed_path,
+        )
+        db.add(cv_profile)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        saved_path.unlink(missing_ok=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to save uploaded CV profile",
+        ) from exc
 
     rag_index_built = True
     rag_warning: str | None = None
