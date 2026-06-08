@@ -30,7 +30,7 @@
 .dark {
   --background: #0C1220;
   --foreground: #E5EEF9;
-  --muted-foreground: #93A4BD;
+  --muted-foreground: #B7C6DA;
   --card-surface: rgba(17, 25, 40, 0.82);
   --hover-surface: rgba(32, 44, 68, 0.88);
   --nav-surface: rgba(10, 16, 30, 0.82);
@@ -202,6 +202,10 @@ html.dark [class*="text-gray-500"],
 html.dark [class*="text-gray-600"],
 html.dark [class*="text-gray-700"] {
   color: var(--muted-foreground) !important;
+}
+
+html.dark [class*="text-[#1D4ED8]"] {
+  color: #7FB0FF !important;
 }
 
 html.dark [class*="border-[#E5E7EB]"],

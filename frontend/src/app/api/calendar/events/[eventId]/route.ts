@@ -83,8 +83,12 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ e
       }
     }
 
-    if (!response.ok && typeof data.detail !== "string") {
-      data.detail = response.statusText || "Failed to delete event";
+    if (!response.ok) {
+      const detail =
+        typeof data.detail === "string" && data.detail.trim()
+          ? data.detail.trim()
+          : "";
+      data.detail = detail || `${response.status} ${response.statusText || "Failed to delete event"}`;
     }
 
     return NextResponse.json(data, { status: response.status });
