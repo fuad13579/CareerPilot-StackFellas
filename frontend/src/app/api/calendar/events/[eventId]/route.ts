@@ -71,7 +71,22 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ e
       },
     });
 
-    const data = await response.json().catch(() => ({}));
+    const rawBody = await response.text();
+    let data: Record<string, unknown> = {};
+    if (rawBody) {
+      try {
+        data = JSON.parse(rawBody) as Record<string, unknown>;
+      } catch {
+        data = {
+          detail: rawBody.trim() || response.statusText || "Failed to delete event",
+        };
+      }
+    }
+
+    if (!response.ok && typeof data.detail !== "string") {
+      data.detail = response.statusText || "Failed to delete event";
+    }
+
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error("Calendar event delete proxy error:", error);
