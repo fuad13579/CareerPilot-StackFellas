@@ -489,7 +489,7 @@ export function AssistantExperience() {
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#1D4ED8] dark:text-blue-300">
               Personal AI Assistant
             </p>
-            <h2 className="mt-2 text-3xl font-extrabold tracking-[-0.03em] text-[#111827] dark:text-slate-100">
+            <h2 className="mt-2 text-3xl font-extrabold tracking-[-0.03em] text-white">
               CV-grounded answers with session memory.
             </h2>
             <p className="mt-3 text-sm font-medium leading-7 text-[#64748B] dark:text-slate-300">
