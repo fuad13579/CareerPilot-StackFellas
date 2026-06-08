@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CalendarEvent, CreateEventRequest } from "@/types/productivity";
 import { Calendar, X, AlertCircle, Clock } from "lucide-react";
 import {
@@ -55,34 +55,6 @@ export function DeadlineList({
   const [linkedType, setLinkedType] = useState("");
   const [linkedId, setLinkedId] = useState<number | undefined>(undefined);
   const [goalCategory, setGoalCategory] = useState(initialGoal.goalId || "");
-  const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
-  const [pendingDeleteTimeout, setPendingDeleteTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
-
-  const beginDelete = (id: number) => {
-    if (pendingDeleteTimeout) clearTimeout(pendingDeleteTimeout);
-    setConfirmingDeleteId(id);
-    const timeout = setTimeout(() => setConfirmingDeleteId(null), 3000);
-    setPendingDeleteTimeout(timeout);
-  };
-
-  const cancelDelete = () => {
-    if (pendingDeleteTimeout) clearTimeout(pendingDeleteTimeout);
-    setPendingDeleteTimeout(null);
-    setConfirmingDeleteId(null);
-  };
-
-  const confirmDelete = async (id: number) => {
-    if (pendingDeleteTimeout) clearTimeout(pendingDeleteTimeout);
-    setPendingDeleteTimeout(null);
-    setConfirmingDeleteId(null);
-    await onDelete(id);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (pendingDeleteTimeout) clearTimeout(pendingDeleteTimeout);
-    };
-  }, [pendingDeleteTimeout]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -314,39 +286,14 @@ export function DeadlineList({
                   )}
                 </div>
 
-                {confirmingDeleteId === event.id ? (
-                  <div
-                    className="flex items-center gap-1"
-                    role="group"
-                    aria-label="Confirm delete deadline"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => confirmDelete(event.id)}
-                      className="rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700"
-                      aria-label="Confirm delete"
-                      autoFocus
-                    >
-                      Delete
-                    </button>
-                    <button
-                      type="button"
-                      onClick={cancelDelete}
-                      className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                      aria-label="Cancel delete"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => beginDelete(event.id)}
-                    className="opacity-0 transition-opacity group-hover:opacity-100"
-                    aria-label="Delete deadline"
-                  >
-                    <X className="h-4 w-4 text-slate-400 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-300" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => onDelete(event.id)}
+                  className="opacity-0 transition-opacity group-hover:opacity-100"
+                  aria-label="Delete deadline"
+                >
+                  <X className="h-4 w-4 text-slate-400 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-300" />
+                </button>
               </div>
             );
           })}
