@@ -28,7 +28,7 @@ export default function RootLayout({
       <head>
         <ThemeBootScript />
       </head>
-      <body className="min-h-full bg-[var(--background)] text-[var(--foreground)] transition-colors duration-300">
+      <body className="min-h-full bg-[var(--background)] text-[var(--foreground)] transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
         <ThemeProvider>
           <TrackerProvider>
             <ClientOnly>
