@@ -320,8 +320,8 @@ export function CoverLetterSection() {
 
   if (status === "loading-applications") {
     return (
-      <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-xl">
-        <div className="flex items-center gap-3 text-gray-700">
+      <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex items-center gap-3 text-gray-700 dark:text-slate-200">
           <Loader2 size={18} className="animate-spin text-[#1D4ED8]" />
           <span className="text-sm font-semibold">Loading saved tracker applications...</span>
         </div>
@@ -362,12 +362,12 @@ export function CoverLetterSection() {
 
       {/* No Applications Empty State */}
       {applications.length === 0 && (
-        <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-12 text-center shadow-xl">
+        <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-12 text-center shadow-xl dark:border-amber-900/60 dark:from-amber-950/50 dark:to-orange-950/40">
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-amber-100">
             <Briefcase size={36} className="text-amber-600" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">No Saved Applications Yet</h3>
-          <p className="mx-auto mt-3 max-w-md text-base text-gray-600">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-slate-100">No Saved Applications Yet</h3>
+          <p className="mx-auto mt-3 max-w-md text-base text-gray-600 dark:text-slate-300">
             {NO_APPLICATIONS_MESSAGE}
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
@@ -379,7 +379,7 @@ export function CoverLetterSection() {
             </Link>
             <Link
               href="/tracker"
-              className="flex items-center gap-2 rounded-2xl border-2 border-gray-300 bg-white px-6 py-3 text-base font-bold text-gray-700 transition-colors hover:border-blue-600 hover:text-blue-600"
+              className="flex items-center gap-2 rounded-2xl border-2 border-gray-300 bg-white px-6 py-3 text-base font-bold text-gray-700 transition-colors hover:border-blue-600 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
             >
               Go to Tracker
             </Link>
@@ -389,17 +389,17 @@ export function CoverLetterSection() {
 
       {/* Application Selection Grid */}
       {applications.length > 0 && (
-        <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-xl">
+        <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-xl dark:border-slate-700 dark:bg-slate-900">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-100">
                 <Briefcase size={22} className="text-purple-600" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">
                   {selectedApplication ? "Job Selected" : "Select a Job"}
                 </h3>
-                <p className="text-sm font-medium text-gray-500">
+                <p className="text-sm font-medium text-gray-500 dark:text-slate-300">
                   {selectedApplication
                     ? `${selectedApplication.role} at ${selectedApplication.company}`
                     : "Choose one job from your tracker to generate a cover letter"}
@@ -409,7 +409,7 @@ export function CoverLetterSection() {
             <button
               onClick={refreshApplications}
               disabled={isRefreshing}
-              className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:border-blue-600 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:border-blue-600 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
             >
               <Loader2 size={16} className={isRefreshing ? "animate-spin" : ""} />
               Refresh
@@ -426,12 +426,12 @@ export function CoverLetterSection() {
                   className={`rounded-2xl border-2 p-5 text-left transition-all ${
                     isSelected
                       ? "border-blue-600 bg-blue-50 ring-2 ring-blue-600 ring-offset-2"
-                      : "border-gray-200 bg-white hover:border-blue-400 hover:shadow-md"
+                      : "border-gray-200 bg-white hover:border-blue-400 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-bold text-gray-900">{application.role}</p>
+                      <p className="font-bold text-gray-900 dark:text-slate-100">{application.role}</p>
                       <p className="text-sm font-medium text-blue-600">{application.company}</p>
                     </div>
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
@@ -441,14 +441,14 @@ export function CoverLetterSection() {
                     </span>
                   </div>
 
-                  <div className="mt-4 space-y-2 text-sm text-gray-600">
+                  <div className="mt-4 space-y-2 text-sm text-gray-600 dark:text-slate-300">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="font-medium text-gray-500">Location</span>
-                      <span className="font-semibold text-gray-700">{application.location || "Not specified"}</span>
+                      <span className="font-medium text-gray-500 dark:text-slate-400">Location</span>
+                      <span className="font-semibold text-gray-700 dark:text-slate-200">{application.location || "Not specified"}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="font-medium text-gray-500">Fit score</span>
-                      <span className="font-semibold text-gray-700">
+                      <span className="font-medium text-gray-500 dark:text-slate-400">Fit score</span>
+                      <span className="font-semibold text-gray-700 dark:text-slate-200">
                         {typeof application.fitScore === "number" ? `${application.fitScore}%` : "Not scored"}
                       </span>
                     </div>
@@ -462,7 +462,7 @@ export function CoverLetterSection() {
                         </span>
                       ))}
                       {application.requiredSkills.length > 3 && (
-                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-slate-800 dark:text-slate-300">
                           +{application.requiredSkills.length - 3}
                         </span>
                       )}
@@ -485,7 +485,7 @@ export function CoverLetterSection() {
 
       {/* Selected Application Details & Generate Button */}
       {selectedApplication && applications.length > 0 && (
-        <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-xl">
+        <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
           <div className="p-8">
             <div className="mb-6 flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -493,8 +493,8 @@ export function CoverLetterSection() {
                   <PenTool size={22} className="text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Ready to Generate</h3>
-                  <p className="text-sm font-medium text-gray-500">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Ready to Generate</h3>
+                  <p className="text-sm font-medium text-gray-500 dark:text-slate-300">
                     {selectedApplication.role} at {selectedApplication.company}
                   </p>
                 </div>
@@ -517,15 +517,15 @@ export function CoverLetterSection() {
             </div>
 
             {/* Job Details Preview */}
-            <div className="mb-6 flex flex-wrap items-start gap-6 rounded-2xl bg-gray-50 p-6">
+            <div className="mb-6 flex flex-wrap items-start gap-6 rounded-2xl bg-gray-50 p-6 dark:bg-slate-800">
               <div className="min-w-[200px] flex-1">
-                <p className="text-sm font-bold text-gray-700">Job Description</p>
-                <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-600">
+                <p className="text-sm font-bold text-gray-700 dark:text-slate-200">Job Description</p>
+                <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-600 dark:text-slate-300">
                   {selectedApplication.jobDescription || "No job description was saved with this application."}
                 </p>
               </div>
               <div className="min-w-[180px] flex-1">
-                <p className="text-sm font-bold text-gray-700">Required Skills</p>
+                <p className="text-sm font-bold text-gray-700 dark:text-slate-200">Required Skills</p>
                 <div className="mt-2 flex flex-wrap gap-1">
                   {selectedApplication.requiredSkills.length > 0 ? (
                     selectedApplication.requiredSkills.slice(0, 5).map((skill) => (
@@ -534,18 +534,18 @@ export function CoverLetterSection() {
                       </span>
                     ))
                   ) : (
-                    <span className="text-sm text-gray-500">Not available</span>
+                    <span className="text-sm text-gray-500 dark:text-slate-400">Not available</span>
                   )}
                 </div>
               </div>
               <div className="min-w-[180px] flex-1">
-                <p className="text-sm font-bold text-gray-700">Location</p>
-                <p className="mt-2 text-sm font-semibold text-gray-700">
+                <p className="text-sm font-bold text-gray-700 dark:text-slate-200">Location</p>
+                <p className="mt-2 text-sm font-semibold text-gray-700 dark:text-slate-200">
                   {selectedApplication.location || "Not specified"}
                 </p>
                 {selectedApplication.deadline && (
                   <>
-                    <p className="mt-3 text-sm font-bold text-gray-700">Deadline</p>
+                    <p className="mt-3 text-sm font-bold text-gray-700 dark:text-slate-200">Deadline</p>
                     <p className="mt-1 text-sm font-semibold text-amber-600">{selectedApplication.deadline}</p>
                   </>
                 )}
@@ -563,11 +563,11 @@ export function CoverLetterSection() {
                     </div>
                   </div>
                 </div>
-                <h4 className="text-xl font-bold text-gray-900 text-center">Generating your personalized cover letter</h4>
-                <p className="mt-2 text-base font-medium text-gray-600 text-center">
+                <h4 className="text-xl text-center font-bold text-gray-900 dark:text-slate-100">Generating your personalized cover letter</h4>
+                <p className="mt-2 text-center text-base font-medium text-gray-600 dark:text-slate-300">
                   Analyzing your CV, job requirements, and skills...
                 </p>
-                <div className="mx-auto mt-6 h-2.5 w-full max-w-md overflow-hidden rounded-full bg-gray-200">
+                <div className="mx-auto mt-6 h-2.5 w-full max-w-md overflow-hidden rounded-full bg-gray-200 dark:bg-slate-800">
                   <div className="h-full w-2/3 animate-pulse rounded-full bg-gradient-to-r from-blue-600 to-blue-400" />
                 </div>
               </div>
@@ -588,17 +588,17 @@ export function CoverLetterSection() {
                   </span>
                 </div>
 
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 dark:border-slate-700 dark:bg-slate-800">
                   {isEditing ? (
                     <textarea
                       value={editedLetter}
                       onChange={(e) => setEditedLetter(e.target.value)}
                       aria-label="Edit cover letter"
                       placeholder="Edit your cover letter here..."
-                      className="min-h-80 w-full resize-none rounded-xl border border-gray-300 p-4 text-base leading-relaxed text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="min-h-80 w-full resize-none rounded-xl border border-gray-300 p-4 text-base leading-relaxed text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400"
                     />
                   ) : (
-                    <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed text-gray-700">
+                    <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed text-gray-700 dark:text-slate-100">
                       {coverLetter}
                     </pre>
                   )}
@@ -607,7 +607,7 @@ export function CoverLetterSection() {
                 <div className="flex items-center justify-end gap-3">
                   <button
                     onClick={handleEditToggle}
-                    className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 hover:border-blue-600 hover:text-blue-600"
+                    className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 hover:border-blue-600 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
                   >
                     {isEditing ? (
                       <>
@@ -639,12 +639,12 @@ export function CoverLetterSection() {
 
             {/* Error State */}
             {status === "error" && (
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-6 dark:border-red-900/60 dark:bg-red-950/40">
                 <div className="flex items-start gap-4">
                   <AlertTriangle size={24} className="mt-1 shrink-0 text-red-600" />
                   <div>
-                    <h4 className="text-lg font-bold text-red-800">Generation Failed</h4>
-                    <p className="mt-1 text-base font-medium text-red-600">{error}</p>
+                    <h4 className="text-lg font-bold text-red-800 dark:text-red-200">Generation Failed</h4>
+                    <p className="mt-1 text-base font-medium text-red-600 dark:text-red-300">{error}</p>
                     <button
                       onClick={() => setStatus("idle")}
                       className="mt-3 flex items-center gap-2 rounded-lg bg-red-100 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-200"

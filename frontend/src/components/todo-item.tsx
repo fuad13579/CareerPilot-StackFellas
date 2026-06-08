@@ -69,7 +69,7 @@ export function TodoItem({
 
   if (isEditing) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <TodoForm
           onSubmit={handleUpdate}
           onCancel={() => setIsEditing(false)}
@@ -88,17 +88,17 @@ export function TodoItem({
 
   return (
     <div
-      className={`group rounded-lg border bg-white p-4 shadow-sm transition ${
+      className={`group rounded-lg border bg-white p-4 shadow-sm transition dark:bg-slate-900 ${
         todo.is_completed
-          ? "border-green-200 bg-green-50/50"
-          : "border-slate-200 hover:border-slate-300"
+          ? "border-green-200 bg-green-50/50 dark:border-green-900/50 dark:bg-emerald-950/30"
+          : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
       }`}
     >
       <div className="flex items-start gap-3">
         {/* Completion checkbox */}
         <button
           onClick={handleToggle}
-          className="mt-0.5 shrink-0 text-slate-400 transition-colors hover:text-cyan-600"
+          className="mt-0.5 shrink-0 text-slate-400 transition-colors hover:text-cyan-600 dark:text-slate-400"
           aria-label={todo.is_completed ? "Mark as incomplete" : "Mark as complete"}
         >
           {todo.is_completed ? (
@@ -112,7 +112,7 @@ export function TodoItem({
         <div className="min-w-0 flex-1">
           <h3
             className={`font-medium ${
-              todo.is_completed ? "text-slate-500 line-through" : "text-slate-950"
+              todo.is_completed ? "text-slate-500 line-through dark:text-slate-400" : "text-slate-950 dark:text-slate-100"
             }`}
           >
             {todo.title}
@@ -128,11 +128,11 @@ export function TodoItem({
 
           {/* Description */}
           {goalMeta.cleanDescription && (
-            <p className="mt-1 text-sm text-slate-600">{goalMeta.cleanDescription}</p>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{goalMeta.cleanDescription}</p>
           )}
 
           {/* Meta info */}
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
             {/* Due date */}
             {todo.due_date && (
               <span
@@ -145,7 +145,7 @@ export function TodoItem({
                 <Calendar className="h-3 w-3" />
                 {formatDate(todo.due_date)}
                 {!todo.is_completed && (
-                  <span className="ml-1">· {getDaysUntil(todo.due_date)}</span>
+                  <span className="ml-1">| {getDaysUntil(todo.due_date)}</span>
                 )}
               </span>
             )}
@@ -168,14 +168,14 @@ export function TodoItem({
         <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           <button
             onClick={() => setIsEditing(true)}
-            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             aria-label="Edit todo"
           >
             <Edit2 className="h-4 w-4" />
           </button>
           <button
             onClick={handleDelete}
-            className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500"
+            className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:text-slate-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
             aria-label="Delete todo"
           >
             <Trash2 className="h-4 w-4" />
@@ -185,3 +185,4 @@ export function TodoItem({
     </div>
   );
 }
+

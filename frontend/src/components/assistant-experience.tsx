@@ -693,7 +693,7 @@ export function AssistantExperience() {
       )}
 
       {error && (
-        <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+        <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">
           <div className="flex items-start gap-3">
             <AlertTriangle size={16} className="mt-0.5 shrink-0" />
             <p>{error}</p>
@@ -703,7 +703,7 @@ export function AssistantExperience() {
 
       <div className="min-h-[320px] flex-1 space-y-3 overflow-y-auto pr-1.5 lg:min-h-[420px]">
         {isRehydrating && (
-          <div className="flex items-center gap-2 text-xs font-medium text-[#6B7280]">
+          <div className="flex items-center gap-2 text-xs font-medium text-[#6B7280] dark:text-slate-300">
             <Loader2 size={12} className="animate-spin" />
             <span>Restoring your previous chat...</span>
           </div>
@@ -715,7 +715,7 @@ export function AssistantExperience() {
             className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
             {msg.role === "assistant" && (
-              <div className="grid size-10 shrink-0 place-items-center rounded-full bg-[#1D4ED8]">
+              <div className="grid size-10 shrink-0 place-items-center rounded-full bg-[#1D4ED8] dark:bg-blue-500">
                 <Bot size={20} className="text-white" />
               </div>
             )}
@@ -724,7 +724,7 @@ export function AssistantExperience() {
               className={`max-w-[85%] rounded-2xl p-4 lg:max-w-[78%] ${
                 msg.role === "user"
                   ? "ml-auto bg-[#1D4ED8] text-white"
-                  : "border border-[#E5E7EB] bg-white text-[#374151]"
+                  : "border border-[#E5E7EB] bg-white text-[#374151] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               }`}
             >
               <p className="whitespace-pre-wrap text-sm font-medium leading-8">{msg.content}</p>
@@ -755,35 +755,35 @@ export function AssistantExperience() {
                   ) : null)}
 
                 {msg.timestampLabel && (
-                  <span className={msg.role === "user" ? "text-blue-200" : "text-gray-400"}>
+                    <span className={msg.role === "user" ? "text-blue-200 dark:text-blue-100" : "text-gray-400 dark:text-slate-400"}>
                     {msg.timestampLabel}
                   </span>
                 )}
               </div>
 
               {msg.role === "assistant" && msg.jobResults && msg.jobResults.length > 0 && (
-                <div className="mt-3 rounded-xl border border-[#E0F2FE] bg-[#F8FCFF] p-3">
+                <div className="mt-3 rounded-xl border border-[#E0F2FE] bg-[#F8FCFF] p-3 dark:border-slate-700 dark:bg-slate-900">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0369A1]">
                       Live Job Matches
                     </p>
                     {msg.jobSearchQuery && (
-                      <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#0F172A]">
+                      <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#0F172A] dark:bg-slate-800 dark:text-slate-100">
                         {msg.jobSearchQuery}
                       </span>
                     )}
                     {msg.jobSearchLocation && (
-                      <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#475569]">
+                      <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#475569] dark:bg-slate-800 dark:text-slate-300">
                         {msg.jobSearchLocation}
                       </span>
                     )}
                   </div>
                   <div className="mt-3 space-y-2">
                     {msg.jobResults.slice(0, 5).map((job) => (
-                      <div key={job.job_id} className="rounded-lg border border-[#DBEAFE] bg-white p-3">
+                      <div key={job.job_id} className="rounded-lg border border-[#DBEAFE] bg-white p-3 dark:border-slate-700 dark:bg-slate-800">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className="text-sm font-bold text-[#0F172A]">{job.role}</p>
+                            <p className="text-sm font-bold text-[#0F172A] dark:text-slate-100">{job.role}</p>
                             <p className="text-xs font-semibold text-[#1D4ED8]">{job.company}</p>
                           </div>
                           {typeof job.fit_score === "number" && (
@@ -792,7 +792,7 @@ export function AssistantExperience() {
                             </span>
                           )}
                         </div>
-                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-medium text-[#64748B]">
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-medium text-[#64748B] dark:text-slate-400">
                           {job.location && <span>{job.location}</span>}
                           {job.salary && <span>{job.salary}</span>}
                           {job.source && <span>{job.source}</span>}
@@ -826,22 +826,22 @@ export function AssistantExperience() {
               )}
 
               {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
-                <div className="mt-3 rounded-xl border border-[#DBEAFE] bg-[#F8FBFF] p-3">
+                <div className="mt-3 rounded-xl border border-[#DBEAFE] bg-[#F8FBFF] p-3 dark:border-slate-700 dark:bg-slate-900">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#1D4ED8]">
                     Grounded In Your CV
                   </p>
                   <div className="mt-2 space-y-2">
                     {msg.sources.slice(0, 3).map((source, index) => (
-                      <div key={`${source.section}-${index}`} className="rounded-lg bg-white p-2.5">
+                      <div key={`${source.section}-${index}`} className="rounded-lg bg-white p-2.5 dark:bg-slate-800">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-[#0F172A]">{source.section}</span>
+                          <span className="text-xs font-bold text-[#0F172A] dark:text-slate-100">{source.section}</span>
                           {typeof source.score === "number" && (
-                            <span className="text-[11px] font-semibold text-[#64748B]">
+                            <span className="text-[11px] font-semibold text-[#64748B] dark:text-slate-400">
                               score {source.score.toFixed(2)}
                             </span>
                           )}
                         </div>
-                        <p className="mt-1 line-clamp-3 text-xs leading-5 text-[#475569]">
+                        <p className="mt-1 line-clamp-3 text-xs leading-5 text-[#475569] dark:text-slate-300">
                           {source.text}
                         </p>
                       </div>
@@ -852,8 +852,8 @@ export function AssistantExperience() {
             </div>
 
             {msg.role === "user" && (
-              <div className="grid size-10 shrink-0 place-items-center rounded-full bg-gray-100">
-                <User size={20} className="text-gray-600" />
+              <div className="grid size-10 shrink-0 place-items-center rounded-full bg-gray-100 dark:bg-slate-700">
+                <User size={20} className="text-gray-600 dark:text-slate-200" />
               </div>
             )}
           </div>
@@ -861,13 +861,13 @@ export function AssistantExperience() {
 
         {isLoading && (
           <div className="flex gap-3">
-            <div className="grid size-10 shrink-0 place-items-center rounded-full bg-[#1D4ED8]">
+            <div className="grid size-10 shrink-0 place-items-center rounded-full bg-[#1D4ED8] dark:bg-blue-500">
               <Bot size={20} className="text-white" />
             </div>
-            <div className="flex items-center gap-1.5 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3">
-              <span className="size-2 animate-bounce rounded-full bg-gray-400 [animation-delay:0ms]" />
-              <span className="size-2 animate-bounce rounded-full bg-gray-400 [animation-delay:150ms]" />
-              <span className="size-2 animate-bounce rounded-full bg-gray-400 [animation-delay:300ms]" />
+            <div className="flex items-center gap-1.5 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
+              <span className="size-2 animate-bounce rounded-full bg-gray-400 dark:bg-slate-300 [animation-delay:0ms]" />
+              <span className="size-2 animate-bounce rounded-full bg-gray-400 dark:bg-slate-300 [animation-delay:150ms]" />
+              <span className="size-2 animate-bounce rounded-full bg-gray-400 dark:bg-slate-300 [animation-delay:300ms]" />
             </div>
           </div>
         )}
@@ -877,7 +877,7 @@ export function AssistantExperience() {
 
       {!hasConversationStarted && (
         <div className="mb-3 mt-3">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B]">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B] dark:text-slate-300">
             Start with benchmark prompts
           </p>
           <div className="grid grid-cols-2 gap-2.5">
@@ -903,10 +903,10 @@ export function AssistantExperience() {
                   }
                 }}
                 disabled={!hasCv || isLoading}
-                className="flex items-center gap-2.5 rounded-xl border-2 border-gray-200 bg-white p-3.5 text-left transition hover:border-[#1D4ED8] hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-2.5 rounded-xl border-2 border-gray-200 bg-white p-3.5 text-left transition hover:border-[#1D4ED8] hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-blue-500 dark:hover:bg-slate-700"
               >
                 <action.icon size={18} className="text-[#1D4ED8]" />
-                <span className="text-sm font-bold text-gray-700">{action.label}</span>
+                <span className="text-sm font-bold text-gray-700 dark:text-slate-100">{action.label}</span>
               </button>
             ))}
           </div>
@@ -914,10 +914,10 @@ export function AssistantExperience() {
       )}
 
       <form onSubmit={handleSendMessage} className="mt-3 flex gap-2.5">
-        <div className="flex flex-1 items-center gap-2 rounded-2xl border-2 border-gray-200 bg-white px-3.5 py-2.5 transition focus-within:border-[#1D4ED8] focus-within:ring-2 focus-within:ring-blue-100">
+        <div className="flex flex-1 items-center gap-2 rounded-2xl border-2 border-gray-200 bg-white px-3.5 py-2.5 transition focus-within:border-[#1D4ED8] focus-within:ring-2 focus-within:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:focus-within:border-blue-500 dark:focus-within:ring-blue-950">
           <Sparkles size={18} className="shrink-0 text-[#1D4ED8]" />
           <input
-            className="flex-1 bg-transparent text-base font-medium text-[#111827] outline-none placeholder:text-[#9CA3AF]"
+            className="flex-1 bg-transparent text-base font-medium text-[#111827] outline-none placeholder:text-[#9CA3AF] dark:text-slate-100 dark:placeholder:text-slate-400"
             placeholder="Ask about your CV, or say: find me remote React internships..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
@@ -933,7 +933,7 @@ export function AssistantExperience() {
         </div>
       </form>
 
-      <p className="mt-3 text-center text-xs font-medium text-gray-400">
+      <p className="mt-3 text-center text-xs font-medium text-gray-400 dark:text-slate-400">
         Answers are grounded in your uploaded CV and current session context.
       </p>
 
