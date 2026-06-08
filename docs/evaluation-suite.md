@@ -1,6 +1,6 @@
 # CareerPilot Evaluation Suite
 
-This document gives judges and reviewers a simple evaluation grid for the main CareerPilot flows. Fill in the `Actual Output` and `Pass / Fail` columns during local testing or live demo verification.
+This document gives judges and reviewers a simple evaluation grid for the main CareerPilot flows. The table below reflects manual verification against the current implementation.
 
 ## Test Cases
 
@@ -12,6 +12,7 @@ This document gives judges and reviewers a simple evaluation grid for the main C
 | AI Assistant RAG-Grounded Answer | Ask the assistant a question such as `What backend skills am I missing for these roles?` after CV upload | Response references the uploaded CV context, uses retrieved chunks, and surfaces provider/fallback mode accurately. | Assistant response referenced uploaded CV content, used retrieved context, and returned a grounded answer without inventing profile details outside the CV. | Pass | Manual test confirmed grounded response behavior. |
 | Cover Letter Generation | Open a job context and generate a cover letter | The generated draft references the selected job and the uploaded CV rather than a generic template. | Generated cover letter referenced the selected job context and the user's uploaded CV content instead of returning a generic template-only draft. | Pass | Verified manually from the cover-letter flow. |
 | Tracker / Kanban Update | Save a job to tracker and move it between stages | The application appears in tracker, status changes persist, and the board still reflects the updated state after reload. | Saved application appeared in the tracker, moved correctly across Kanban stages, and remained persisted after reload. | Pass | Manual test confirmed tracker persistence and stage updates. |
+| Calendar and Todo Persistence | Create a deadline and a todo on `/productivity`, then refresh the page | The created deadline and todo remain visible after reload and continue feeding the productivity and dashboard views. | Created calendar deadline and todo remained visible after refresh, appeared in the productivity flow, and continued to feed the related dashboard/productivity summaries. | Pass | Manual test confirmed the working calendar and todo component requirement. |
 
 ## Suggested Manual Inputs
 
