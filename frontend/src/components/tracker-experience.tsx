@@ -196,22 +196,22 @@ export function TrackerExperience() {
 
         {/* AI Nudge */}
         <Reveal>
-          <GlassCard className="flex h-full items-start gap-4 bg-gradient-to-br from-[#EFF6FF] to-white p-5">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+          <GlassCard className="flex h-full items-start gap-4 bg-gradient-to-br from-[#EFF6FF] to-white p-5 dark:from-slate-800 dark:to-slate-900">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm dark:bg-slate-800">
               <MessageSquare size={22} className="text-[#1D4ED8]" />
             </div>
             <div>
               <div className="mb-3 flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-[#1D4ED8]">CareerPilot Insight</span>
+                <span className="text-xs font-semibold uppercase tracking-wide text-[#1D4ED8] dark:text-blue-300">CareerPilot Insight</span>
               </div>
-              <p className="text-base font-medium leading-relaxed text-black">
+              <p className="text-base font-medium leading-relaxed text-black dark:text-slate-100">
                 {totalApplications === 0 
                   ? "Start your journey by adding your first job application. CareerPilot will track your progress and provide insights."
                   : `You have ${totalApplications} active application${totalApplications !== 1 ? 's' : ''}. Keep applying to increase your chances!`}
               </p>
               <div className="mt-3 flex items-center gap-2">
                 <AlertCircle size={14} className="text-blue-500" />
-                <span className="text-sm font-semibold text-blue-600">{weeklyStats.todosCompletedThisWeek} tasks completed this week</span>
+                <span className="text-sm font-semibold text-blue-600 dark:text-blue-300">{weeklyStats.todosCompletedThisWeek} tasks completed this week</span>
               </div>
             </div>
           </GlassCard>
