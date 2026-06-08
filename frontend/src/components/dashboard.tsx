@@ -274,19 +274,19 @@ function WelcomeHero({
           </div>
         </Reveal>
         <Reveal>
-          <h1 className="mb-4 text-[clamp(2.5rem,8vw,5rem)] font-extrabold tracking-tight leading-[0.95] text-black">
+          <h1 className="mb-4 text-[clamp(2.5rem,8vw,5rem)] font-extrabold tracking-tight leading-[0.95] text-black dark:text-slate-100">
             {welcomeInfo.greeting}
           </h1>
         </Reveal>
         <Reveal>
-          <p className="mb-6 max-w-2xl text-xl leading-[1.7] text-[#374151]">
+          <p className="mb-6 max-w-2xl text-xl leading-[1.7] text-[#374151] dark:text-slate-300">
             {welcomeInfo.message}
           </p>
         </Reveal>
         {cvSnapshot && (
           <Reveal>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-medium text-[#374151] shadow-sm">
-              <FileText size={14} className="text-[#1d4ed8]" />
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-medium text-[#374151] shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+              <FileText size={14} className="text-[#1d4ed8] dark:text-blue-300" />
               <span>{cvSnapshot.filename}</span>
             </div>
           </Reveal>
@@ -301,14 +301,14 @@ function WelcomeHero({
             </Link>
             <Link
               href="/upload"
-              className="inline-flex items-center gap-2 rounded-full border-2 border-[#e5e7eb] bg-white px-8 py-4 text-sm font-bold text-black transition-all hover:border-black"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-[#e5e7eb] bg-white px-8 py-4 text-sm font-bold text-black transition-all hover:border-black dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-blue-400"
             >
               Update CV <ArrowRight size={16} />
             </Link>
           </div>
         </Reveal>
         <Reveal>
-          <div className="mt-10 flex items-center gap-6 text-sm text-[#6b7280]">
+          <div className="mt-10 flex items-center gap-6 text-sm text-[#6b7280] dark:text-slate-400">
             <div className="flex items-center gap-2">
               <div className={`size-2 rounded-full ${hasCvUploaded ? "bg-[#10b981]" : "bg-[#9ca3af]"}`} />
               <span>{hasCvUploaded ? "CV Analyzed" : "CV Not Uploaded"}</span>
