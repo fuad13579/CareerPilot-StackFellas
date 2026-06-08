@@ -5,6 +5,7 @@ import { PageShell } from "@/components/motion-shell";
 import { TodoList } from "@/components/todo-list";
 import { DeadlineList } from "@/components/deadline-list";
 import { ProgressWidget } from "@/components/progress-widget";
+import { useTheme } from "@/components/theme-provider";
 import {
   Todo,
   TodoStats,
@@ -90,6 +91,7 @@ function formatLocalDateKey(date: Date) {
 }
 
 export default function ProductivityPage() {
+  const { theme } = useTheme();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [stats, setStats] = useState<TodoStats | null>(null);
@@ -436,7 +438,13 @@ export default function ProductivityPage() {
           </div>
         )}
         <section className="grid gap-4 xl:grid-cols-[1.35fr_.9fr]">
-          <div className="overflow-hidden rounded-[28px] border border-[#D6E4FF] bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,.22),_transparent_34%),linear-gradient(135deg,#EFF6FF_0%,#FFFFFF_48%,#F8FAFC_100%)] p-6 shadow-[0_16px_48px_rgba(29,78,216,.08)] dark:border-slate-700 dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,.18),transparent_34%),linear-gradient(135deg,#172554_0%,#111827_48%,#0F172A_100%)] dark:shadow-none">
+          <div
+            className={`overflow-hidden rounded-[28px] p-6 ${
+              theme === "dark"
+                ? "border border-slate-700 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,.18),transparent_34%),linear-gradient(135deg,#172554_0%,#111827_48%,#0F172A_100%)] shadow-none"
+                : "border border-[#D6E4FF] bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,.22),_transparent_34%),linear-gradient(135deg,#EFF6FF_0%,#FFFFFF_48%,#F8FAFC_100%)] shadow-[0_16px_48px_rgba(29,78,216,.08)]"
+            }`}
+          >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-2xl">
                 <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#1D4ED8] dark:text-blue-300">
@@ -452,7 +460,13 @@ export default function ProductivityPage() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-white/70 bg-white/80 px-4 py-3 text-right shadow-sm dark:border-slate-600 dark:bg-slate-800/90">
+              <div
+                className={`rounded-2xl px-4 py-3 text-right shadow-sm ${
+                  theme === "dark"
+                    ? "border border-slate-600 bg-slate-800/90"
+                    : "border border-white/70 bg-white/80"
+                }`}
+              >
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748B] dark:text-slate-400">
                   This Week
                 </p>
@@ -476,7 +490,11 @@ export default function ProductivityPage() {
                 return (
                   <div
                     key={goal.label}
-                    className="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm dark:border-slate-600 dark:bg-slate-800/90"
+                    className={`rounded-2xl p-4 shadow-sm ${
+                      theme === "dark"
+                        ? "border border-slate-600 bg-slate-800/90"
+                        : "border border-white/70 bg-white/80"
+                    }`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div
