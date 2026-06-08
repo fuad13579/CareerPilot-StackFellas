@@ -68,6 +68,8 @@ interface ApiJobResponse {
   source?: string;
 }
 
+const RESULT_LIMIT = 12;
+
 function inferJobType(apiJob: ApiJobResponse): Job["type"] {
   const role = apiJob.role.toLowerCase();
   const location = (apiJob.location || "").toLowerCase();
@@ -197,6 +199,7 @@ export function JobsExperience() {
   const [cvSkills, setCvSkills] = useState<string[]>(loadCvSkills());
   const [hasCvUploaded, setHasCvUploaded] = useState(hasPersistedCv());
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [totalResults, setTotalResults] = useState<number>(0);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -226,7 +229,7 @@ export function JobsExperience() {
     try {
       const params = new URLSearchParams({
         cv_id: currentCvId,
-        limit: "12",
+        limit: String(RESULT_LIMIT),
       });
 
       if (query && query.trim()) {
@@ -247,6 +250,7 @@ export function JobsExperience() {
       setActiveSource(data.source || null);
       setIsCachedResult(Boolean(data.cached));
       setCacheExpiresAt(data.cache_expires_at || null);
+      setTotalResults(typeof data.total === "number" ? data.total : 0);
       if (data.message) {
         setResultsMessage(data.message);
       }
@@ -277,6 +281,7 @@ export function JobsExperience() {
       setIsCachedResult(false);
       setCacheExpiresAt(null);
       setFitScoresEnabled(false);
+      setTotalResults(0);
     } finally {
       setIsSearching(false);
       setIsInitialLoad(false);
@@ -409,6 +414,16 @@ export function JobsExperience() {
     router.push("/assistant");
   };
 
+  const resultsLabel = isSearching && isInitialLoad
+    ? "Loading jobs..."
+    : jobs.length === 0
+      ? "0 jobs found"
+      : totalResults > jobs.length
+        ? `${jobs.length} of ${totalResults} jobs shown`
+        : jobs.length >= RESULT_LIMIT
+          ? `${jobs.length} jobs shown`
+          : `${jobs.length} jobs found`;
+
   return (
     <div className="space-y-8">
       {/* Search Bar */}
@@ -440,7 +455,7 @@ export function JobsExperience() {
       <div className="flex items-center gap-2">
         <Briefcase size={18} className="text-[#1D4ED8]" />
         <span className="text-sm font-bold text-gray-600 dark:text-slate-300">
-          {isSearching && isInitialLoad ? "Loading jobs..." : `${jobs.length} jobs found`}
+          {resultsLabel}
         </span>
         {isLive && !isSearching && (
           <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
@@ -603,12 +618,12 @@ export function JobsExperience() {
 
               {/* Match Reason — only when we have a CV and computed fit scores */}
               {fitScoresEnabled && (
-                <div className="mt-4 rounded-xl bg-[#F0F9FF] p-4">
+                <div className="mt-4 rounded-xl border border-[#D7EAFE] bg-[#F0F9FF] p-4 dark:border-slate-700 dark:bg-slate-900">
                   <div className="mb-2 flex items-center gap-2">
                     <TrendingUp size={14} className="text-[#1D4ED8]" />
-                    <span className="text-xs font-semibold text-[#1D4ED8]">Why this matches</span>
+                    <span className="text-xs font-semibold text-[#1D4ED8] dark:text-blue-300">Why this matches</span>
                   </div>
-                  <p className="text-sm leading-relaxed text-[#334155] dark:text-slate-300">{job.matchReason}</p>
+                  <p className="text-sm font-medium leading-relaxed text-[#1E293B] dark:text-slate-200">{job.matchReason}</p>
                 </div>
               )}
 

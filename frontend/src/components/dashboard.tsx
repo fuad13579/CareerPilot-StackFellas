@@ -194,7 +194,7 @@ export function DashboardHome() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-[#fafafa] dark:bg-slate-950">
       <WelcomeHero cvSnapshot={cvSnapshot} />
       <main className="space-y-16 pb-16">
         <CVStatusSection cvSnapshot={cvSnapshot} />
