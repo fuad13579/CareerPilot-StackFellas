@@ -27,6 +27,7 @@ import { Reveal, Stagger } from "./motion-shell";
 import { useTracker } from "./tracker-context";
 import { getPersistedCvId, getPersistedCvSummary } from "./cv-storage";
 import { getCareerPilotHeaders } from "./user-storage";
+import type { CalendarEvent } from "@/types/productivity";
 
 interface CvSnapshot {
   filename: string;
@@ -94,6 +95,7 @@ interface TrackerTodoResponse {
 
 export function DashboardHome() {
   const [cvSnapshot, setCvSnapshot] = useState<CvSnapshot | null>(null);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
 
   useEffect(() => {
     const loadSnapshot = () => {
@@ -166,6 +168,31 @@ export function DashboardHome() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCalendarEvents = async () => {
+      try {
+        const response = await fetch("/api/calendar/events", {
+          headers: getCareerPilotHeaders(),
+        });
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (cancelled || !Array.isArray(data)) return;
+        setCalendarEvents(data);
+      } catch (error) {
+        console.error("Failed to load calendar events:", error);
+      }
+    };
+
+    void loadCalendarEvents();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#fafafa]">
       <WelcomeHero cvSnapshot={cvSnapshot} />
@@ -174,9 +201,9 @@ export function DashboardHome() {
         <QuickStatsSection cvSnapshot={cvSnapshot} />
         <RecommendedJobsSection />
         <ApplicationTrackerSection />
-        <UpcomingTasksSection />
+        <UpcomingTasksSection events={calendarEvents} />
         <LiveLearningRoadmapSection cvSnapshot={cvSnapshot} />
-        <AINudgesSection />
+        <AINudgesSection events={calendarEvents} />
         <LiveSkillsToImproveSection cvSnapshot={cvSnapshot} />
       </main>
     </div>
@@ -955,9 +982,11 @@ function ApplicationTrackerSection() {
   );
 }
 
-function UpcomingTasksSection() {
-  const { getPendingTodos, toggleTodo } = useTracker();
-  const pendingTodos = getPendingTodos().slice(0, 4);
+function UpcomingTasksSection({ events }: { events: CalendarEvent[] }) {
+  const upcomingEvents = [...events]
+    .filter((event) => startOfDay(parseStoredDate(event.event_date)).getTime() >= startOfDay(new Date()).getTime())
+    .sort((a, b) => parseStoredDate(a.event_date).getTime() - parseStoredDate(b.event_date).getTime())
+    .slice(0, 4);
 
   return (
     <section className="relative">
@@ -965,44 +994,35 @@ function UpcomingTasksSection() {
         <SectionHeader
           eyebrow="Tasks"
           title="Upcoming Deadlines"
-          description="Career tasks and deadlines to keep you on track."
+          description="Real calendar deadlines from your productivity workspace."
         />
         <Stagger className="max-w-2xl">
-          {pendingTodos.map((task) => (
-            <Reveal key={task.id}>
-              <div className="flex items-center gap-4 rounded-2xl border border-[#e5e7eb] bg-white p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-                <div className={`flex size-10 shrink-0 items-center justify-center rounded-full ${
-                  task.priority === "high" ? "bg-red-100" :
-                  task.priority === "medium" ? "bg-yellow-100" :
-                  "bg-gray-100"
-                }`}>
-                  <Calendar size={18} className={
-                    task.priority === "high" ? "text-red-600" :
-                    task.priority === "medium" ? "text-yellow-600" :
-                    "text-gray-600"
-                  } />
+          {upcomingEvents.map((event) => {
+            const daysUntil = getDaysUntilLabel(event.event_date);
+            return (
+              <Reveal key={event.id}>
+                <div className="flex items-center gap-4 rounded-2xl border border-[#e5e7eb] bg-white p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                    <Calendar size={18} className="text-[#1d4ed8]" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-black">{event.title}</p>
+                    <p className="text-xs text-[#6b7280]">
+                      Due: {formatDashboardDate(event.event_date)}
+                      {event.description ? ` | ${event.description}` : ""}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-[#1d4ed8]">
+                    {daysUntil}
+                  </span>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-black">{task.task}</p>
-                  <p className="text-xs text-[#6b7280]">Due: {task.due}</p>
-                </div>
-                <button
-                  onClick={() => toggleTodo(task.id)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
-                    task.priority === "high" ? "bg-red-100 text-red-700 hover:bg-red-200" :
-                    task.priority === "medium" ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200" :
-                    "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  Complete
-                </button>
-              </div>
-            </Reveal>
-          ))}
-          {pendingTodos.length === 0 && (
+              </Reveal>
+            );
+          })}
+          {upcomingEvents.length === 0 && (
             <Reveal>
               <div className="flex items-center justify-center rounded-2xl border border-[#e5e7eb] bg-white p-8">
-                <p className="text-sm text-[#6b7280]">No pending tasks. Great job!</p>
+                <p className="text-sm text-[#6b7280]">No upcoming calendar deadlines yet.</p>
               </div>
             </Reveal>
           )}
@@ -1012,10 +1032,15 @@ function UpcomingTasksSection() {
   );
 }
 
-function AINudgesSection() {
+function AINudgesSection({ events }: { events: CalendarEvent[] }) {
   const { state, getWeeklyStats } = useTracker();
   const { applications, todos } = state;
   const weeklyStats = getWeeklyStats();
+  const pendingTodos = todos.filter((todo) => !todo.completed);
+  const upcomingEvents = [...events]
+    .filter((event) => startOfDay(parseStoredDate(event.event_date)).getTime() >= startOfDay(new Date()).getTime())
+    .sort((a, b) => parseStoredDate(a.event_date).getTime() - parseStoredDate(b.event_date).getTime());
+  const nextEvent = upcomingEvents[0];
 
   // Generate dynamic AI nudges based on state
   const aiNudges = [
@@ -1030,9 +1055,11 @@ function AINudgesSection() {
     },
     {
       type: "suggestion",
-      message: applications.filter(a => a.status === "Rejected").length > 0
-        ? "Keep pushing! Each rejection brings you closer to the right opportunity."
-        : "You've received positive responses on some applications. Keep the momentum going!",
+      message: nextEvent
+        ? `Your next deadline is ${nextEvent.title} on ${formatDashboardDate(nextEvent.event_date)}. Plan around it now.`
+        : applications.filter(a => a.status === "Rejected").length > 0
+          ? "Keep pushing! Each rejection brings you closer to the right opportunity."
+          : "You've received positive responses on some applications. Keep the momentum going!",
       icon: Lightbulb,
       color: "text-[#f59e0b]",
       bg: "bg-amber-50",
@@ -1040,7 +1067,7 @@ function AINudgesSection() {
     {
       type: "reminder",
       message: weeklyStats.todosCompletedThisWeek < 3
-        ? `You have ${todos.filter(t => !t.completed).length} pending tasks. Complete them to stay on track!`
+        ? `You have ${pendingTodos.length} pending tasks${nextEvent ? ` and ${upcomingEvents.length} tracked deadline${upcomingEvents.length === 1 ? "" : "s"}` : ""}. Complete them to stay on track!`
         : "Excellent work on completing tasks this week! You're building strong habits.",
       icon: Clock,
       color: "text-[#3b82f6]",
@@ -1400,6 +1427,43 @@ function normalizeSkills(skills: string[]) {
   return new Set(skills.map((skill) => skill.trim().toLowerCase()).filter(Boolean));
 }
 
+function parseStoredDate(value: string) {
+  const normalized = value.trim();
+  const dateOnlyMatch = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) {
+    return new Date();
+  }
+
+  return parsed;
+}
+
+function startOfDay(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+}
+
+function formatDashboardDate(value: string) {
+  return parseStoredDate(value).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function getDaysUntilLabel(value: string) {
+  const today = startOfDay(new Date());
+  const target = startOfDay(parseStoredDate(value));
+  const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 0) return diffDays === 0 ? "Today" : "Past due";
+  if (diffDays === 1) return "1 day left";
+  return `${diffDays} days left`;
+}
+
 function normalizeSkillLabel(skill: string) {
   return skill
     .trim()
@@ -1471,3 +1535,4 @@ function collectMissingApplicationSkills(
   }
   return Array.from(missing);
 }
+
