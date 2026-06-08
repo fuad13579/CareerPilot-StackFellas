@@ -11,7 +11,10 @@ TABLE_COLUMNS = [
     ("applications", "job_description", "TEXT"),
     ("applications", "required_skills", "TEXT"),
     ("todos", "anonymous_user_id", "VARCHAR(64)"),
+    ("todos", "linked_type", "VARCHAR(50)"),
+    ("todos", "linked_id", "INTEGER"),
     ("calendar_events", "anonymous_user_id", "VARCHAR(64)"),
+    ("calendar_events", "linked_type", "VARCHAR(50)"),
     ("assistant_sessions", "anonymous_user_id", "VARCHAR(64)"),
 ]
 

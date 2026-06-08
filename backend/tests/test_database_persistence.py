@@ -5,9 +5,42 @@ from fastapi.testclient import TestClient
 
 from app.database import DATABASE_PATH, SessionLocal
 from app.main import app
-from app.models.database_models import AssistantSession
+from app.models.database_models import AssistantSession, CVProfile
 
 client = TestClient(app)
+TEST_USER_ID = "test-db-user"
+TEST_HEADERS = {"x-careerpilot-user-id": TEST_USER_ID}
+TEST_CV_ID = "test-cv-id"
+
+
+def ensure_test_cv_profile() -> None:
+    """Seed a CVProfile row that belongs to the test user for assistant tests."""
+    db = SessionLocal()
+    try:
+        existing = (
+            db.query(CVProfile)
+            .filter(
+                CVProfile.cv_id == TEST_CV_ID,
+                CVProfile.anonymous_user_id == TEST_USER_ID,
+            )
+            .first()
+        )
+        if existing:
+            return
+
+        db.add(
+            CVProfile(
+                anonymous_user_id=TEST_USER_ID,
+                cv_id=TEST_CV_ID,
+                filename="test-cv.pdf",
+                file_type="pdf",
+                file_path="tests/fixtures/test-cv.pdf",
+                processed_text_path="tests/fixtures/test-cv.txt",
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
 
 
 class TestHealthEndpoint:
@@ -43,12 +76,13 @@ class TestApplicationTrackerPersistence:
                 "job_url": "https://example.com/job",
                 "notes": "Testing tracker database persistence",
             },
+            headers=TEST_HEADERS,
         )
         assert response.status_code in (200, 201)
 
     def test_get_applications_returns_200(self):
         """Test getting all applications returns 200 status."""
-        response = client.get("/api/tracker/applications")
+        response = client.get("/api/tracker/applications", headers=TEST_HEADERS)
         assert response.status_code == 200
 
     def test_created_application_in_response(self):
@@ -63,11 +97,12 @@ class TestApplicationTrackerPersistence:
                 "status": "Saved",
                 "fit_score": 70,
             },
+            headers=TEST_HEADERS,
         )
         assert create_response.status_code in (200, 201)
         created_data = create_response.json()
 
-        get_response = client.get("/api/tracker/applications")
+        get_response = client.get("/api/tracker/applications", headers=TEST_HEADERS)
         assert get_response.status_code == 200
         applications = get_response.json()
         assert isinstance(applications, list)
@@ -84,6 +119,7 @@ class TestApplicationTrackerPersistence:
                 "company": "Stack Company",
                 "status": "Applied",
             },
+            headers=TEST_HEADERS,
         )
         assert response.status_code in (200, 201)
         data = response.json()
@@ -100,6 +136,7 @@ class TestApplicationTrackerPersistence:
                 "company": "Cloud Corp",
                 "status": "Interviewing",
             },
+            headers=TEST_HEADERS,
         )
         assert response.status_code in (200, 201)
         data = response.json()
@@ -119,6 +156,7 @@ class TestTrackerStatusUpdate:
                 "company": "Data Inc",
                 "status": "Applied",
             },
+            headers=TEST_HEADERS,
         )
         assert create_response.status_code in (200, 201)
         created = create_response.json()
@@ -126,6 +164,7 @@ class TestTrackerStatusUpdate:
         update_response = client.patch(
             f"/api/tracker/applications/{created['id']}/status",
             json={"status": "Interviewing"},
+            headers=TEST_HEADERS,
         )
         assert update_response.status_code == 200
 
@@ -139,6 +178,7 @@ class TestTrackerStatusUpdate:
                 "company": "ML Corp",
                 "status": "Applied",
             },
+            headers=TEST_HEADERS,
         )
         assert create_response.status_code in (200, 201)
         created = create_response.json()
@@ -146,6 +186,7 @@ class TestTrackerStatusUpdate:
         update_response = client.patch(
             f"/api/tracker/applications/{created['id']}/status",
             json={"status": "Interviewing"},
+            headers=TEST_HEADERS,
         )
         assert update_response.status_code == 200
         data = update_response.json()
@@ -161,6 +202,7 @@ class TestTrackerStatusUpdate:
                 "company": "Backend Inc",
                 "status": "Applied",
             },
+            headers=TEST_HEADERS,
         )
         assert create_response.status_code in (200, 201)
         created = create_response.json()
@@ -168,9 +210,10 @@ class TestTrackerStatusUpdate:
         client.patch(
             f"/api/tracker/applications/{created['id']}/status",
             json={"status": "Rejected"},
+            headers=TEST_HEADERS,
         )
 
-        get_response = client.get("/api/tracker/applications")
+        get_response = client.get("/api/tracker/applications", headers=TEST_HEADERS)
         applications = get_response.json()
         updated_app = next(
             (app for app in applications if app["id"] == created["id"]), None
@@ -191,12 +234,13 @@ class TestTodoPersistence:
                 "description": "Use CareerPilot job search results",
                 "due_date": "2026-06-01",
             },
+            headers=TEST_HEADERS,
         )
         assert response.status_code in (200, 201)
 
     def test_get_todos_returns_200(self):
         """Test getting all todos returns 200 status."""
-        response = client.get("/api/todos")
+        response = client.get("/api/todos", headers=TEST_HEADERS)
         assert response.status_code == 200
 
     def test_created_todo_in_response(self):
@@ -207,9 +251,10 @@ class TestTodoPersistence:
                 "title": "Review job application",
                 "description": "Follow up on Backend Engineer position",
             },
+            headers=TEST_HEADERS,
         )
 
-        response = client.get("/api/todos")
+        response = client.get("/api/todos", headers=TEST_HEADERS)
         assert response.status_code == 200
         todos = response.json()
         assert isinstance(todos, list)
@@ -223,6 +268,7 @@ class TestTodoPersistence:
                 "title": "Prepare for interview",
                 "description": "Review algorithms and system design",
             },
+            headers=TEST_HEADERS,
         )
         assert response.status_code in (200, 201)
         data = response.json()
@@ -236,6 +282,7 @@ class TestTodoPersistence:
                 "title": "Update CV",
                 "description": "Add recent project experience",
             },
+            headers=TEST_HEADERS,
         )
         assert response.status_code in (200, 201)
         data = response.json()
@@ -255,12 +302,13 @@ class TestCalendarEventPersistence:
                 "event_date": "2026-06-01",
                 "related_application_id": None,
             },
+            headers=TEST_HEADERS,
         )
         assert response.status_code in (200, 201)
 
     def test_get_events_returns_200(self):
         """Test getting all calendar events returns 200 status."""
-        response = client.get("/api/calendar/events")
+        response = client.get("/api/calendar/events", headers=TEST_HEADERS)
         assert response.status_code == 200
 
     def test_created_event_in_response(self):
@@ -272,9 +320,10 @@ class TestCalendarEventPersistence:
                 "description": "Coding assessment",
                 "event_date": "2026-06-15",
             },
+            headers=TEST_HEADERS,
         )
 
-        response = client.get("/api/calendar/events")
+        response = client.get("/api/calendar/events", headers=TEST_HEADERS)
         assert response.status_code == 200
         events = response.json()
         assert isinstance(events, list)
@@ -289,6 +338,7 @@ class TestCalendarEventPersistence:
                 "description": "Phone interview with recruiter",
                 "event_date": "2026-06-20",
             },
+            headers=TEST_HEADERS,
         )
         assert response.status_code in (200, 201)
         data = response.json()
@@ -302,6 +352,7 @@ class TestCalendarEventPersistence:
                 "title": "Onsite interview",
                 "event_date": "2026-07-01",
             },
+            headers=TEST_HEADERS,
         )
         assert response.status_code in (200, 201)
         data = response.json()
@@ -323,15 +374,17 @@ class TestAssistantSessionPersistence:
     def test_assistant_query_stores_message_in_database(self):
         """Test that assistant query stores a message row in the database."""
         session_id = "test-session-persistence-001"
+        ensure_test_cv_profile()
 
         # Send first assistant query
         response = client.post(
             "/api/assistant/query",
             json={
-                "cv_id": "test-cv-id",
+                "cv_id": TEST_CV_ID,
                 "session_id": session_id,
                 "question": "What are my strongest skills?",
             },
+            headers=TEST_HEADERS,
         )
         assert response.status_code == 200
 
@@ -350,15 +403,17 @@ class TestAssistantSessionPersistence:
     def test_assistant_query_stores_multiple_messages_for_same_session(self):
         """Test that multiple queries with same session_id store multiple rows."""
         session_id = "test-session-persistence-002"
+        ensure_test_cv_profile()
 
         # Send first query
         response1 = client.post(
             "/api/assistant/query",
             json={
-                "cv_id": "test-cv-id",
+                "cv_id": TEST_CV_ID,
                 "session_id": session_id,
                 "question": "Tell me about my skills",
             },
+            headers=TEST_HEADERS,
         )
         assert response1.status_code == 200
 
@@ -366,10 +421,11 @@ class TestAssistantSessionPersistence:
         response2 = client.post(
             "/api/assistant/query",
             json={
-                "cv_id": "test-cv-id",
+                "cv_id": TEST_CV_ID,
                 "session_id": session_id,
                 "question": "What about my experience?",
             },
+            headers=TEST_HEADERS,
         )
         assert response2.status_code == 200
 
@@ -394,14 +450,16 @@ class TestAssistantSessionPersistence:
     def test_assistant_query_stores_user_and_assistant_messages(self):
         """Test that both user and assistant messages are stored with correct roles."""
         session_id = "test-session-persistence-003"
+        ensure_test_cv_profile()
 
         response = client.post(
             "/api/assistant/query",
             json={
-                "cv_id": "test-cv-id",
+                "cv_id": TEST_CV_ID,
                 "session_id": session_id,
                 "question": "What is my background?",
             },
+            headers=TEST_HEADERS,
         )
         assert response.status_code == 200
 
@@ -432,13 +490,15 @@ class TestAssistantSessionPersistence:
 
     def test_assistant_response_contains_answer(self):
         """Test assistant response contains an answer field."""
+        ensure_test_cv_profile()
         response = client.post(
             "/api/assistant/query",
             json={
-                "cv_id": "test-cv-id",
+                "cv_id": TEST_CV_ID,
                 "session_id": "test-session-db-2",
                 "question": "Tell me about my experience",
             },
+            headers=TEST_HEADERS,
         )
         assert response.status_code == 200
         data = response.json()

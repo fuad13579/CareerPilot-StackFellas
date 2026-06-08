@@ -22,6 +22,25 @@ interface DeadlineListProps {
   linkedApplications?: JobApplication[];
 }
 
+function getStoredDateKey(dateLike: string | null | undefined) {
+  if (!dateLike) return "";
+  const normalized = dateLike.trim();
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `${match[1]}-${match[2]}-${match[3]}` : "";
+}
+
+function parseStoredDate(dateLike: string) {
+  const key = getStoredDateKey(dateLike);
+  if (key) {
+    const [year, month, day] = key.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  const parsed = new Date(dateLike);
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
+}
+
 export function DeadlineList({
   events,
   onCreate,
@@ -88,14 +107,14 @@ export function DeadlineList({
   };
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+    const date = parseStoredDate(dateStr);
     return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   };
 
   const getDaysUntil = (dateStr: string) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const eventDate = new Date(dateStr);
+    const eventDate = parseStoredDate(dateStr);
     eventDate.setHours(0, 0, 0, 0);
     return Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   };
@@ -114,7 +133,7 @@ export function DeadlineList({
   };
 
   const sortedEvents = [...events].sort(
-    (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
+    (a, b) => parseStoredDate(a.event_date).getTime() - parseStoredDate(b.event_date).getTime()
   );
 
   const linkedApplicationMap = new Map(

@@ -47,18 +47,46 @@ function startOfDay(date: Date) {
   return next;
 }
 
+function getStoredDateKey(dateLike: string | null | undefined) {
+  if (!dateLike) return "";
+  const normalized = dateLike.trim();
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `${match[1]}-${match[2]}-${match[3]}` : "";
+}
+
+function parseStoredDate(dateLike: string | Date) {
+  if (dateLike instanceof Date) {
+    return startOfDay(dateLike);
+  }
+
+  const key = getStoredDateKey(dateLike);
+  if (key) {
+    const [year, month, day] = key.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  return startOfDay(new Date(dateLike));
+}
+
 function isWithinNextDays(dateLike: string, days: number) {
   const today = startOfDay(new Date());
-  const target = startOfDay(new Date(dateLike));
+  const target = startOfDay(parseStoredDate(dateLike));
   const diff = target.getTime() - today.getTime();
   return diff >= 0 && diff <= days * 24 * 60 * 60 * 1000;
 }
 
 function formatShortDate(dateLike: string | Date) {
-  return new Date(dateLike).toLocaleDateString("en-US", {
+  return parseStoredDate(dateLike).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
   });
+}
+
+function formatLocalDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export default function ProductivityPage() {
@@ -250,10 +278,19 @@ export default function ProductivityPage() {
         const updatedEvents = events.filter((e) => e.id !== id);
         setEvents(updatedEvents);
       } else {
-        throw new Error("Failed to delete event");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          typeof errorData?.detail === "string" && errorData.detail
+            ? errorData.detail
+            : "Failed to delete event"
+        );
       }
-    } catch {
-      setError("Could not delete event because the backend is unavailable.");
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? `Could not delete event: ${error.message}`
+          : "Could not delete event because the backend is unavailable."
+      );
     }
   };
 
@@ -287,14 +324,14 @@ export default function ProductivityPage() {
   const overdueTodos = pendingTodos.filter(
     (todo) =>
       todo.due_date &&
-      startOfDay(new Date(todo.due_date)).getTime() < today.getTime()
+      startOfDay(parseStoredDate(todo.due_date)).getTime() < today.getTime()
   ).length;
   const upcomingEvents = [...events]
     .filter(
-      (event) => startOfDay(new Date(event.event_date)).getTime() >= today.getTime()
+      (event) => startOfDay(parseStoredDate(event.event_date)).getTime() >= today.getTime()
     )
     .sort(
-      (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
+      (a, b) => parseStoredDate(a.event_date).getTime() - parseStoredDate(b.event_date).getTime()
     );
   const upcomingThisWeek = upcomingEvents.filter((event) =>
     isWithinNextDays(event.event_date, 7)
@@ -345,9 +382,9 @@ export default function ProductivityPage() {
   const calendarDays = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(today);
     date.setDate(today.getDate() + index);
-    const iso = date.toISOString().slice(0, 10);
-    const dayEvents = events.filter((event) => event.event_date.slice(0, 10) === iso);
-    const dayTodos = pendingTodos.filter((todo) => todo.due_date?.slice(0, 10) === iso);
+    const iso = formatLocalDateKey(date);
+    const dayEvents = events.filter((event) => getStoredDateKey(event.event_date) === iso);
+    const dayTodos = pendingTodos.filter((todo) => getStoredDateKey(todo.due_date) === iso);
     return {
       iso,
       label: date.toLocaleDateString("en-US", { weekday: "short" }),
