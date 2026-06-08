@@ -167,6 +167,17 @@ Activate the virtual environment, then:
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+macOS / Linux:
+
+```bash
 cp .env.example .env
 ```
 
@@ -175,6 +186,17 @@ cp .env.example .env
 ```bash
 cd ../frontend
 npm install
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+macOS / Linux:
+
+```bash
 cp .env.example .env.local
 ```
 
@@ -238,6 +260,11 @@ pytest -q
 curl http://127.0.0.1:8000/health
 curl http://127.0.0.1:8000/api/health/providers
 ```
+
+Note:
+
+- the backend is a Python API service, so there is no separate frontend-style build step
+- `uvicorn` is the runtime entrypoint
 
 ## Common Setup Errors
 
@@ -308,6 +335,16 @@ Fix:
 
 - ensure the embedding model can load locally
 - confirm RAG status in the UI or via the RAG status endpoint
+
+## Storage and Persistence Notes
+
+The repository is intentionally local-first:
+
+- SQLite stores tracker, todo, calendar, assistant-session, and cache data
+- uploaded CV files and processed artifacts are stored under `backend/app/storage/`
+- vector metadata and embedding arrays are stored on local disk, not in a managed vector database
+
+This is suitable for a hackathon MVP and easy local reproduction, but it is a known limitation for larger-scale deployment.
 
 ## Judge Quick Start
 

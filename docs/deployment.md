@@ -56,8 +56,8 @@ cd CareerPilot-StackFellas
 Update an existing checkout:
 
 ```bash
-cd CareerPilot-StackFellas
-git pull
+cd /home/azureuser/CareerPilot-StackFellas
+git pull origin main
 ```
 
 ### Python virtual environment setup
@@ -133,6 +133,7 @@ Current public backend endpoints:
 
 - `http://104.211.90.209:8000/health`
 - `http://104.211.90.209:8000/docs`
+- `http://104.211.90.209:8000/api/health/providers`
 
 Direct backend-only endpoints on the VM:
 
@@ -206,6 +207,17 @@ If the backend IP or domain changes:
 3. Trigger a redeploy
 
 Without that update, the frontend proxy routes will continue forwarding to the old backend.
+
+## Cost Safety Notes
+
+This deployment shape is intentionally simple, but VM costs continue even when demo traffic is low.
+
+Recommended hygiene:
+
+- deallocate or stop the VM when it is no longer needed
+- delete unused managed disks and public IP resources
+- keep only one demo VM running for the hackathon submission unless load testing requires more
+- prefer the smallest VM size that can still run FastAPI, SQLite, and the local embedding path reliably
 
 ## Current Deployment Reality
 

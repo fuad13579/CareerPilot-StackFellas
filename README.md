@@ -160,6 +160,17 @@ Install dependencies and create env file:
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+macOS / Linux:
+
+```bash
 cp .env.example .env
 ```
 
@@ -168,6 +179,17 @@ cp .env.example .env
 ```bash
 cd frontend
 npm install
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+macOS / Linux:
+
+```bash
 cp .env.example .env.local
 ```
 
@@ -298,3 +320,4 @@ All final architecture decisions, feature selection, code review, integration, t
 - [docs/evaluation-suite.md](docs/evaluation-suite.md)
 - [docs/demo-runbook.md](docs/demo-runbook.md)
 - [docs/deployment.md](docs/deployment.md)
+- [docs/API.md](docs/API.md)
