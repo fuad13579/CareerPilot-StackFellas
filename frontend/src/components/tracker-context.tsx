@@ -142,6 +142,16 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     anonymousUserIdRef.current = userId;
 
     const hydrate = async () => {
+      let cachedState: Partial<TrackerState> | null = null;
+      try {
+        const stored = localStorage.getItem(getTrackerStorageKey(userId));
+        if (stored) {
+          cachedState = JSON.parse(stored) as Partial<TrackerState>;
+        }
+      } catch (cacheError) {
+        console.error("Failed to read tracker cache:", cacheError);
+      }
+
       try {
         const headers = getCareerPilotHeaders();
         const [applicationsResponse, todosResponse] = await Promise.all([
@@ -151,24 +161,32 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
 
         const applications: TrackerApplicationResponse[] = applicationsResponse.ok ? await applicationsResponse.json() : [];
         const todos: TrackerTodoResponse[] = todosResponse.ok ? await todosResponse.json() : [];
+        const cachedApplicationsById = new Map(
+          Array.isArray(cachedState?.applications)
+            ? cachedState.applications.map((app) => [String(app.id), app] as const)
+            : []
+        );
 
         setState((prev) => ({
           ...prev,
           applications: Array.isArray(applications)
-            ? applications.map((app) => ({
-                id: String(app.id),
-                role: app.role,
-                company: app.company,
-                location: app.location || "",
-                jobDescription: app.job_description || "",
-                fitScore: Number(app.fit_score || 0),
-                deadline: app.deadline || "",
-                nextAction: app.next_action || app.notes || "Follow up with recruiter",
-                requiredSkills: Array.isArray(app.required_skills) ? app.required_skills : [],
-                jobUrl: app.job_url || "",
-                status: app.status,
-                appliedDate: app.created_at || new Date().toISOString(),
-              }))
+            ? applications.map((app) => {
+                const cachedApp = cachedApplicationsById.get(String(app.id));
+                return {
+                  id: String(app.id),
+                  role: app.role,
+                  company: app.company,
+                  location: app.location || "",
+                  jobDescription: app.job_description || "",
+                  fitScore: Number(app.fit_score || 0),
+                  deadline: app.deadline || "",
+                  nextAction: app.next_action || app.notes || "Follow up with recruiter",
+                  requiredSkills: Array.isArray(app.required_skills) ? app.required_skills : [],
+                  jobUrl: app.job_url || "",
+                  status: cachedApp?.status || app.status,
+                  appliedDate: app.created_at || new Date().toISOString(),
+                };
+              })
             : [],
           todos: Array.isArray(todos)
             ? todos.map((todo) => ({
@@ -183,6 +201,8 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
                 createdAt: todo.created_at || new Date().toISOString(),
               }))
             : [],
+          skills: Array.isArray(cachedState?.skills) ? cachedState.skills : prev.skills,
+          roadmap: Array.isArray(cachedState?.roadmap) ? cachedState.roadmap : prev.roadmap,
         }));
         setDataSource("backend");
       } catch (error) {
@@ -193,13 +213,13 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         // namespaced by anonymousUserId, so two demo users on the same browser
         // do not see each other's data.
         try {
-          const stored = localStorage.getItem(getTrackerStorageKey(userId));
-          if (stored) {
-            const parsed = JSON.parse(stored);
+          if (cachedState) {
             setState((prev) => ({
               ...prev,
-              applications: Array.isArray(parsed?.applications) ? parsed.applications : prev.applications,
-              todos: Array.isArray(parsed?.todos) ? parsed.todos : prev.todos,
+              applications: Array.isArray(cachedState?.applications) ? cachedState.applications : prev.applications,
+              todos: Array.isArray(cachedState?.todos) ? cachedState.todos : prev.todos,
+              skills: Array.isArray(cachedState?.skills) ? cachedState.skills : prev.skills,
+              roadmap: Array.isArray(cachedState?.roadmap) ? cachedState.roadmap : prev.roadmap,
             }));
             setDataSource("local_fallback");
           }

@@ -6,6 +6,47 @@ CareerPilot is an agentic career co-pilot for CodeSprint 2026. A user uploads a 
 
 Job seekers usually juggle separate tools for resumes, job boards, cover letters, and tracking. CareerPilot makes the uploaded CV the source of truth so search, fit analysis, assistant responses, and tracking all stay connected.
 
+## Product Pillars
+
+### Pillar 1 - Job Hunter Agent
+
+CareerPilot searches live job sources, filters results against the user's query and uploaded CV, and presents ranked opportunities for fast decision-making.
+
+- Input: natural-language search such as `Find me ML internships in Dhaka open this month`
+- Output: structured job cards with role, company, salary, deadline, location, and fit score
+- Grounding: fit reasoning is tied to the uploaded CV through matched and missing skills rather than generic AI text
+- Future improvements: more job sources, stronger date and geography filtering, richer salary normalization, and better personalized ranking
+
+### Pillar 2 - Profile & Resume Intelligence (RAG Core)
+
+The uploaded CV is the system's source of truth. CareerPilot extracts text from PDF and DOCX files, splits it into semantic sections, and builds a local retrieval index used by downstream features.
+
+- CV ingestion: PDF and DOCX upload with extraction of skills, experience, education, projects, and raw text
+- Retrieval layer: CV sections are embedded and stored in a local vector index for assistant and cover-letter retrieval
+- Downstream use: job fit scoring, assistant answers, and cover-letter generation are grounded in the uploaded profile
+- Future improvements: an in-platform resume builder, stronger CV parsing for messy layouts, and managed vector storage such as `pgvector` or Qdrant
+
+### Pillar 3 - Personal AI Assistant
+
+CareerPilot includes a conversational assistant that uses uploaded CV context, retrieved profile evidence, and optional job context to answer readiness questions and generate career artifacts.
+
+- Readiness questions: supports prompts such as `Am I ready for this data engineer role?` using CV context plus job context
+- Skill-gap guidance: highlights missing skills relative to selected jobs and tracked applications
+- Career support: can help with roadmap-style coaching and next-step guidance through hosted-model and fallback modes
+- Cover letters: drafts personalized letters that reference actual CV content and the target job
+- Future improvements: benchmark role profiles by company, curated learning-resource recommendations, deeper long-term memory, and stronger proactive coaching
+
+### Pillar 4 - Productivity & Progress Tracker
+
+CareerPilot adds day-to-day accountability tools so the platform stays useful after the initial search.
+
+- Calendar and todos: deadline planning, todo management, and a 7-day calendar-style view linked to career activity
+- Goal setting: weekly targets such as application counts and deadline completion
+- Application tracker: persistent Kanban workflow across `Applied`, `Interviewing`, `Offer`, and `Rejected`
+- Progress dashboard: application counts, todo progress, derived roadmap progress, and tracker summaries
+- AI-style nudges: heuristic reminders based on applications, deadlines, and weekly activity
+- Future improvements: full monthly calendar views, streak tracking, application status history, and proactive nudges tied to real matching jobs
+
 ## Key Features
 
 - CV upload with PDF and DOCX support
@@ -228,6 +269,7 @@ Demo script: [docs/demo-runbook.md](docs/demo-runbook.md)
 
 ## Future Improvements
 
+- In-platform CV builder for users who want to create or edit resumes directly inside CareerPilot
 - PostgreSQL instead of SQLite
 - Azure Blob Storage or similar for CV and derived artifacts
 - Managed vector database or `pgvector`
