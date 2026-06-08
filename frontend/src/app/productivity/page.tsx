@@ -412,30 +412,30 @@ export default function ProductivityPage() {
           </div>
         )}
         <section className="grid gap-4 xl:grid-cols-[1.35fr_.9fr]">
-          <div className="overflow-hidden rounded-[28px] border border-[#D6E4FF] bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,.22),_transparent_34%),linear-gradient(135deg,#EFF6FF_0%,#FFFFFF_48%,#F8FAFC_100%)] p-6 shadow-[0_16px_48px_rgba(29,78,216,.08)]">
+          <div className="overflow-hidden rounded-[28px] border border-[#D6E4FF] bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,.22),_transparent_34%),linear-gradient(135deg,#EFF6FF_0%,#FFFFFF_48%,#F8FAFC_100%)] p-6 shadow-[0_16px_48px_rgba(29,78,216,.08)] dark:border-slate-700 dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,.18),transparent_34%),linear-gradient(135deg,#172554_0%,#111827_48%,#0F172A_100%)] dark:shadow-none">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-2xl">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#1D4ED8]">
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#1D4ED8] dark:text-blue-300">
                   Weekly Command Center
                 </p>
-                <h2 className="mt-2 text-3xl font-extrabold tracking-[-0.03em] text-[#0F172A]">
+                <h2 className="mt-2 text-3xl font-extrabold tracking-[-0.03em] text-[#0F172A] dark:text-slate-100">
                   Turn career goals into scheduled action.
                 </h2>
-                <p className="mt-3 text-sm font-medium leading-7 text-[#475569]">
+                <p className="mt-3 text-sm font-medium leading-7 text-[#475569] dark:text-slate-300">
                   This page now maps more directly to the problem statement:
                   calendar planning, weekly goal setting, and AI-style accountability nudges
                   tied to your real tasks and applications.
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-white/70 bg-white/80 px-4 py-3 text-right shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748B]">
+              <div className="rounded-2xl border border-white/70 bg-white/80 px-4 py-3 text-right shadow-sm dark:border-slate-600 dark:bg-slate-800/90">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748B] dark:text-slate-400">
                   This Week
                 </p>
-                <p className="mt-1 text-3xl font-extrabold text-[#0F172A]">
+                <p className="mt-1 text-3xl font-extrabold text-[#0F172A] dark:text-slate-100">
                   {weeklyApplications}
                 </p>
-                <p className="text-sm font-medium text-[#64748B]">
+                <p className="text-sm font-medium text-[#64748B] dark:text-slate-300">
                   applications submitted
                 </p>
               </div>
@@ -452,7 +452,7 @@ export default function ProductivityPage() {
                 return (
                   <div
                     key={goal.label}
-                    className="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm"
+                    className="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm dark:border-slate-600 dark:bg-slate-800/90"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div
@@ -460,13 +460,13 @@ export default function ProductivityPage() {
                       >
                         <Icon className="h-5 w-5" />
                       </div>
-                      <span className="text-sm font-bold text-[#334155]">
+                      <span className="text-sm font-bold text-[#334155] dark:text-slate-200">
                         {goal.progress}/{goal.target}
                       </span>
                     </div>
-                    <p className="mt-4 text-sm font-bold text-[#0F172A]">{goal.label}</p>
-                    <p className="mt-1 text-xs font-medium text-[#64748B]">{goal.detail}</p>
-                    <div className="mt-4 h-2 rounded-full bg-[#E2E8F0]">
+                    <p className="mt-4 text-sm font-bold text-[#0F172A] dark:text-slate-100">{goal.label}</p>
+                    <p className="mt-1 text-xs font-medium text-[#64748B] dark:text-slate-300">{goal.detail}</p>
+                    <div className="mt-4 h-2 rounded-full bg-[#E2E8F0] dark:bg-slate-700">
                       <div
                         className={`h-full rounded-full bg-gradient-to-r ${goal.tone}`}
                         style={{ width: `${percentage}%` }}
@@ -478,16 +478,16 @@ export default function ProductivityPage() {
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,.06)]">
+          <div className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,.06)] dark:border-slate-700 dark:bg-slate-900">
             <div className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#1D4ED8]">
+              <div className="flex size-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#1D4ED8] dark:bg-slate-800 dark:text-blue-300">
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#1D4ED8]">
+                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#1D4ED8] dark:text-blue-300">
                   AI Nudges
                 </p>
-                <h3 className="text-xl font-extrabold text-[#0F172A]">
+                <h3 className="text-xl font-extrabold text-[#0F172A] dark:text-slate-100">
                   What needs attention next
                 </h3>
               </div>
@@ -497,13 +497,13 @@ export default function ProductivityPage() {
               {aiNudges.map((nudge, index) => (
                 <div
                   key={index}
-                  className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4"
+                  className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 dark:border-slate-700 dark:bg-slate-800"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-white text-[#1D4ED8] shadow-sm">
+                    <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-white text-[#1D4ED8] shadow-sm dark:bg-slate-900 dark:text-blue-300">
                       <ArrowRight className="h-4 w-4" />
                     </div>
-                    <p className="text-sm font-medium leading-6 text-[#334155]">{nudge}</p>
+                    <p className="text-sm font-medium leading-6 text-[#334155] dark:text-slate-100">{nudge}</p>
                   </div>
                 </div>
               ))}
@@ -631,7 +631,7 @@ export default function ProductivityPage() {
                             <AlarmClock className="h-3.5 w-3.5" />
                             <span>Deadline</span>
                           </div>
-                          <p className="mt-1 line-clamp-2 text-[#0F172A]">{event.title}</p>
+                          <p className="mt-1 line-clamp-2 text-[#0F172A] dark:text-slate-100">{event.title}</p>
                           {goalMeta.goal && (
                             <span className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${goalMeta.goal.tone}`}>
                               {goalMeta.goal.label}
@@ -650,7 +650,7 @@ export default function ProductivityPage() {
                           <Clock3 className="h-3.5 w-3.5" />
                           <span>Todo due</span>
                         </div>
-                        <p className="mt-1 line-clamp-2 text-[#854D0E]">{todo.title}</p>
+                        <p className="mt-1 line-clamp-2 text-[#854D0E] dark:text-amber-100">{todo.title}</p>
                       </div>
                     ))}
 
@@ -666,8 +666,8 @@ export default function ProductivityPage() {
 
             {upcomingEvents.length > 0 && (
               <div className="mt-5 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 dark:border-slate-700 dark:bg-slate-800">
-                <p className="text-sm font-bold text-[#0F172A]">Next important date</p>
-                <p className="mt-1 text-sm text-[#475569]">
+                <p className="text-sm font-bold text-[#0F172A] dark:text-slate-100">Next important date</p>
+                <p className="mt-1 text-sm text-[#475569] dark:text-slate-300">
                   {upcomingEvents[0].title} on {formatShortDate(upcomingEvents[0].event_date)}
                 </p>
               </div>
