@@ -202,7 +202,7 @@ export function TrackerExperience() {
             </div>
             <div>
               <div className="mb-3 flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-[#1D4ED8] dark:text-blue-300">CareerPilot Insight</span>
+                <span className="text-xs font-semibold uppercase tracking-wide text-white">CareerPilot Insight</span>
               </div>
               <p className="text-base font-medium leading-relaxed text-black dark:text-slate-100">
                 {totalApplications === 0 
