@@ -605,8 +605,8 @@ export function UploadExperience() {
                 </details>
 
                 {/* RAG/Core Message */}
-                <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50/30 p-4 border border-blue-100">
-                  <p className="text-sm font-semibold text-blue-700">
+                <div className="rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50/30 p-4 dark:border-slate-700 dark:from-slate-800 dark:to-slate-900">
+                  <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
                     Your CV is now indexed for CareerPilot agents.
                   </p>
                   <p className="mt-1 text-xs text-gray-600 dark:text-slate-300">
@@ -617,7 +617,7 @@ export function UploadExperience() {
                 <div className="rounded-2xl border border-[#D6E4FF] bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-bold uppercase tracking-wider text-[#64748B]">
+                      <p className="text-sm font-bold uppercase tracking-wider text-[#64748B] dark:text-slate-300">
                         RAG Index Status
                       </p>
                       <p className="mt-1 text-sm text-gray-600 dark:text-slate-300">
@@ -653,37 +653,37 @@ export function UploadExperience() {
                   {ragStatus && (
                     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                       <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
                           Chunks
                         </p>
-                        <p className="mt-1 text-lg font-extrabold text-[#0F172A]">{ragStatus.chunk_count}</p>
+                        <p className="mt-1 text-lg font-extrabold text-[#0F172A] dark:text-slate-100">{ragStatus.chunk_count}</p>
                       </div>
                       <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
                           Embeddings
                         </p>
-                        <p className="mt-1 text-sm font-bold text-[#0F172A]">
+                        <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
                           {ragStatus.embedding_provider || "Unknown"}
                         </p>
-                        <p className="mt-1 text-xs text-[#64748B]">
+                        <p className="mt-1 text-xs text-[#64748B] dark:text-slate-400">
                           {ragStatus.embedding_model || "No model metadata"}
                         </p>
                       </div>
                       <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
                           Sections
                         </p>
-                        <p className="mt-1 text-sm font-bold text-[#0F172A]">
+                        <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
                           {ragStatus.sections_indexed.length > 0
                             ? ragStatus.sections_indexed.join(", ")
                             : "None indexed"}
                         </p>
                       </div>
                       <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
                           Last Built
                         </p>
-                        <p className="mt-1 text-sm font-bold text-[#0F172A]">
+                        <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
                           {ragStatus.last_built_at
                             ? new Date(ragStatus.last_built_at).toLocaleString([], {
                                 year: "numeric",
@@ -705,7 +705,7 @@ export function UploadExperience() {
                   )}
 
                   {ragStatus?.embedding_provider === "sklearn-hashing" && (
-                    <p className="mt-4 text-xs font-medium text-amber-700">
+                    <p className="mt-4 text-xs font-medium text-amber-700 dark:text-amber-300">
                       Fallback embeddings are active. Assistant grounding will still work, but semantic retrieval quality is lower than sentence-transformers.
                     </p>
                   )}

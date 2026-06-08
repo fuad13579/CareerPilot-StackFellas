@@ -482,17 +482,17 @@ export function AssistantExperience() {
   const hasCv = Boolean(cvId);
 
   return (
-    <div className="flex min-h-[780px] flex-col rounded-[28px] border border-[#E5E7EB] bg-[linear-gradient(180deg,#FFFFFF_0%,#F8FAFC_100%)] p-5 shadow-[0_18px_48px_rgba(15,23,42,.06)] lg:min-h-[860px]">
-      <div className="mb-4 rounded-[24px] border border-[#DBEAFE] bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,.18),_transparent_38%),linear-gradient(135deg,#EFF6FF_0%,#FFFFFF_58%,#F8FAFC_100%)] p-5">
+    <div className="flex min-h-[780px] flex-col rounded-[28px] border border-[#E5E7EB] bg-[linear-gradient(180deg,#FFFFFF_0%,#F8FAFC_100%)] p-5 shadow-[0_18px_48px_rgba(15,23,42,.06)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,#0F172A_0%,#111827_100%)] lg:min-h-[860px]">
+      <div className="mb-4 rounded-[24px] border border-[#DBEAFE] bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,.18),_transparent_38%),linear-gradient(135deg,#EFF6FF_0%,#FFFFFF_58%,#F8FAFC_100%)] p-5 dark:border-slate-700 dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,.18),transparent_38%),linear-gradient(135deg,#172554_0%,#111827_58%,#0F172A_100%)]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#1D4ED8]">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#1D4ED8] dark:text-blue-300">
               Personal AI Assistant
             </p>
-            <h2 className="mt-2 text-3xl font-extrabold tracking-[-0.03em] text-[#111827]">
+            <h2 className="mt-2 text-3xl font-extrabold tracking-[-0.03em] text-[#111827] dark:text-slate-100">
               CV-grounded answers with session memory.
             </h2>
-            <p className="mt-3 text-sm font-medium leading-7 text-[#64748B]">
+            <p className="mt-3 text-sm font-medium leading-7 text-[#64748B] dark:text-slate-300">
               Ask about role readiness, benchmark skill gaps, personalized learning
               roadmaps, cover-letter drafting, or ask it to search jobs in natural
               language. The assistant uses your uploaded CV as the source of truth.
@@ -502,7 +502,7 @@ export function AssistantExperience() {
           <button
             type="button"
             onClick={handleResetSession}
-            className="inline-flex items-center gap-2 rounded-full border border-[#CBD5E1] bg-white px-4 py-2 text-sm font-semibold text-[#334155] transition hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
+            className="inline-flex items-center gap-2 rounded-full border border-[#CBD5E1] bg-white px-4 py-2 text-sm font-semibold text-[#334155] transition hover:border-[#1D4ED8] hover:text-[#1D4ED8] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
           >
             <RefreshCcw size={14} />
             New Session
@@ -510,29 +510,29 @@ export function AssistantExperience() {
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#DBEAFE] px-3 py-1 text-xs font-semibold text-[#1D4ED8]">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#DBEAFE] px-3 py-1 text-xs font-semibold text-[#1D4ED8] dark:bg-blue-950/50 dark:text-blue-300">
             <Zap size={12} />
             {hasCv ? "CV context active" : "Waiting for CV"}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#E0F2FE] px-3 py-1 text-xs font-semibold text-[#0369A1]">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#E0F2FE] px-3 py-1 text-xs font-semibold text-[#0369A1] dark:bg-sky-950/50 dark:text-sky-300">
             <CheckCircle2 size={12} />
             Session memory enabled
           </span>
           {cvName && (
-            <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#475569]">
+            <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#475569] dark:bg-slate-800 dark:text-slate-300">
               Using CV: {cvName}
             </span>
           )}
         </div>
 
         {hasCv && (
-          <div className="mt-4 rounded-2xl border border-[#D6E4FF] bg-white/90 p-4">
+          <div className="mt-4 rounded-2xl border border-[#D6E4FF] bg-white/90 p-4 dark:border-slate-700 dark:bg-slate-800/90">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B]">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B] dark:text-slate-300">
                   RAG Status
                 </p>
-                <p className="mt-1 text-sm font-medium text-[#475569]">
+                <p className="mt-1 text-sm font-medium text-[#475569] dark:text-slate-300">
                   {isLoadingRagStatus
                     ? "Checking index readiness..."
                     : ragStatus
@@ -564,38 +564,38 @@ export function AssistantExperience() {
 
             {ragStatus && (
               <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-xl bg-[#F8FAFC] p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
                     Chunks
                   </p>
-                  <p className="mt-1 text-lg font-extrabold text-[#0F172A]">{ragStatus.chunk_count}</p>
+                  <p className="mt-1 text-lg font-extrabold text-[#0F172A] dark:text-slate-100">{ragStatus.chunk_count}</p>
                 </div>
-                <div className="rounded-xl bg-[#F8FAFC] p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
                     Embeddings
                   </p>
-                  <p className="mt-1 text-sm font-bold text-[#0F172A]">
+                  <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
                     {ragStatus.embedding_provider || "Unknown"}
                   </p>
-                  <p className="mt-1 text-xs text-[#64748B]">
+                  <p className="mt-1 text-xs text-[#64748B] dark:text-slate-400">
                     {ragStatus.embedding_model || "No model metadata"}
                   </p>
                 </div>
-                <div className="rounded-xl bg-[#F8FAFC] p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
                     Sections
                   </p>
-                  <p className="mt-1 text-sm font-bold text-[#0F172A]">
+                  <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
                     {ragStatus.sections_indexed.length > 0
                       ? ragStatus.sections_indexed.join(", ")
                       : "None indexed"}
                   </p>
                 </div>
-                <div className="rounded-xl bg-[#F8FAFC] p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
                     Last Built
                   </p>
-                  <p className="mt-1 text-sm font-bold text-[#0F172A]">
+                  <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
                     {ragStatus.last_built_at
                       ? new Date(ragStatus.last_built_at).toLocaleString([], {
                           year: "numeric",
@@ -611,7 +611,7 @@ export function AssistantExperience() {
             )}
 
             {ragStatus && ragStatus.embedding_provider === "sklearn-hashing" && (
-              <p className="mt-3 text-xs font-medium text-amber-700">
+              <p className="mt-3 text-xs font-medium text-amber-700 dark:text-amber-300">
                 Demo safe lightweight embeddding mode active. CV retrival is ready for grounded assistant responses.
               </p>
             )}
@@ -620,14 +620,14 @@ export function AssistantExperience() {
 
         {cvSkills.length > 0 && (
           <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B] dark:text-slate-300">
               Detected skills in context
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {cvSkills.map((skill) => (
                 <span
                   key={skill}
-                  className="rounded-full border border-[#BFDBFE] bg-white px-3 py-1 text-xs font-semibold text-[#1E40AF]"
+                  className="rounded-full border border-[#BFDBFE] bg-white px-3 py-1 text-xs font-semibold text-[#1E40AF] dark:border-slate-600 dark:bg-slate-800 dark:text-blue-300"
                 >
                   {skill}
                 </span>
@@ -637,21 +637,21 @@ export function AssistantExperience() {
         )}
 
         {selectedJob && (
-          <div className="mt-4 rounded-2xl border border-[#BFDBFE] bg-white/90 p-4">
+          <div className="mt-4 rounded-2xl border border-[#BFDBFE] bg-white/90 p-4 dark:border-slate-700 dark:bg-slate-800/90">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B]">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B] dark:text-slate-300">
                   Active target job
                 </p>
-                <h3 className="mt-1 text-lg font-extrabold text-[#0F172A]">
+                <h3 className="mt-1 text-lg font-extrabold text-[#0F172A] dark:text-slate-100">
                   {selectedJob.role}
                 </h3>
-                <p className="text-sm font-semibold text-[#1D4ED8]">{selectedJob.company}</p>
+                <p className="text-sm font-semibold text-[#1D4ED8] dark:text-blue-300">{selectedJob.company}</p>
               </div>
               <button
                 type="button"
                 onClick={clearSelectedJob}
-                className="rounded-full border border-[#CBD5E1] px-3 py-1 text-xs font-semibold text-[#475569] transition hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
+                className="rounded-full border border-[#CBD5E1] px-3 py-1 text-xs font-semibold text-[#475569] transition hover:border-[#1D4ED8] hover:text-[#1D4ED8] dark:border-slate-600 dark:text-slate-300 dark:hover:border-blue-400 dark:hover:text-blue-300"
               >
                 Clear job
               </button>
@@ -661,7 +661,7 @@ export function AssistantExperience() {
                 {selectedJob.requiredSkills.slice(0, 4).map((skill) => (
                   <span
                     key={skill}
-                    className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-xs font-semibold text-[#1E40AF]"
+                    className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-xs font-semibold text-[#1E40AF] dark:bg-blue-950/40 dark:text-blue-300"
                   >
                     {skill}
                   </span>
@@ -669,7 +669,7 @@ export function AssistantExperience() {
               </div>
             )}
             {selectedJob.matchReason && (
-              <p className="mt-3 text-sm text-[#475569]">{selectedJob.matchReason}</p>
+              <p className="mt-3 text-sm text-[#475569] dark:text-slate-300">{selectedJob.matchReason}</p>
             )}
           </div>
         )}
@@ -724,10 +724,12 @@ export function AssistantExperience() {
               className={`max-w-[85%] rounded-2xl p-4 lg:max-w-[78%] ${
                 msg.role === "user"
                   ? "ml-auto bg-[#1D4ED8] text-white"
-                  : "border border-[#E5E7EB] bg-white text-[#374151] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  : "border border-[#E5E7EB] bg-white text-[#374151] dark:border-slate-700 dark:bg-slate-800 dark:!text-slate-100"
               }`}
             >
-              <p className="whitespace-pre-wrap text-sm font-medium leading-8">{msg.content}</p>
+              <p className={`whitespace-pre-wrap text-sm font-medium leading-8 ${msg.role === "assistant" ? "dark:!text-slate-100" : ""}`}>
+                {msg.content}
+              </p>
               <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
                 {msg.role === "assistant" && msg.intent === "job_search" && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 font-semibold text-sky-700">
