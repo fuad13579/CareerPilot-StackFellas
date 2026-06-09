@@ -14,20 +14,6 @@ The stack choices are optimized for CodeSprint priorities:
 
 This is not presented as a production-grade enterprise platform. It is a practical, judge-ready MVP with explicit trade-offs.
 
-## System Data Flow
-
-The current product flow is:
-
-1. A user uploads a CV from the Next.js frontend.
-2. The FastAPI backend extracts text, saves processed artifacts locally, and builds a local retrieval index.
-3. Live job search fans out to external providers and normalizes the returned listings.
-4. Fit scoring compares uploaded-CV skills against job requirements programmatically.
-5. The assistant retrieves relevant CV context, loads session history, and answers through a hosted-model provider or the built-in fallback path.
-6. Cover-letter generation reuses the same CV context plus the selected job description.
-7. Tracker, todo, calendar, and assistant session data persist in SQLite on the backend VM.
-
-This flow keeps the uploaded CV as the source of truth while still proving real integrations through external job APIs.
-
 ## Selected Tech Stack
 
 | Layer | Selected Stack | Why It Was Chosen |
@@ -175,45 +161,25 @@ The current architecture would need several changes to support roughly 10,000 us
 6. Run multiple backend instances behind a load balancer
 7. Add structured monitoring, tracing, and alerting
 
-## Estimated Cost Model
+## Estimated Cost Categories
 
-The current repository does not prove a single final production SKU, so the cost discussion below is an illustrative MVP model rather than a billing statement.
+Exact production costs depend on the chosen VM size and hosted-model usage. The repository does not prove the final Azure SKU, so exact monthly numbers should not be invented here.
 
-### Current MVP cost buckets
+The main cost categories are:
 
 - frontend hosting
-- one always-on backend VM
-- optional hosted-model calls
-- outbound traffic to job APIs
-- future managed services if the app is scaled beyond the single-VM design
+- backend VM compute
+- LLM usage
+- managed database and object storage if the system is scaled
+- vector database if moved off local disk
+- bandwidth and monitoring
 
-### Simple per-user cost formula
+For the hackathon MVP, the cost profile is intentionally low because:
 
-For a month of usage:
-
-`monthly cost per active user = (frontend hosting + backend VM + monitoring + storage) / monthly active users + hosted-model usage per user`
-
-### Illustrative hackathon-MVP estimate
-
-Using the current architecture:
-
-- Vercel frontend on a low-cost or hobby tier
-- one small Azure Ubuntu VM for FastAPI
-- SQLite and local disk storage on the VM
-- mostly keyless job APIs plus optional Adzuna
-- hosted-model usage only for assistant and cover-letter requests, with a rule-based fallback available
-
-An honest rough estimate is:
-
-- shared infrastructure: about `$20-$40/month` total for the MVP deployment shape
-- at `500` monthly active users, shared infra is about `$0.04-$0.08` per active user per month
-- hosted-model usage can add roughly `$0.02-$0.20` per active user per month, depending on prompt volume and model choice
-
-That yields a rough MVP total of about:
-
-- `$0.06-$0.28 per active user per month`
-
-This estimate is intentionally conservative and assumes modest usage, not heavy enterprise traffic. If the team scales to 10,000 users with managed database, object storage, caching, and vector infrastructure, the cost model shifts from a single shared VM to managed services plus API usage, and the cheapest path is no longer the current architecture.
+- the frontend can run on low-cost Vercel tiers
+- the backend is a single VM
+- the built-in fallback allows operation even without paid LLM traffic
+- two job sources are keyless
 
 ## Key Bottlenecks
 

@@ -106,9 +106,9 @@ When running locally:
 
 Current documented deployed backend:
 
-- API base: `http://104.211.90.209:8000`
-- Swagger UI: `http://104.211.90.209:8000/docs`
-- Health: `http://104.211.90.209:8000/health`
+- API base: `http://104.211.90.209`
+- Swagger UI: `http://104.211.90.209/docs`
+- Health: `http://104.211.90.209/health`
 
 ## Environment Variables
 
@@ -140,8 +140,7 @@ Current deployment shape:
 
 - backend hosted on Azure Ubuntu VM
 - `uvicorn` managed by `systemd`
-- currently documented public backend exposed on port `8000`
-- optional `nginx` reverse-proxy if port `80` routing is configured
+- `nginx` reverse-proxy in front of the app
 - frontend deployed separately on Vercel
 
 Typical dependency install on the VM:
