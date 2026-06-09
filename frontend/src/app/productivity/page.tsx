@@ -520,13 +520,7 @@ export default function ProductivityPage() {
             </div>
           </div>
 
-          <div
-            className={`rounded-[28px] p-6 shadow-[0_16px_40px_rgba(15,23,42,.06)] ${
-              theme === "dark"
-                ? "border border-slate-700 bg-slate-900"
-                : "border border-[#E5E7EB] bg-white"
-            }`}
-          >
+          <div className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,.06)] dark:border-slate-700 dark:bg-slate-900">
             <div className="flex items-center gap-3">
               <div className="flex size-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#1D4ED8] dark:bg-slate-800 dark:text-blue-300">
                 <Sparkles className="h-5 w-5" />
@@ -561,13 +555,7 @@ export default function ProductivityPage() {
 
         <section className="grid gap-6 xl:grid-cols-[.95fr_1.05fr]">
           <div className="space-y-6">
-            <div
-              className={`rounded-[26px] p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)] ${
-                theme === "dark"
-                  ? "border border-slate-700 bg-slate-900"
-                  : "border border-[#E5E7EB] bg-white"
-              }`}
-            >
+            <div className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)] dark:border-slate-700 dark:bg-slate-900">
               <div className="mb-4 flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-2xl bg-[#ECFDF5] text-[#059669]">
                   <TrendingUp className="h-5 w-5" />
@@ -584,13 +572,7 @@ export default function ProductivityPage() {
               <ProgressWidget stats={stats} />
             </div>
 
-            <div
-              className={`rounded-[26px] p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)] ${
-                theme === "dark"
-                  ? "border border-slate-700 bg-slate-900"
-                  : "border border-[#E5E7EB] bg-white"
-              }`}
-            >
+            <div className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)] dark:border-slate-700 dark:bg-slate-900">
               <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-2xl bg-[#FEF3C7] text-[#B45309]">
                   <Target className="h-5 w-5" />
@@ -635,13 +617,7 @@ export default function ProductivityPage() {
             </div>
           </div>
 
-          <div
-            className={`rounded-[26px] p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)] ${
-              theme === "dark"
-                ? "border border-slate-700 bg-slate-900"
-                : "border border-[#E5E7EB] bg-white"
-            }`}
-          >
+          <div className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)] dark:border-slate-700 dark:bg-slate-900">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4338CA]">
@@ -751,26 +727,16 @@ export default function ProductivityPage() {
             />
           </div>
 
-          <div
-            className={`rounded-[26px] p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)] ${
-              theme === "dark"
-                ? "border border-slate-700 bg-slate-900"
-                : "border border-[#E5E7EB] bg-white"
-            }`}
-          >
+          <div className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)] dark:border-slate-700 dark:bg-slate-900">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-2xl bg-[#F5F3FF] text-[#7C3AED]">
                 <Briefcase className="h-5 w-5" />
               </div>
               <div>
-                <p className={`text-xs font-semibold uppercase tracking-[0.14em] ${
-                  theme === "dark" ? "text-white/70" : "text-[#64748B]"
-                }`}>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                   Tracker Sync
                 </p>
-                <h3 className={`text-xl font-extrabold ${
-                  theme === "dark" ? "text-white" : "text-[#0F172A]"
-                }`}>
+                <h3 className="text-xl font-extrabold text-white">
                   Application pressure
                 </h3>
               </div>
@@ -778,32 +744,22 @@ export default function ProductivityPage() {
 
             <div className="mt-5 space-y-3">
               <div className="rounded-2xl bg-[#F8FAFC] p-4 dark:bg-slate-800">
-                <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${
-                  theme === "dark" ? "text-white/70" : "text-[#64748B]"
-                }`}>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/70">
                   Pipeline size
                 </p>
-                <p className={`mt-1 text-3xl font-extrabold ${
-                  theme === "dark" ? "text-white" : "text-[#0F172A]"
-                }`}>{applications.length}</p>
-                <p className={`mt-1 text-sm ${
-                  theme === "dark" ? "text-white/80" : "text-[#475569]"
-                }`}>tracked applications</p>
+                <p className="mt-1 text-3xl font-extrabold text-white">{applications.length}</p>
+                <p className="mt-1 text-sm text-white/80">tracked applications</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-2xl bg-[#FEF2F2] p-4 dark:bg-red-950/40">
-                  <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${
-                    theme === "dark" ? "text-white/80" : "text-[#991B1B]"
-                  }`}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/80">
                     Overdue
                   </p>
                   <p className="mt-1 text-2xl font-extrabold text-[#B91C1C]">{overdueTodos}</p>
                 </div>
                 <div className="rounded-2xl bg-[#ECFDF5] p-4 dark:bg-emerald-950/40">
-                  <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${
-                    theme === "dark" ? "text-white/80" : "text-[#166534]"
-                  }`}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/80">
                     Interviewing
                   </p>
                   <p className="mt-1 text-2xl font-extrabold text-[#15803D]">{interviewingCount}</p>
@@ -811,12 +767,8 @@ export default function ProductivityPage() {
               </div>
 
               <div className="rounded-2xl bg-[#EFF6FF] p-4 dark:bg-blue-950/40">
-                <p className={`text-sm font-bold ${
-                  theme === "dark" ? "text-white" : "text-[#1D4ED8]"
-                }`}>Recommended next step</p>
-                <p className={`mt-1 text-sm ${
-                  theme === "dark" ? "text-white/90" : "text-[#1E3A8A]"
-                }`}>
+                <p className="text-sm font-bold text-white">Recommended next step</p>
+                <p className="mt-1 text-sm text-white/90">
                   {applications.length === 0
                     ? "Start by saving one job from the Jobs page, then create a related deadline here."
                     : "Link each important application to at least one deadline and one todo so the tracker drives daily work."}

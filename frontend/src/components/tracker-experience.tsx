@@ -71,8 +71,8 @@ export function TrackerExperience() {
                 <stat.icon size={20} className="text-[#1D4ED8]" />
               </div>
               <div>
-                <p className="text-2xl font-extrabold text-black dark:text-slate-100">{stat.value}</p>
-                <p className="text-sm font-medium text-[#6B7280] dark:text-slate-300">{stat.label}</p>
+                <p className="text-2xl font-extrabold text-black">{stat.value}</p>
+                <p className="text-sm font-medium text-[#6B7280]">{stat.label}</p>
               </div>
             </GlassCard>
           </Reveal>
@@ -85,11 +85,11 @@ export function TrackerExperience() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-[#1D4ED8]">Weekly Goal</p>
-              <p className="mt-1 text-lg font-extrabold text-black dark:text-slate-100">Apply to 5 jobs</p>
+              <p className="mt-1 text-lg font-extrabold text-black">Apply to 5 jobs</p>
             </div>
             <div className="text-right">
               <p className="text-3xl font-extrabold text-[#1D4ED8]">{weeklyStats.applicationsThisWeek} / 5</p>
-              <p className="text-sm font-medium text-[#6B7280] dark:text-slate-300">applications this week</p>
+              <p className="text-sm font-medium text-[#6B7280]">applications this week</p>
             </div>
           </div>
           <div className="mt-4 h-3 rounded-full bg-[#EEF2F7]">
@@ -106,7 +106,7 @@ export function TrackerExperience() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-[#1D4ED8]">Application Board</p>
-              <h3 className="mt-1 text-lg font-extrabold text-black dark:text-slate-100">Track jobs by stage</h3>
+              <h3 className="mt-1 text-lg font-extrabold text-black">Track jobs by stage</h3>
             </div>
           </div>
           <ClientOnly
@@ -161,13 +161,13 @@ export function TrackerExperience() {
           <GlassCard className="p-5">
             <div className="mb-4 flex items-center gap-2">
               <Calendar size={18} className="text-[#1D4ED8]" />
-              <h3 className="font-extrabold text-black dark:text-slate-100">Upcoming Deadlines</h3>
+              <h3 className="font-extrabold text-black">Upcoming Deadlines</h3>
             </div>
             <Stagger className="space-y-3">
               {pendingTodos.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white p-4 dark:border-slate-700 dark:bg-slate-800"
+                  className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white p-4"
                 >
                   <div className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
                     task.priority === "high" ? "bg-red-100" :
@@ -180,7 +180,7 @@ export function TrackerExperience() {
                       "text-gray-600"
                     } />
                   </div>
-                  <p className="flex-1 text-sm font-medium text-black dark:text-slate-100">{task.task}</p>
+                  <p className="flex-1 text-sm font-medium text-black">{task.task}</p>
                   <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                     task.priority === "high" ? "bg-red-100 text-red-700" :
                     task.priority === "medium" ? "bg-amber-100 text-amber-700" :
@@ -202,7 +202,7 @@ export function TrackerExperience() {
             </div>
             <div>
               <div className="mb-3 flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-[#1D4ED8] dark:text-white">CareerPilot Insight</span>
+                <span className="text-xs font-semibold uppercase tracking-wide text-white">CareerPilot Insight</span>
               </div>
               <p className="text-base font-medium leading-relaxed text-black dark:text-slate-100">
                 {totalApplications === 0 
