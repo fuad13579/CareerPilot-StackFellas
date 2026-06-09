@@ -60,11 +60,11 @@ export function TodoForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900"
+      className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4"
     >
       {/* Title */}
       <div>
-        <label htmlFor="todo-title" className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+        <label htmlFor="todo-title" className="block text-sm font-medium text-slate-700">
           Title *
         </label>
         <input
@@ -73,14 +73,14 @@ export function TodoForm({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="What needs to be done?"
-          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm placeholder-slate-400 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400"
+          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm placeholder-slate-400 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
           required
         />
       </div>
 
       {/* Description */}
       <div>
-        <label htmlFor="todo-desc" className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+        <label htmlFor="todo-desc" className="block text-sm font-medium text-slate-700">
           Description
         </label>
         <textarea
@@ -89,19 +89,19 @@ export function TodoForm({
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Add details..."
           rows={2}
-          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm placeholder-slate-400 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400"
+          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm placeholder-slate-400 shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
         />
       </div>
 
       <div>
-        <label htmlFor="todo-goal" className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+        <label htmlFor="todo-goal" className="block text-sm font-medium text-slate-700">
           Goal Category
         </label>
         <select
           id="todo-goal"
           value={goalCategory}
           onChange={(e) => setGoalCategory(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
         >
           <option value="">No specific goal</option>
           {GOAL_CATEGORIES.map((goal) => (
@@ -114,7 +114,7 @@ export function TodoForm({
 
       {/* Due date */}
       <div>
-        <label htmlFor="todo-due" className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+        <label htmlFor="todo-due" className="flex items-center gap-2 text-sm font-medium text-slate-700">
           <Calendar className="h-4 w-4" />
           Due Date
         </label>
@@ -123,13 +123,13 @@ export function TodoForm({
           type="date"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
         />
       </div>
 
       {/* Link to item */}
       <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
           <Link2 className="h-4 w-4" />
           Link to (optional)
         </label>
@@ -142,7 +142,7 @@ export function TodoForm({
               setLinkedType(e.target.value);
               setLinkedId(undefined);
             }}
-            className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
           >
             <option value="">No link</option>
             <option value="application">Job Application</option>
@@ -153,7 +153,7 @@ export function TodoForm({
               aria-label="Linked application"
               value={linkedId || ""}
               onChange={(e) => setLinkedId(Number(e.target.value) || undefined)}
-              className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
             >
               <option value="">Select application...</option>
               {linkedApplications.map((app) => (
@@ -172,7 +172,7 @@ export function TodoForm({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Cancel
           </button>

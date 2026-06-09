@@ -51,9 +51,9 @@ const exitVariants = {
 
 export function AmbientBackground() {
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[var(--background)] transition-colors duration-300">
+    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#FAF7F0]">
       {/* Base gradient */}
-      <div className="absolute inset-0 bg-[var(--ambient-gradient)]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#FAF7F0] via-[#F5F0E8] to-[#FAF7F0]" />
       
       {/* Subtle noise texture */}
       <div className="portfolio-noise absolute inset-0 opacity-30" />
@@ -67,7 +67,7 @@ export function AmbientBackground() {
           y: [0, -10, 0]
         }}
         transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -left-60 top-0 size-[40rem] rounded-full bg-[var(--ambient-primary)] blur-[180px]"
+        className="absolute -left-60 top-0 size-[40rem] rounded-full bg-[#1D4ED8] blur-[180px]"
       />
       
       {/* Secondary ambient glow - bottom right */}
@@ -79,7 +79,7 @@ export function AmbientBackground() {
           y: [0, 15, 0]
         }}
         transition={{ duration: 30, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -right-60 bottom-0 size-[45rem] rounded-full bg-[var(--ambient-secondary)] blur-[200px]"
+        className="absolute -right-60 bottom-0 size-[45rem] rounded-full bg-[#3B82F6] blur-[200px]"
       />
       
       {/* Tertiary soft glow - center */}
@@ -89,7 +89,7 @@ export function AmbientBackground() {
           scale: [1, 1.1, 1]
         }}
         transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute left-1/2 top-1/2 size-[35rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--ambient-tertiary)] blur-[220px]"
+        className="absolute left-1/2 top-1/2 size-[35rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#93C5FD] blur-[220px]"
       />
     </div>
   );
@@ -119,11 +119,11 @@ export function PageShell ({
             {eyebrow}
           </p>
           <AnimatedWords text={title} />
-          <p className="max-w-2xl text-base font-medium leading-8 text-[var(--muted-foreground)]">
+          <p className="max-w-2xl text-base font-medium leading-8 text-[#6B7280]">
             {description}
           </p>
         </div>
-        <div className="rounded-full border border-[var(--border-color)] bg-[var(--card-surface)] px-4 py-2 text-sm font-semibold text-[#1D4ED8] shadow-sm">
+        <div className="rounded-full border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#1D4ED8] shadow-sm">
           Live workspace
         </div>
       </header>
@@ -190,7 +190,7 @@ export function GlassCard({
       viewport={{ once: true, amount: 0.15 }}
       whileHover={{ y: -4, boxShadow: "0 16px 32px rgba(17,24,39,.08)" }}
       transition={{ duration: 0.6, ease: PREMIUM_EASE }}
-      className={`relative overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--card-surface)] p-5 shadow-[0_4px_16px_var(--card-shadow)] transition-colors duration-300 ${className}`}
+      className={`relative overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_4px_16px_rgba(17,24,39,.04)] ${className}`}
     >
       <div className="relative z-10">{children}</div>
     </motion.div>
@@ -199,7 +199,7 @@ export function GlassCard({
 
 function AnimatedWords({ text }: { text: string }) {
   return (
-    <h1 className="max-w-4xl text-4xl font-extrabold tracking-[-0.035em] text-[var(--foreground)] sm:text-5xl">
+    <h1 className="max-w-4xl text-4xl font-extrabold tracking-[-0.035em] text-[#111827] sm:text-5xl">
       {text.split(" ").map((word, index) => (
         <motion.span
           key={`${word}-${index}`}

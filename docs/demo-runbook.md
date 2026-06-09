@@ -127,7 +127,6 @@ What judges should see:
 
 - generated draft
 - job-aware personalization
-- references to real CV skills or experience rather than only generic filler text
 
 ## 6. Tracker Update
 
@@ -158,10 +157,6 @@ If hosted LLM access is unavailable:
 - show `/api/health/providers`
 - explain that the app falls back to the built-in CV-grounded response path
 - be explicit that fallback is deterministic, not pretending to be a hosted model
-
-Example cover-letter expectation:
-
-- the generated draft should mention concrete CV evidence such as `Python`, `FastAPI`, `React`, `SQL`, or relevant project work when those are present in the uploaded resume
 
 ## What to Say During the Demo
 

@@ -402,7 +402,7 @@ export function UploadExperience() {
   return (
     <div className="space-y-8">
       {/* Premium Upload Card */}
-      <div className="relative overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-xl shadow-gray-100/50 dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+      <div className="relative overflow-hidden rounded-3xl bg-white shadow-xl shadow-gray-100/50 border border-gray-100">
         {/* Subtle gradient border effect */}
         <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-blue-500/5 via-transparent to-blue-500/5 pointer-events-none" />
         
@@ -415,10 +415,10 @@ export function UploadExperience() {
           className={`
             relative min-h-[420px] cursor-pointer transition-all duration-300 ease-out
             ${isDragging 
-              ? "bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-slate-800 dark:to-slate-900" 
+              ? "bg-gradient-to-br from-blue-50 to-blue-100/50" 
               : status === "idle" 
-                ? "bg-white hover:bg-gray-50/50 dark:bg-slate-900 dark:hover:bg-slate-800/80"
-                : "cursor-default bg-white dark:bg-slate-900"
+                ? "bg-white hover:bg-gray-50/50"
+                : "cursor-default bg-white"
             }
           `}
         >
@@ -443,35 +443,35 @@ export function UploadExperience() {
               </div>
 
               {/* Heading */}
-              <h2 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-slate-100">
+              <h2 className="text-4xl font-bold tracking-tight text-gray-900">
                 Upload Your CV
               </h2>
-              <p className="mt-4 max-w-xl text-base leading-relaxed text-gray-500 dark:text-slate-300">
+              <p className="mt-4 max-w-xl text-base leading-relaxed text-gray-500">
                 CareerPilot extracts skills, experience, education, and projects from your CV to power job matching, AI assistant answers, cover letters, and skill gap analysis.
               </p>
 
               {/* Supported Formats - Premium Cards */}
               <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-                <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-5 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                <div className="flex items-center gap-3 rounded-2xl bg-gray-50 border border-gray-100 px-5 py-3 shadow-sm">
                   <FileText size={20} className="text-blue-600" />
-                  <span className="text-base font-semibold text-gray-700 dark:text-slate-200">PDF</span>
+                  <span className="text-base font-semibold text-gray-700">PDF</span>
                 </div>
-                <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-5 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                <div className="flex items-center gap-3 rounded-2xl bg-gray-50 border border-gray-100 px-5 py-3 shadow-sm">
                   <FileJson size={20} className="text-blue-600" />
-                  <span className="text-base font-semibold text-gray-700 dark:text-slate-200">DOCX</span>
+                  <span className="text-base font-semibold text-gray-700">DOCX</span>
                 </div>
-                <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-5 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-                  <span className="text-base font-medium text-gray-400 dark:text-slate-400">Max 10MB</span>
+                <div className="flex items-center gap-3 rounded-2xl bg-gray-50 border border-gray-100 px-5 py-3 shadow-sm">
+                  <span className="text-base font-medium text-gray-400">Max 10MB</span>
                 </div>
               </div>
 
               {/* Drag & Drop Text */}
-              <p className="mt-6 text-sm font-medium text-gray-400 dark:text-slate-400">
+              <p className="mt-6 text-sm font-medium text-gray-400">
                 Drag & drop your file here, or
               </p>
 
               {/* Upload Button - Premium */}
-              <button className="mt-4 flex items-center gap-2 rounded-xl bg-gray-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-600 hover:shadow-xl dark:bg-slate-800">
+              <button className="mt-4 flex items-center gap-2 rounded-xl bg-gray-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-600 hover:shadow-xl">
                 <Upload size={16} />
                 Select file
               </button>
@@ -487,13 +487,13 @@ export function UploadExperience() {
                   <Loader2 size={44} className="animate-spin text-white" />
                 </div>
               </div>
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-slate-100">
+              <h2 className="text-3xl font-bold text-gray-900">
                 Analyzing Your CV
               </h2>
-              <p className="mt-4 max-w-lg text-xl font-medium text-gray-500 dark:text-slate-300">
+              <p className="mt-4 max-w-lg text-xl font-medium text-gray-500">
                 Extracting text, chunking by section, detecting skills and experience, and preparing your profile for RAG-based recommendations...
               </p>
-              <div className="mt-10 h-2.5 w-80 overflow-hidden rounded-full bg-gray-100 dark:bg-slate-800">
+              <div className="mt-10 h-2.5 w-80 overflow-hidden rounded-full bg-gray-100">
                 <div className="h-full animate-pulse rounded-full bg-gradient-to-r from-blue-600 to-blue-500 transition-all duration-500 progress-bar-60" />
               </div>
             </div>
@@ -501,22 +501,22 @@ export function UploadExperience() {
 
           {/* Success State */}
           {status === "success" && cvSummary && (
-            <div className="rounded-[28px] bg-white p-10 text-gray-900 dark:bg-slate-900 dark:text-slate-100">
+            <div className="p-10">
               <div className="mb-10 flex items-center justify-between">
                 <div className="flex items-center gap-5">
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-green-100 to-green-50 shadow-sm">
                     <FileCheck size={30} className="text-green-600" />
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-gray-900 dark:text-slate-100">CV analyzed successfully</p>
-                    <p className="text-lg font-medium text-gray-500 dark:text-slate-300">{cvSummary.filename}</p>
+                    <p className="text-xl font-bold text-gray-900">CV analyzed successfully</p>
+                    <p className="text-lg font-medium text-gray-500">{cvSummary.filename}</p>
                   </div>
                 </div>
                 <button
                   onClick={resetUpload}
                   aria-label="Upload another CV"
                   title="Upload another CV"
-                  className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-500 transition hover:bg-gray-200 hover:text-gray-900 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-500 transition hover:bg-gray-200 hover:text-gray-900"
                 >
                   <X size={20} />
                 </button>
@@ -526,14 +526,14 @@ export function UploadExperience() {
               <div className="space-y-8">
                 {/* Profile Summary */}
                 {cvSummary.profileSummary && (
-                  <div className="rounded-xl bg-gradient-to-r from-blue-50 to-blue-100/30 p-5 shadow-sm dark:from-slate-800 dark:to-slate-900">
+                  <div className="rounded-xl bg-gradient-to-r from-blue-50 to-blue-100/30 p-5 shadow-sm">
                     <div className="mb-3 flex items-center gap-3">
                       <Sparkles size={16} className="text-blue-600" />
                       <p className="text-sm font-bold uppercase tracking-widest text-blue-600">
                         Profile Summary
                       </p>
                     </div>
-                    <p className="text-base leading-relaxed text-gray-700 dark:text-slate-200">
+                    <p className="text-base leading-relaxed text-gray-700">
                       {cvSummary.profileSummary}
                     </p>
                   </div>
@@ -542,14 +542,14 @@ export function UploadExperience() {
                 {/* Skills */}
                 {cvSummary.skills && cvSummary.skills.length > 0 && (
                   <div>
-                    <p className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">
+                    <p className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-500">
                       Skills Identified
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {cvSummary.skills.map((skill, i) => (
                         <span
                           key={i}
-                          className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 dark:bg-slate-800 dark:text-slate-200"
+                          className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700"
                         >
                           {skill}
                         </span>
@@ -561,12 +561,12 @@ export function UploadExperience() {
                 {/* Experience */}
                 {cvSummary.experience && cvSummary.experience.length > 0 && (
                   <div>
-                    <p className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">
+                    <p className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-500">
                       Experience
                     </p>
                     <ul className="space-y-3">
                       {cvSummary.experience.map((exp, i) => (
-                        <li key={i} className="flex items-start gap-3 text-base text-gray-700 dark:text-slate-200">
+                        <li key={i} className="flex items-start gap-3 text-base text-gray-700">
                           <span className="mt-2 size-2 shrink-0 rounded-full bg-blue-600" />
                           {exp}
                         </li>
@@ -578,12 +578,12 @@ export function UploadExperience() {
                 {/* Education */}
                 {cvSummary.education && cvSummary.education.length > 0 && (
                   <div>
-                    <p className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400">
+                    <p className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-500">
                       Education
                     </p>
                     <ul className="space-y-3">
                       {cvSummary.education.map((edu, i) => (
-                        <li key={i} className="flex items-start gap-3 text-base text-gray-700 dark:text-slate-200">
+                        <li key={i} className="flex items-start gap-3 text-base text-gray-700">
                           <span className="mt-2 size-2 shrink-0 rounded-full bg-blue-600" />
                           {edu}
                         </li>
@@ -594,137 +594,135 @@ export function UploadExperience() {
 
                 {/* Raw Extracted Text */}
                 <details className="group">
-                  <summary className="cursor-pointer text-base font-semibold text-gray-500 hover:text-blue-600 dark:text-slate-300">
+                  <summary className="cursor-pointer text-base font-semibold text-gray-500 hover:text-blue-600">
                     View extracted text
                   </summary>
-                  <div className="mt-4 max-h-56 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50 p-6 dark:border-slate-700 dark:bg-slate-800">
-                    <p className="whitespace-pre-wrap text-base leading-relaxed text-gray-500 dark:text-slate-300">
+                  <div className="mt-4 max-h-56 overflow-y-auto rounded-2xl bg-gray-50 border border-gray-100 p-6">
+                    <p className="whitespace-pre-wrap text-base leading-relaxed text-gray-500">
                       {cvSummary.extractedText}
                     </p>
                   </div>
                 </details>
 
                 {/* RAG/Core Message */}
-                <div className="rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50/30 p-4 dark:border-slate-700 dark:from-slate-800 dark:to-slate-900">
-                  <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50/30 p-4 border border-blue-100">
+                  <p className="text-sm font-semibold text-blue-700">
                     Your CV is now indexed for CareerPilot agents.
                   </p>
-                  <p className="mt-1 text-xs text-gray-600 dark:text-slate-300">
+                  <p className="mt-1 text-xs text-gray-600">
                     This profile will be used by the Job Hunter, AI Assistant, Cover Letter Generator, and Progress Dashboard.
                   </p>
                 </div>
 
-                {(isLoadingRagStatus || ragStatus || (ragWarning && !/status unavailable after upload/i.test(ragWarning))) && (
-                  <div className="rounded-2xl border border-[#D6E4FF] bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-bold uppercase tracking-wider text-[#64748B] dark:text-slate-300">
-                          RAG Index Status
-                        </p>
-                        <p className="mt-1 text-sm text-gray-600 dark:text-slate-300">
-                          {isLoadingRagStatus
-                            ? "Checking retrieval readiness..."
-                            : ragStatus
-                              ? ragStatus.index_exists && ragStatus.embeddings_exists
-                                ? "Your CV is ready for grounded assistant answers."
-                                : "Your CV was uploaded, but the retrieval index is incomplete."
-                              : ragWarning}
-                        </p>
-                      </div>
-                      {ragStatus && (
-                        <span
-                          className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
-                            ragStatus.index_exists && ragStatus.embeddings_exists
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-amber-50 text-amber-700"
-                          }`}
-                        >
-                          <span
-                            className={`size-1.5 rounded-full ${
-                              ragStatus.index_exists && ragStatus.embeddings_exists
-                                ? "bg-emerald-500"
-                                : "bg-amber-500"
-                            }`}
-                          />
-                          {ragStatus.index_exists && ragStatus.embeddings_exists ? "Ready" : "Needs attention"}
-                        </span>
-                      )}
-                    </div>
-
-                    {ragStatus && (
-                      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                        <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
-                            Chunks
-                          </p>
-                          <p className="mt-1 text-lg font-extrabold text-[#0F172A] dark:text-slate-100">{ragStatus.chunk_count}</p>
-                        </div>
-                        <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
-                            Embeddings
-                          </p>
-                          <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
-                            {ragStatus.embedding_provider || "Unknown"}
-                          </p>
-                          <p className="mt-1 text-xs text-[#64748B] dark:text-slate-400">
-                            {ragStatus.embedding_model || "No model metadata"}
-                          </p>
-                        </div>
-                        <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
-                            Sections
-                          </p>
-                          <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
-                            {ragStatus.sections_indexed.length > 0
-                              ? ragStatus.sections_indexed.join(", ")
-                              : "None indexed"}
-                          </p>
-                        </div>
-                        <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
-                            Last Built
-                          </p>
-                          <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
-                            {ragStatus.last_built_at
-                              ? new Date(ragStatus.last_built_at).toLocaleString([], {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
-                              : "Unknown"}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {ragWarning && !ragStatus && (
-                      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
-                        {ragWarning}
-                      </div>
-                    )}
-
-                    {ragStatus?.embedding_provider === "sklearn-hashing" && (
-                      <p className="mt-4 text-xs font-medium text-amber-700 dark:text-amber-300">
-                        Fallback embeddings are active. Assistant grounding will still work, but semantic retrieval quality is lower than sentence-transformers.
+                <div className="rounded-2xl border border-[#D6E4FF] bg-white p-5 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold uppercase tracking-wider text-[#64748B]">
+                        RAG Index Status
                       </p>
+                      <p className="mt-1 text-sm text-gray-600">
+                        {isLoadingRagStatus
+                          ? "Checking retrieval readiness..."
+                          : ragStatus
+                            ? ragStatus.index_exists && ragStatus.embeddings_exists
+                              ? "Your CV is ready for grounded assistant answers."
+                              : "Your CV was uploaded, but the retrieval index is incomplete."
+                            : ragWarning || "RAG status unavailable after upload."}
+                      </p>
+                    </div>
+                    {ragStatus && (
+                      <span
+                        className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
+                          ragStatus.index_exists && ragStatus.embeddings_exists
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-amber-50 text-amber-700"
+                        }`}
+                      >
+                        <span
+                          className={`size-1.5 rounded-full ${
+                            ragStatus.index_exists && ragStatus.embeddings_exists
+                              ? "bg-emerald-500"
+                              : "bg-amber-500"
+                          }`}
+                        />
+                        {ragStatus.index_exists && ragStatus.embeddings_exists ? "Ready" : "Needs attention"}
+                      </span>
                     )}
                   </div>
-                )}
+
+                  {ragStatus && (
+                    <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                      <div className="rounded-xl bg-[#F8FAFC] p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                          Chunks
+                        </p>
+                        <p className="mt-1 text-lg font-extrabold text-[#0F172A]">{ragStatus.chunk_count}</p>
+                      </div>
+                      <div className="rounded-xl bg-[#F8FAFC] p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                          Embeddings
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-[#0F172A]">
+                          {ragStatus.embedding_provider || "Unknown"}
+                        </p>
+                        <p className="mt-1 text-xs text-[#64748B]">
+                          {ragStatus.embedding_model || "No model metadata"}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-[#F8FAFC] p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                          Sections
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-[#0F172A]">
+                          {ragStatus.sections_indexed.length > 0
+                            ? ragStatus.sections_indexed.join(", ")
+                            : "None indexed"}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-[#F8FAFC] p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B]">
+                          Last Built
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-[#0F172A]">
+                          {ragStatus.last_built_at
+                            ? new Date(ragStatus.last_built_at).toLocaleString([], {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "Unknown"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {ragWarning && (
+                    <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                      {ragWarning}
+                    </div>
+                  )}
+
+                  {ragStatus?.embedding_provider === "sklearn-hashing" && (
+                    <p className="mt-4 text-xs font-medium text-amber-700">
+                      Fallback embeddings are active. Assistant grounding will still work, but semantic retrieval quality is lower than sentence-transformers.
+                    </p>
+                  )}
+                </div>
 
                 {/* Actions */}
                 <div className="flex flex-wrap items-center gap-4 pt-4">
                   <button
                     onClick={resetUpload}
-                    className="flex items-center gap-2 rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-blue-600 dark:bg-slate-800"
+                    className="flex items-center gap-2 rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-blue-600"
                   >
                     <Upload size={14} />
                     Upload another
                   </button>
                   <button
                     onClick={() => router.push("/assistant")}
-                    className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-blue-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                    className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-blue-600"
                   >
                     <FileJson size={14} />
                     Use with Assistant
@@ -740,18 +738,18 @@ export function UploadExperience() {
               <div className="mb-10 flex h-28 w-28 items-center justify-center rounded-3xl bg-red-50 shadow-lg">
                 <AlertCircle size={44} className="text-red-600" />
               </div>
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-slate-100">Upload failed</h2>
-              <p className="mt-4 max-w-md text-xl font-medium text-gray-500 dark:text-slate-300">{error}</p>
+              <h2 className="text-3xl font-bold text-gray-900">Upload failed</h2>
+              <p className="mt-4 max-w-md text-xl font-medium text-gray-500">{error}</p>
               <div className="mt-10 flex items-center gap-5">
                 <button
                   onClick={(e) => { e.stopPropagation(); resetUpload(); }}
-                  className="rounded-2xl bg-gray-900 px-10 py-4 text-lg font-bold text-white shadow-lg transition-all hover:-translate-y-1 hover:bg-blue-600 dark:bg-slate-800"
+                  className="rounded-2xl bg-gray-900 px-10 py-4 text-lg font-bold text-white shadow-lg transition-all hover:-translate-y-1 hover:bg-blue-600"
                 >
                   Try again
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); resetUpload(); }}
-                  className="rounded-2xl border-2 border-gray-200 bg-white px-10 py-4 text-lg font-bold text-gray-700 shadow-sm transition-all hover:-translate-y-1 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                  className="rounded-2xl border-2 border-gray-200 bg-white px-10 py-4 text-lg font-bold text-gray-700 shadow-sm transition-all hover:-translate-y-1"
                 >
                   Cancel
                 </button>
