@@ -265,7 +265,7 @@ export function DeadlineList({
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-white">{event.title}</h3>
+                    <h3 className="font-medium text-slate-950 dark:text-slate-100">{event.title}</h3>
                     {getStatusBadge(daysUntil)}
                   </div>
                   {goalMeta.goal && (
