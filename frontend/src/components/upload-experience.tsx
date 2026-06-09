@@ -501,7 +501,7 @@ export function UploadExperience() {
 
           {/* Success State */}
           {status === "success" && cvSummary && (
-            <div className="rounded-[28px] bg-white p-10 text-gray-900 dark:bg-slate-900 dark:text-slate-100">
+            <div className="p-10">
               <div className="mb-10 flex items-center justify-between">
                 <div className="flex items-center gap-5">
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-green-100 to-green-50 shadow-sm">
@@ -614,104 +614,102 @@ export function UploadExperience() {
                   </p>
                 </div>
 
-                {(isLoadingRagStatus || ragStatus || (ragWarning && !/status unavailable after upload/i.test(ragWarning))) && (
-                  <div className="rounded-2xl border border-[#D6E4FF] bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-bold uppercase tracking-wider text-[#64748B] dark:text-slate-300">
-                          RAG Index Status
-                        </p>
-                        <p className="mt-1 text-sm text-gray-600 dark:text-slate-300">
-                          {isLoadingRagStatus
-                            ? "Checking retrieval readiness..."
-                            : ragStatus
-                              ? ragStatus.index_exists && ragStatus.embeddings_exists
-                                ? "Your CV is ready for grounded assistant answers."
-                                : "Your CV was uploaded, but the retrieval index is incomplete."
-                              : ragWarning}
-                        </p>
-                      </div>
-                      {ragStatus && (
-                        <span
-                          className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
-                            ragStatus.index_exists && ragStatus.embeddings_exists
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-amber-50 text-amber-700"
-                          }`}
-                        >
-                          <span
-                            className={`size-1.5 rounded-full ${
-                              ragStatus.index_exists && ragStatus.embeddings_exists
-                                ? "bg-emerald-500"
-                                : "bg-amber-500"
-                            }`}
-                          />
-                          {ragStatus.index_exists && ragStatus.embeddings_exists ? "Ready" : "Needs attention"}
-                        </span>
-                      )}
-                    </div>
-
-                    {ragStatus && (
-                      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                        <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
-                            Chunks
-                          </p>
-                          <p className="mt-1 text-lg font-extrabold text-[#0F172A] dark:text-slate-100">{ragStatus.chunk_count}</p>
-                        </div>
-                        <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
-                            Embeddings
-                          </p>
-                          <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
-                            {ragStatus.embedding_provider || "Unknown"}
-                          </p>
-                          <p className="mt-1 text-xs text-[#64748B] dark:text-slate-400">
-                            {ragStatus.embedding_model || "No model metadata"}
-                          </p>
-                        </div>
-                        <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
-                            Sections
-                          </p>
-                          <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
-                            {ragStatus.sections_indexed.length > 0
-                              ? ragStatus.sections_indexed.join(", ")
-                              : "None indexed"}
-                          </p>
-                        </div>
-                        <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
-                            Last Built
-                          </p>
-                          <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
-                            {ragStatus.last_built_at
-                              ? new Date(ragStatus.last_built_at).toLocaleString([], {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
-                              : "Unknown"}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {ragWarning && !ragStatus && (
-                      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
-                        {ragWarning}
-                      </div>
-                    )}
-
-                    {ragStatus?.embedding_provider === "sklearn-hashing" && (
-                      <p className="mt-4 text-xs font-medium text-amber-700 dark:text-amber-300">
-                        Fallback embeddings are active. Assistant grounding will still work, but semantic retrieval quality is lower than sentence-transformers.
+                <div className="rounded-2xl border border-[#D6E4FF] bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold uppercase tracking-wider text-[#64748B] dark:text-slate-300">
+                        RAG Index Status
                       </p>
+                      <p className="mt-1 text-sm text-gray-600 dark:text-slate-300">
+                        {isLoadingRagStatus
+                          ? "Checking retrieval readiness..."
+                          : ragStatus
+                            ? ragStatus.index_exists && ragStatus.embeddings_exists
+                              ? "Your CV is ready for grounded assistant answers."
+                              : "Your CV was uploaded, but the retrieval index is incomplete."
+                            : ragWarning || "RAG status unavailable after upload."}
+                      </p>
+                    </div>
+                    {ragStatus && (
+                      <span
+                        className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
+                          ragStatus.index_exists && ragStatus.embeddings_exists
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-amber-50 text-amber-700"
+                        }`}
+                      >
+                        <span
+                          className={`size-1.5 rounded-full ${
+                            ragStatus.index_exists && ragStatus.embeddings_exists
+                              ? "bg-emerald-500"
+                              : "bg-amber-500"
+                          }`}
+                        />
+                        {ragStatus.index_exists && ragStatus.embeddings_exists ? "Ready" : "Needs attention"}
+                      </span>
                     )}
                   </div>
-                )}
+
+                  {ragStatus && (
+                    <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                      <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
+                          Chunks
+                        </p>
+                        <p className="mt-1 text-lg font-extrabold text-[#0F172A] dark:text-slate-100">{ragStatus.chunk_count}</p>
+                      </div>
+                      <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
+                          Embeddings
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
+                          {ragStatus.embedding_provider || "Unknown"}
+                        </p>
+                        <p className="mt-1 text-xs text-[#64748B] dark:text-slate-400">
+                          {ragStatus.embedding_model || "No model metadata"}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
+                          Sections
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
+                          {ragStatus.sections_indexed.length > 0
+                            ? ragStatus.sections_indexed.join(", ")
+                            : "None indexed"}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-[#F8FAFC] p-3 dark:bg-slate-900">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#64748B] dark:text-slate-400">
+                          Last Built
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-[#0F172A] dark:text-slate-100">
+                          {ragStatus.last_built_at
+                            ? new Date(ragStatus.last_built_at).toLocaleString([], {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "Unknown"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {ragWarning && (
+                    <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+                      {ragWarning}
+                    </div>
+                  )}
+
+                  {ragStatus?.embedding_provider === "sklearn-hashing" && (
+                    <p className="mt-4 text-xs font-medium text-amber-700 dark:text-amber-300">
+                      Fallback embeddings are active. Assistant grounding will still work, but semantic retrieval quality is lower than sentence-transformers.
+                    </p>
+                  )}
+                </div>
 
                 {/* Actions */}
                 <div className="flex flex-wrap items-center gap-4 pt-4">
