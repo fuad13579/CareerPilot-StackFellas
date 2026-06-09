@@ -608,7 +608,7 @@ export function JobsExperience() {
                     <TrendingUp size={14} className="text-[#1D4ED8]" />
                     <span className="text-xs font-semibold text-[#1D4ED8]">Why this matches</span>
                   </div>
-                  <p className="text-sm leading-relaxed text-[#334155] dark:text-slate-300">{job.matchReason}</p>
+                  <p className="text-sm leading-relaxed text-gray-700 dark:text-slate-300">{job.matchReason}</p>
                 </div>
               )}
 

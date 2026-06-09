@@ -195,12 +195,6 @@ export default function ProductivityPage() {
         setTodos(updatedTodos);
         updateStats(updatedTodos);
       } else {
-        if (response.status === 404) {
-          const updatedTodos = todos.filter((t) => t.id !== id);
-          setTodos(updatedTodos);
-          updateStats(updatedTodos);
-          return;
-        }
         throw new Error("Failed to update todo");
       }
     } catch {
@@ -220,12 +214,6 @@ export default function ProductivityPage() {
         setTodos(updatedTodos);
         updateStats(updatedTodos);
       } else {
-        if (response.status === 404) {
-          const updatedTodos = todos.filter((t) => t.id !== id);
-          setTodos(updatedTodos);
-          updateStats(updatedTodos);
-          return;
-        }
         throw new Error("Failed to delete todo");
       }
     } catch {
@@ -249,12 +237,6 @@ export default function ProductivityPage() {
         const updatedTodos = todos.map((t) => (t.id === id ? updated : t));
         setTodos(updatedTodos);
       } else {
-        if (response.status === 404) {
-          const updatedTodos = todos.filter((t) => t.id !== id);
-          setTodos(updatedTodos);
-          updateStats(updatedTodos);
-          return;
-        }
         throw new Error("Failed to update todo");
       }
     } catch {
@@ -296,12 +278,6 @@ export default function ProductivityPage() {
         const updatedEvents = events.filter((e) => e.id !== id);
         setEvents(updatedEvents);
       } else {
-        if (response.status === 404) {
-          const updatedEvents = events.filter((e) => e.id !== id);
-          setEvents(updatedEvents);
-          return;
-        }
-
         const errorData = await response.json().catch(() => ({}));
         const statusLabel = response.status ? `HTTP ${response.status}` : "";
         const detail =
@@ -749,8 +725,8 @@ export default function ProductivityPage() {
               </div>
 
               <div className="rounded-2xl bg-[#EFF6FF] p-4 dark:bg-blue-950/40">
-                <p className="text-sm font-bold text-[#1D4ED8] dark:text-blue-300">Recommended next step</p>
-                <p className="mt-1 text-sm text-[#1E3A8A] dark:text-blue-100">
+                <p className="text-sm font-bold text-[#1D4ED8]">Recommended next step</p>
+                <p className="mt-1 text-sm text-[#1E3A8A]">
                   {applications.length === 0
                     ? "Start by saving one job from the Jobs page, then create a related deadline here."
                     : "Link each important application to at least one deadline and one todo so the tracker drives daily work."}

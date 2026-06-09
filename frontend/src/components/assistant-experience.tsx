@@ -482,8 +482,8 @@ export function AssistantExperience() {
   const hasCv = Boolean(cvId);
 
   return (
-    <div className="flex min-h-[780px] flex-col rounded-[28px] border border-[#E5E7EB] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,.06)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,#0F172A_0%,#111827_100%)] lg:min-h-[860px]">
-      <div className="mb-4 rounded-[24px] border border-[#E2E8F0] bg-[linear-gradient(180deg,#FFFFFF_0%,#F8FAFC_100%)] p-5 dark:border-slate-700 dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,.18),transparent_38%),linear-gradient(135deg,#172554_0%,#111827_58%,#0F172A_100%)]">
+    <div className="flex min-h-[780px] flex-col rounded-[28px] border border-[#E5E7EB] bg-[linear-gradient(180deg,#FFFFFF_0%,#F8FAFC_100%)] p-5 shadow-[0_18px_48px_rgba(15,23,42,.06)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,#0F172A_0%,#111827_100%)] lg:min-h-[860px]">
+      <div className="mb-4 rounded-[24px] border border-[#DBEAFE] bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,.18),_transparent_38%),linear-gradient(135deg,#EFF6FF_0%,#FFFFFF_58%,#F8FAFC_100%)] p-5 dark:border-slate-700 dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,.18),transparent_38%),linear-gradient(135deg,#172554_0%,#111827_58%,#0F172A_100%)]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#1D4ED8] dark:text-blue-300">
