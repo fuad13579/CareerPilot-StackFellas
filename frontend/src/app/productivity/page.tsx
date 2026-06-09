@@ -519,10 +519,10 @@ export default function ProductivityPage() {
                   <TrendingUp className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B] dark:text-slate-300">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B]">
                     Execution
                   </p>
-                  <h3 className="text-xl font-extrabold text-[#0F172A] dark:text-slate-100">
+                  <h3 className="text-xl font-extrabold text-[#0F172A]">
                     Progress snapshot
                   </h3>
                 </div>
@@ -530,16 +530,16 @@ export default function ProductivityPage() {
               <ProgressWidget stats={stats} />
             </div>
 
-            <div className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)] dark:border-slate-700 dark:bg-slate-900">
+            <div className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)]">
               <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-2xl bg-[#FEF3C7] text-[#B45309]">
                   <Target className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B] dark:text-slate-300">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B]">
                     Goal Setting
                   </p>
-                  <h3 className="text-xl font-extrabold text-[#0F172A] dark:text-slate-100">
+                  <h3 className="text-xl font-extrabold text-[#0F172A]">
                     Suggested weekly targets
                   </h3>
                 </div>
@@ -547,25 +547,25 @@ export default function ProductivityPage() {
 
               <div className="mt-4 space-y-3">
                 <div className="rounded-2xl bg-[#FFF7ED] p-4 dark:bg-orange-950/40">
-                  <p className="text-sm font-bold text-[#9A3412] dark:text-orange-200">Apply to 5 jobs this week</p>
-                  <p className="mt-1 text-sm text-[#7C2D12] dark:text-orange-100">
+                  <p className="text-sm font-bold text-[#9A3412]">Apply to 5 jobs this week</p>
+                  <p className="mt-1 text-sm text-[#7C2D12]">
                     Use the Jobs page, then move each application into the tracker board.
                   </p>
                 </div>
                 <div className="rounded-2xl bg-[#EFF6FF] p-4 dark:bg-blue-950/40">
-                  <p className="text-sm font-bold text-[#1D4ED8] dark:text-blue-300">
+                  <p className="text-sm font-bold text-[#1D4ED8]">
                     Finish every task due in the next 7 days
                   </p>
-                  <p className="mt-1 text-sm text-[#1E40AF] dark:text-blue-200">
+                  <p className="mt-1 text-sm text-[#1E40AF]">
                     You currently have {dueThisWeek} deadline-linked task
                     {dueThisWeek === 1 ? "" : "s"} in that window.
                   </p>
                 </div>
                 <div className="rounded-2xl bg-[#F0FDF4] p-4 dark:bg-emerald-950/40">
-                  <p className="text-sm font-bold text-[#15803D] dark:text-emerald-200">
+                  <p className="text-sm font-bold text-[#15803D]">
                     Schedule interview prep blocks
                   </p>
-                  <p className="mt-1 text-sm text-[#166534] dark:text-emerald-100">
+                  <p className="mt-1 text-sm text-[#166534]">
                     {interviewingCount > 0
                       ? `You have ${interviewingCount} interviewing application${interviewingCount === 1 ? "" : "s"} to support.`
                       : "Add mock interview sessions before interviews start to stack up."}

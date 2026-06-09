@@ -425,17 +425,17 @@ export function CoverLetterSection() {
                   onClick={() => setSelectedApplicationId(application.id)}
                   className={`rounded-2xl border-2 p-5 text-left transition-all ${
                     isSelected
-                      ? "border-blue-600 bg-blue-50 ring-2 ring-blue-600 ring-offset-2 dark:bg-blue-950/40 dark:ring-offset-slate-900"
+                      ? "border-blue-600 bg-blue-50 ring-2 ring-blue-600 ring-offset-2"
                       : "border-gray-200 bg-white hover:border-blue-400 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="font-bold text-gray-900 dark:text-slate-100">{application.role}</p>
-                      <p className="text-sm font-medium text-blue-600 dark:text-blue-300">{application.company}</p>
+                      <p className="text-sm font-medium text-blue-600">{application.company}</p>
                     </div>
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                      isSelected ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-300"
+                      isSelected ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
                     }`}>
                       {application.status}
                     </span>
