@@ -279,15 +279,10 @@ export default function ProductivityPage() {
         setEvents(updatedEvents);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        const statusLabel = response.status ? `HTTP ${response.status}` : "";
-        const detail =
+        throw new Error(
           typeof errorData?.detail === "string" && errorData.detail
             ? errorData.detail
-            : "Failed to delete event";
-        throw new Error(
-          detail === "Failed to delete event" && statusLabel
-            ? `${detail} (${statusLabel})`
-            : detail
+            : "Failed to delete event"
         );
       }
     } catch (error) {
