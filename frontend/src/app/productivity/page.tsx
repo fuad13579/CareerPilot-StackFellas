@@ -435,30 +435,30 @@ export default function ProductivityPage() {
           </div>
         )}
         <section className="grid gap-4 xl:grid-cols-[1.35fr_.9fr]">
-          <div className="overflow-hidden rounded-[28px] border border-[#D6E4FF] bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,.22),_transparent_34%),linear-gradient(135deg,#EFF6FF_0%,#FFFFFF_48%,#F8FAFC_100%)] p-6 shadow-[0_16px_48px_rgba(29,78,216,.08)] dark:border-slate-700 dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,.18),transparent_34%),linear-gradient(135deg,#172554_0%,#111827_48%,#0F172A_100%)] dark:shadow-none">
+          <div className="overflow-hidden rounded-[28px] border border-[#D6E4FF] bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,.22),_transparent_34%),linear-gradient(135deg,#EFF6FF_0%,#FFFFFF_48%,#F8FAFC_100%)] p-6 shadow-[0_16px_48px_rgba(29,78,216,.08)]">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-2xl">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#1D4ED8] dark:text-blue-300">
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#1D4ED8]">
                   Weekly Command Center
                 </p>
-                <h2 className="mt-2 text-3xl font-extrabold tracking-[-0.03em] text-[#0F172A] dark:text-slate-100">
+                <h2 className="mt-2 text-3xl font-extrabold tracking-[-0.03em] text-[#0F172A]">
                   Turn career goals into scheduled action.
                 </h2>
-                <p className="mt-3 text-sm font-medium leading-7 text-[#475569] dark:text-slate-300">
+                <p className="mt-3 text-sm font-medium leading-7 text-[#475569]">
                   This page now maps more directly to the problem statement:
                   calendar planning, weekly goal setting, and AI-style accountability nudges
                   tied to your real tasks and applications.
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-white/70 bg-white/80 px-4 py-3 text-right shadow-sm dark:border-slate-600 dark:bg-slate-800/90">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748B] dark:text-slate-400">
+              <div className="rounded-2xl border border-white/70 bg-white/80 px-4 py-3 text-right shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748B]">
                   This Week
                 </p>
-                <p className="mt-1 text-3xl font-extrabold text-[#0F172A] dark:text-slate-100">
+                <p className="mt-1 text-3xl font-extrabold text-[#0F172A]">
                   {weeklyApplications}
                 </p>
-                <p className="text-sm font-medium text-[#64748B] dark:text-slate-300">
+                <p className="text-sm font-medium text-[#64748B]">
                   applications submitted
                 </p>
               </div>
@@ -475,7 +475,7 @@ export default function ProductivityPage() {
                 return (
                   <div
                     key={goal.label}
-                    className="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm dark:border-slate-600 dark:bg-slate-800/90"
+                    className="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div
@@ -483,13 +483,13 @@ export default function ProductivityPage() {
                       >
                         <goal.icon className="h-5 w-5" />
                       </div>
-                      <span className="text-sm font-bold text-[#334155] dark:text-slate-200">
+                      <span className="text-sm font-bold text-[#334155]">
                         {goal.progress}/{goal.target}
                       </span>
                     </div>
-                    <p className="mt-4 text-sm font-bold text-[#0F172A] dark:text-slate-100">{goal.label}</p>
-                    <p className="mt-1 text-xs font-medium text-[#64748B] dark:text-slate-300">{goal.detail}</p>
-                    <div className="mt-4 h-2 rounded-full bg-[#E2E8F0] dark:bg-slate-700">
+                    <p className="mt-4 text-sm font-bold text-[#0F172A]">{goal.label}</p>
+                    <p className="mt-1 text-xs font-medium text-[#64748B]">{goal.detail}</p>
+                    <div className="mt-4 h-2 rounded-full bg-[#E2E8F0]">
                       <div
                         className={`h-full rounded-full bg-gradient-to-r ${goal.tone}`}
                         style={{ width: `${percentage}%` }}
@@ -501,16 +501,16 @@ export default function ProductivityPage() {
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,.06)] dark:border-slate-700 dark:bg-slate-900">
+          <div className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,.06)]">
             <div className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#1D4ED8] dark:bg-slate-800 dark:text-blue-300">
+              <div className="flex size-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#1D4ED8]">
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#1D4ED8] dark:text-blue-300">
+                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#1D4ED8]">
                   AI Nudges
                 </p>
-                <h3 className="text-xl font-extrabold text-[#0F172A] dark:text-slate-100">
+                <h3 className="text-xl font-extrabold text-[#0F172A]">
                   What needs attention next
                 </h3>
               </div>
@@ -520,13 +520,13 @@ export default function ProductivityPage() {
               {aiNudges.map((nudge, index) => (
                 <div
                   key={index}
-                  className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 dark:border-slate-700 dark:bg-slate-800"
+                  className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-white text-[#1D4ED8] shadow-sm dark:bg-slate-900 dark:text-blue-300">
+                    <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-white text-[#1D4ED8] shadow-sm">
                       <ArrowRight className="h-4 w-4" />
                     </div>
-                    <p className="text-sm font-medium leading-6 text-[#334155] dark:text-slate-100">{nudge}</p>
+                    <p className="text-sm font-medium leading-6 text-[#334155]">{nudge}</p>
                   </div>
                 </div>
               ))}
@@ -619,11 +619,11 @@ export default function ProductivityPage() {
               </div>
             </div>
 
-            <div className="mt-5 grid gap-3 md:grid-cols-7 md:gap-4">
+            <div className="mt-5 grid gap-3 md:grid-cols-7">
               {calendarDays.map((day) => (
                 <div
                   key={day.iso}
-                  className={`min-h-[210px] rounded-2xl border p-4 ${
+                  className={`rounded-2xl border p-3 ${
                     day.isToday
                       ? "border-[#93C5FD] bg-[#EFF6FF]"
                       : "border-[#E2E8F0] bg-[#F8FAFC]"
@@ -642,7 +642,7 @@ export default function ProductivityPage() {
                     </span>
                   </div>
 
-                  <div className="mt-5 space-y-2.5">
+                  <div className="mt-4 space-y-2">
                     {day.events.slice(0, 2).map((event) => {
                       const goalMeta = parseGoalMetadata(event.description);
                       return (
@@ -678,7 +678,7 @@ export default function ProductivityPage() {
                     ))}
 
                     {day.events.length === 0 && day.todos.length === 0 && (
-                      <p className="pt-6 text-sm font-medium leading-6 text-[#94A3B8]">
+                      <p className="pt-4 text-xs font-medium text-[#94A3B8]">
                         Open for deep work
                       </p>
                     )}
@@ -699,22 +699,11 @@ export default function ProductivityPage() {
         </section>
 
         <section className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <DeadlineList
               events={events}
               onCreate={handleCreateEvent}
               onDelete={handleDeleteEvent}
-              linkedApplications={applications}
-            />
-          </div>
-
-          <div className="lg:col-span-2">
-            <TodoList
-              todos={todos}
-              onCreate={handleCreateTodo}
-              onToggle={handleToggleTodo}
-              onDelete={handleDeleteTodo}
-              onUpdate={handleUpdateTodo}
               linkedApplications={applications}
             />
           </div>
@@ -767,6 +756,17 @@ export default function ProductivityPage() {
                 </p>
               </div>
             </div>
+          </div>
+
+          <div className="lg:col-span-3">
+            <TodoList
+              todos={todos}
+              onCreate={handleCreateTodo}
+              onToggle={handleToggleTodo}
+              onDelete={handleDeleteTodo}
+              onUpdate={handleUpdateTodo}
+              linkedApplications={applications}
+            />
           </div>
         </section>
       </div>
