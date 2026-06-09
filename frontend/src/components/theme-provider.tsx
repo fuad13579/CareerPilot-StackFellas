@@ -3,7 +3,7 @@
 import {
   createContext,
   useContext,
-  useLayoutEffect,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -41,14 +41,17 @@ function resolveInitialTheme(): Theme {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => resolveInitialTheme());
+  const [theme, setThemeState] = useState<Theme>("light");
 
-  useLayoutEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+  useEffect(() => {
+    const initialTheme = resolveInitialTheme();
+    setThemeState(initialTheme);
+    applyTheme(initialTheme);
+  }, []);
 
   const setTheme = (nextTheme: Theme) => {
     setThemeState(nextTheme);
+    applyTheme(nextTheme);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
     }
