@@ -1315,12 +1315,10 @@ function buildDashboardSkillFocus(
 ) {
   const cvSkillNames = cvSnapshot?.skills || [];
   const cvSkills = normalizeSkills(cvSkillNames);
-  const trackerSkills = state.skills;
+  const trackerSkillsByName = new Map(
+    state.skills.map((skill) => [skill.name.trim().toLowerCase(), skill])
+  );
   const skillDemand = new Map<string, { label: string; demandCount: number }>();
-  const hasProfileContext = cvSkills.size > 0 || trackerSkills.length > 0;
-  const inferredGapBaseline = hasProfileContext
-    ? Math.min(45, 20 + Math.max(cvSkills.size, trackerSkills.length) * 2)
-    : 0;
 
   for (const application of state.applications) {
     for (const rawSkill of application.requiredSkills || []) {
@@ -1340,12 +1338,9 @@ function buildDashboardSkillFocus(
   const demandDrivenCards = Array.from(skillDemand.entries())
     .sort((a, b) => b[1].demandCount - a[1].demandCount)
     .map(([normalized, info], index) => {
-      const trackedSkill = findRelatedTrackedSkill(info.label, trackerSkills);
-      const hasCvEvidence = hasRelatedCvSkill(info.label, cvSkills);
-      const inferredGapProficiency = hasProfileContext
-        ? Math.max(15, inferredGapBaseline - Math.min(12, (info.demandCount - 1) * 4))
-        : 0;
-      const proficiency = trackedSkill?.level ?? (hasCvEvidence ? 75 : inferredGapProficiency);
+      const trackedSkill = trackerSkillsByName.get(normalized);
+      const hasCvEvidence = cvSkills.has(normalized);
+      const proficiency = trackedSkill?.level ?? (hasCvEvidence ? 75 : 0);
       const category = trackedSkill
         ? "Tracked Skill"
         : hasCvEvidence
@@ -1398,63 +1393,6 @@ function buildDashboardSkillFocus(
 
 function normalizeSkills(skills: string[]) {
   return new Set(skills.map((skill) => skill.trim().toLowerCase()).filter(Boolean));
-}
-
-function normalizeSkillLabel(skill: string) {
-  return skill
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9+\s#]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function tokenizeSkill(skill: string) {
-  return normalizeSkillLabel(skill)
-    .split(" ")
-    .filter((token) => token.length > 1);
-}
-
-function buildSkillAcronym(skill: string) {
-  const tokens = tokenizeSkill(skill);
-  return tokens.map((token) => token[0]).join("");
-}
-
-function areRelatedSkills(left: string, right: string) {
-  const normalizedLeft = normalizeSkillLabel(left);
-  const normalizedRight = normalizeSkillLabel(right);
-
-  if (!normalizedLeft || !normalizedRight) return false;
-  if (normalizedLeft === normalizedRight) return true;
-  if (normalizedLeft.includes(normalizedRight) || normalizedRight.includes(normalizedLeft)) {
-    return normalizedLeft.length > 2 && normalizedRight.length > 2;
-  }
-
-  const leftAcronym = buildSkillAcronym(left);
-  const rightAcronym = buildSkillAcronym(right);
-  if (
-    (leftAcronym && leftAcronym === normalizedRight.replace(/\s+/g, "")) ||
-    (rightAcronym && rightAcronym === normalizedLeft.replace(/\s+/g, ""))
-  ) {
-    return true;
-  }
-
-  const leftTokens = new Set(tokenizeSkill(left));
-  const rightTokens = tokenizeSkill(right);
-  const overlap = rightTokens.filter((token) => leftTokens.has(token)).length;
-  return overlap > 0 && overlap >= Math.min(leftTokens.size, rightTokens.length);
-}
-
-function findRelatedTrackedSkill(
-  requiredSkill: string,
-  trackerSkills: Array<{ id: string; name: string; level: number }>
-) {
-  return trackerSkills.find((skill) => areRelatedSkills(requiredSkill, skill.name));
-}
-
-function hasRelatedCvSkill(requiredSkill: string, cvSkills: Set<string>) {
-  const cvSkillList = Array.from(cvSkills);
-  return cvSkillList.some((skill) => areRelatedSkills(requiredSkill, skill));
 }
 
 function collectMissingApplicationSkills(

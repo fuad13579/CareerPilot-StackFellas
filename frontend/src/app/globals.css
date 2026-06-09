@@ -3,20 +3,6 @@
 :root {
   --background: #FAF7F0;
   --foreground: #111827;
-  --muted-foreground: #6B7280;
-  --card-surface: rgba(255, 255, 255, 0.9);
-  --hover-surface: rgba(243, 244, 246, 0.9);
-  --nav-surface: rgba(255, 255, 255, 0.8);
-  --nav-mobile-surface: rgba(255, 255, 255, 0.95);
-  --nav-border: rgba(229, 231, 235, 0.6);
-  --nav-shadow: rgba(229, 231, 235, 0.6);
-  --border-color: #E5E7EB;
-  --card-shadow: rgba(17, 24, 39, 0.04);
-  --accent-soft: #EFF6FF;
-  --ambient-gradient: linear-gradient(to bottom right, #FAF7F0, #F5F0E8, #FAF7F0);
-  --ambient-primary: rgba(29, 78, 216, 0.8);
-  --ambient-secondary: rgba(59, 130, 246, 0.7);
-  --ambient-tertiary: rgba(147, 197, 253, 0.65);
 }
 
 @theme inline {
@@ -27,23 +13,11 @@
   --font-mono: "Courier New", Courier, monospace;
 }
 
-.dark {
-  --background: #0C1220;
-  --foreground: #E5EEF9;
-  --muted-foreground: #93A4BD;
-  --card-surface: rgba(17, 25, 40, 0.82);
-  --hover-surface: rgba(32, 44, 68, 0.88);
-  --nav-surface: rgba(10, 16, 30, 0.82);
-  --nav-mobile-surface: rgba(10, 16, 30, 0.95);
-  --nav-border: rgba(91, 117, 168, 0.24);
-  --nav-shadow: rgba(12, 18, 32, 0.72);
-  --border-color: rgba(91, 117, 168, 0.28);
-  --card-shadow: rgba(0, 0, 0, 0.35);
-  --accent-soft: rgba(29, 78, 216, 0.18);
-  --ambient-gradient: linear-gradient(to bottom right, #0C1220, #101A2E, #0C1220);
-  --ambient-primary: rgba(37, 99, 235, 0.28);
-  --ambient-secondary: rgba(14, 165, 233, 0.22);
-  --ambient-tertiary: rgba(96, 165, 250, 0.16);
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #FFF8ED;
+    --foreground: #111827;
+  }
 }
 
 * {
@@ -53,10 +27,6 @@
 html {
   scroll-behavior: smooth;
   color-scheme: light;
-}
-
-html.dark {
-  color-scheme: dark;
 }
 
 body {
@@ -75,7 +45,7 @@ h1,
 h2,
 h3 {
   font-family: Manrope, Inter, Arial, Helvetica, sans-serif;
-  color: var(--foreground);
+  color: #111827;
   letter-spacing: -0.02em;
   line-height: 1.08;
 }
@@ -95,10 +65,6 @@ button {
 .portfolio-noise {
   background-image: radial-gradient(circle at 1px 1px, rgba(17, 24, 39, 0.05) 1px, transparent 0);
   background-size: 22px 22px;
-}
-
-.dark .portfolio-noise {
-  background-image: radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.08) 1px, transparent 0);
 }
 
 ::selection {
@@ -176,40 +142,3 @@ button {
 .progress-60 { width: 60%; }
 .progress-80 { width: 80%; }
 .progress-100 { width: 100%; }
-
-html.dark [class*="bg-white"] {
-  background-color: var(--card-surface) !important;
-}
-
-html.dark [class*="bg-[#FAF7F0]"],
-html.dark [class*="bg-[#fafafa]"],
-html.dark [class*="bg-[#F9FAFB]"],
-html.dark [class*="bg-[#F3F4F6]"] {
-  background-color: var(--hover-surface) !important;
-}
-
-html.dark [class*="bg-[#EFF6FF]"] {
-  background-color: var(--accent-soft) !important;
-}
-
-html.dark [class*="text-[#111827]"],
-html.dark [class~="text-black"] {
-  color: var(--foreground) !important;
-}
-
-html.dark [class*="text-[#6B7280]"],
-html.dark [class*="text-gray-500"],
-html.dark [class*="text-gray-600"],
-html.dark [class*="text-gray-700"] {
-  color: var(--muted-foreground) !important;
-}
-
-html.dark [class*="border-[#E5E7EB]"],
-html.dark [class*="border-gray-"],
-html.dark [class*="border-white/"] {
-  border-color: var(--border-color) !important;
-}
-
-html.dark [class*="shadow-[0_1px_0_rgba(229,231,235,0.6)]"] {
-  box-shadow: 0 1px 0 var(--nav-shadow) !important;
-}
