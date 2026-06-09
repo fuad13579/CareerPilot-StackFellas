@@ -70,9 +70,9 @@ export function TrackerExperience() {
               <div className="flex size-11 items-center justify-center rounded-xl bg-[#EFF6FF]">
                 <stat.icon size={20} className="text-[#1D4ED8]" />
               </div>
-              <div className="opacity-100">
-                <p className="text-2xl font-extrabold text-[#0F172A] opacity-100 dark:text-slate-100">{stat.value}</p>
-                <p className="text-sm font-semibold text-[#64748B] opacity-100 dark:text-slate-300">{stat.label}</p>
+              <div>
+                <p className="text-2xl font-extrabold text-black dark:text-slate-100">{stat.value}</p>
+                <p className="text-sm font-medium text-[#6B7280] dark:text-slate-300">{stat.label}</p>
               </div>
             </GlassCard>
           </Reveal>
@@ -85,11 +85,11 @@ export function TrackerExperience() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-[#1D4ED8]">Weekly Goal</p>
-              <p className="mt-1 text-lg font-extrabold text-[#0F172A] opacity-100 dark:text-slate-100">Apply to 5 jobs</p>
+              <p className="mt-1 text-lg font-extrabold text-black dark:text-slate-100">Apply to 5 jobs</p>
             </div>
             <div className="text-right">
               <p className="text-3xl font-extrabold text-[#1D4ED8]">{weeklyStats.applicationsThisWeek} / 5</p>
-              <p className="text-sm font-semibold text-[#94A3B8] opacity-100 dark:text-slate-300">applications this week</p>
+              <p className="text-sm font-medium text-[#6B7280] dark:text-slate-300">applications this week</p>
             </div>
           </div>
           <div className="mt-4 h-3 rounded-full bg-[#EEF2F7]">

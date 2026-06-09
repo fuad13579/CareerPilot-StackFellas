@@ -265,60 +265,58 @@ function WelcomeHero({
         className="pointer-events-none absolute inset-0 opacity-[0.03] dot-pattern" 
       />
       <div className="relative mx-auto w-full max-w-6xl">
-        <div className="rounded-[32px] border border-[#E5E7EB] bg-white px-8 py-10 shadow-[0_18px_48px_rgba(15,23,42,.06)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,#0F172A_0%,#111827_100%)] lg:px-12 lg:py-12">
+        <Reveal>
+          <div className="mb-4 flex items-center gap-2">
+            <Sparkles className="text-[#1d4ed8]" size={20} />
+            <span className="text-sm font-semibold text-[#1d4ed8]">
+              {hasCvUploaded ? "CareerPilot Active" : "CareerPilot Ready"}
+            </span>
+          </div>
+        </Reveal>
+        <Reveal>
+          <h1 className="mb-4 text-[clamp(2.5rem,8vw,5rem)] font-extrabold tracking-tight leading-[0.95] text-black dark:text-slate-100">
+            {welcomeInfo.greeting}
+          </h1>
+        </Reveal>
+        <p className="mb-6 max-w-2xl text-xl leading-[1.7] text-[#374151] dark:text-slate-300">
+          {welcomeInfo.message}
+        </p>
+        {cvSnapshot && (
           <Reveal>
-            <div className="mb-4 flex items-center gap-2">
-              <Sparkles className="text-[#1d4ed8]" size={20} />
-              <span className="text-sm font-semibold text-[#1d4ed8]">
-                {hasCvUploaded ? "CareerPilot Active" : "CareerPilot Ready"}
-              </span>
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-medium text-[#374151] shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+              <FileText size={14} className="text-[#1d4ed8] dark:text-blue-300" />
+              <span>{cvSnapshot.filename}</span>
             </div>
           </Reveal>
-          <Reveal>
-            <h1 className="mb-4 text-[clamp(2.5rem,8vw,5rem)] font-extrabold tracking-tight leading-[0.95] text-black dark:text-slate-100">
-              {welcomeInfo.greeting}
-            </h1>
-          </Reveal>
-          <p className="mb-6 max-w-2xl text-xl leading-[1.7] text-[#374151] dark:text-slate-300">
-            {welcomeInfo.message}
-          </p>
-          {cvSnapshot && (
-            <Reveal>
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-medium text-[#374151] shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                <FileText size={14} className="text-[#1d4ed8] dark:text-blue-300" />
-                <span>{cvSnapshot.filename}</span>
-              </div>
-            </Reveal>
-          )}
-          <Reveal>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/jobs"
-                className="inline-flex items-center gap-2 rounded-full bg-black px-8 py-4 text-sm font-bold text-white transition-all hover:bg-[#1d4ed8]"
-              >
-                Find Jobs <ArrowRight size={16} />
-              </Link>
-              <Link
-                href="/upload"
-                className="inline-flex items-center gap-2 rounded-full border-2 border-[#e5e7eb] bg-white px-8 py-4 text-sm font-bold text-black transition-all hover:border-black dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-blue-400"
-              >
-                Update CV <ArrowRight size={16} />
-              </Link>
+        )}
+        <Reveal>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/jobs"
+              className="inline-flex items-center gap-2 rounded-full bg-black px-8 py-4 text-sm font-bold text-white transition-all hover:bg-[#1d4ed8]"
+            >
+              Find Jobs <ArrowRight size={16} />
+            </Link>
+            <Link
+              href="/upload"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-[#e5e7eb] bg-white px-8 py-4 text-sm font-bold text-black transition-all hover:border-black dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-blue-400"
+            >
+              Update CV <ArrowRight size={16} />
+            </Link>
+          </div>
+        </Reveal>
+        <Reveal>
+          <div className="mt-10 flex items-center gap-6 text-sm text-[#6b7280] dark:text-slate-400">
+            <div className="flex items-center gap-2">
+              <div className={`size-2 rounded-full ${hasCvUploaded ? "bg-[#10b981]" : "bg-[#9ca3af]"}`} />
+              <span>{hasCvUploaded ? "CV Analyzed" : "CV Not Uploaded"}</span>
             </div>
-          </Reveal>
-          <Reveal>
-            <div className="mt-10 flex items-center gap-6 text-sm text-[#6b7280] dark:text-slate-400">
-              <div className="flex items-center gap-2">
-                <div className={`size-2 rounded-full ${hasCvUploaded ? "bg-[#10b981]" : "bg-[#9ca3af]"}`} />
-                <span>{hasCvUploaded ? "CV Analyzed" : "CV Not Uploaded"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock size={14} />
-                <span>{welcomeInfo.lastActive}</span>
-              </div>
+            <div className="flex items-center gap-2">
+              <Clock size={14} />
+              <span>{welcomeInfo.lastActive}</span>
             </div>
-          </Reveal>
-        </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
