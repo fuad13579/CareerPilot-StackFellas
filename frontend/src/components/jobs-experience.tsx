@@ -414,13 +414,13 @@ export function JobsExperience() {
       {/* Search Bar */}
       <form onSubmit={handleSearch}>
         <div className="relative">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-400" size={20} />
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search jobs in natural language: remote React internships, hybrid data roles in New York..."
-            className="w-full rounded-2xl border-2 border-gray-200 bg-white py-4 pl-14 pr-32 text-lg font-medium shadow-lg transition-all focus:border-[#1D4ED8] focus:outline-none focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:ring-blue-950"
+            className="w-full rounded-2xl border-2 border-gray-200 bg-white py-4 pl-14 pr-32 text-lg font-medium shadow-lg transition-all focus:border-[#1D4ED8] focus:outline-none focus:ring-4 focus:ring-blue-100"
           />
           <button
             type="submit"
@@ -439,7 +439,7 @@ export function JobsExperience() {
       {/* Results Count */}
       <div className="flex items-center gap-2">
         <Briefcase size={18} className="text-[#1D4ED8]" />
-        <span className="text-sm font-bold text-gray-600 dark:text-slate-300">
+        <span className="text-sm font-bold text-gray-600">
           {isSearching && isInitialLoad ? "Loading jobs..." : `${jobs.length} jobs found`}
         </span>
         {isLive && !isSearching && (
@@ -449,7 +449,7 @@ export function JobsExperience() {
           </span>
         )}
         {activeSource && !isSearching && (
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
             Source: {activeSource}
           </span>
         )}
@@ -466,11 +466,11 @@ export function JobsExperience() {
       </div>
 
       {activeSource && !isSearching && !apiError && (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-semibold text-slate-700">
             Results are coming from {activeSource}.
           </p>
-          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+          <p className="mt-1 text-xs text-slate-600">
             {isCachedResult
               ? `This result set came from the short-lived cache${cacheExpiresAt ? ` and expires at ${new Date(cacheExpiresAt).toLocaleString("en-US")}` : ""}. Press Search again to force a refresh.`
               : activeSource.includes("Remotive") && !activeSource.includes("Adzuna") && !activeSource.includes("Arbeitnow")
@@ -516,19 +516,19 @@ export function JobsExperience() {
 
       {/* Empty State - No CV uploaded */}
       {hasCvUploaded && jobs.length === 0 && !isSearching && !apiError && (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-8 text-center dark:border-slate-700 dark:bg-slate-900">
-          <Briefcase size={40} className="mx-auto text-gray-400 dark:text-slate-400" />
-          <p className="mt-4 text-base font-semibold text-gray-700 dark:text-slate-200">No jobs found</p>
-          <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Try a different search term or check back later for new opportunities.</p>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-8 text-center">
+          <Briefcase size={40} className="mx-auto text-gray-400" />
+          <p className="mt-4 text-base font-semibold text-gray-700">No jobs found</p>
+          <p className="mt-1 text-sm text-gray-500">Try a different search term or check back later for new opportunities.</p>
         </div>
       )}
 
       {/* Empty State - No CV uploaded */}
       {!hasCvUploaded && jobs.length === 0 && !isSearching && !apiError && (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-8 text-center dark:border-slate-700 dark:bg-slate-900">
-          <FileText size={40} className="mx-auto text-gray-400 dark:text-slate-400" />
-          <p className="mt-4 text-base font-semibold text-gray-700 dark:text-slate-200">Upload your CV to see job recommendations</p>
-          <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Go to /upload to get personalized job matches based on your skills.</p>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-8 text-center">
+          <FileText size={40} className="mx-auto text-gray-400" />
+          <p className="mt-4 text-base font-semibold text-gray-700">Upload your CV to see job recommendations</p>
+          <p className="mt-1 text-sm text-gray-500">Go to /upload to get personalized job matches based on your skills.</p>
         </div>
       )}
 
@@ -555,7 +555,7 @@ export function JobsExperience() {
                     {job.company?.[0] || "?"}
                   </div>
                   <div>
-                    <h2 className="text-xl font-extrabold text-gray-900 dark:text-slate-100">{job.role}</h2>
+                    <h2 className="text-xl font-extrabold text-gray-900">{job.role}</h2>
                     <p className="text-sm font-bold text-[#1D4ED8]">{job.company}</p>
                   </div>
                 </div>
@@ -565,12 +565,12 @@ export function JobsExperience() {
                       {displayFitScore}% Match
                     </span>
                   ) : (
-                    <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-extrabold text-gray-500 dark:bg-slate-800 dark:text-slate-300">
+                    <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-extrabold text-gray-500">
                       Not scored
                     </span>
                   )
                 ) : (
-                  <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-extrabold text-gray-500 dark:bg-slate-800 dark:text-slate-300">
+                  <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-extrabold text-gray-500">
                     General
                   </span>
                 )}
@@ -578,23 +578,23 @@ export function JobsExperience() {
 
               {/* Details */}
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2 rounded-xl bg-gray-50 p-3 dark:bg-slate-800">
-                  <MapPin size={16} className="text-gray-400 dark:text-slate-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-slate-200">{job.location}</span>
+                <div className="flex items-center gap-2 rounded-xl bg-gray-50 p-3">
+                  <MapPin size={16} className="text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700">{job.location}</span>
                 </div>
-                <div className="flex items-center gap-2 rounded-xl bg-gray-50 p-3 dark:bg-slate-800">
-                  <DollarSign size={16} className="text-gray-400 dark:text-slate-400" />
-                  <span className="text-xs font-medium text-gray-700 dark:text-slate-200">{job.salary}</span>
+                <div className="flex items-center gap-2 rounded-xl bg-gray-50 p-3">
+                  <DollarSign size={16} className="text-gray-400" />
+                  <span className="text-xs font-medium text-gray-700">{job.salary}</span>
                 </div>
-                <div className="flex items-center gap-2 rounded-xl bg-gray-50 p-3 dark:bg-slate-800">
-                  <Calendar size={16} className="text-gray-400 dark:text-slate-400" />
-                  <span className="text-xs font-medium text-gray-700 dark:text-slate-200">
+                <div className="flex items-center gap-2 rounded-xl bg-gray-50 p-3">
+                  <Calendar size={16} className="text-gray-400" />
+                  <span className="text-xs font-medium text-gray-700">
                     {job.deadline
                       ? new Date(job.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })
                       : "Deadline not provided"}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 rounded-xl bg-gray-50 p-3 dark:bg-slate-800">
+                <div className="flex items-center gap-2 rounded-xl bg-gray-50 p-3">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${getTypeBadgeColor(job.type)}`}>
                     {job.type}
                   </span>
@@ -608,7 +608,7 @@ export function JobsExperience() {
                     <TrendingUp size={14} className="text-[#1D4ED8]" />
                     <span className="text-xs font-semibold text-[#1D4ED8]">Why this matches</span>
                   </div>
-                  <p className="text-sm leading-relaxed text-gray-700 dark:text-slate-300">{job.matchReason}</p>
+                  <p className="text-sm leading-relaxed text-gray-700">{job.matchReason}</p>
                 </div>
               )}
 
@@ -616,7 +616,7 @@ export function JobsExperience() {
               {displayMissingSkills.length > 0 ? (
               <div className="mt-3 flex items-center gap-2">
                 <AlertCircle size={12} className="shrink-0 text-orange-500" />
-                <span className="text-xs font-medium text-gray-500 dark:text-slate-400">Improve before applying:</span>
+                <span className="text-xs font-medium text-gray-500">Improve before applying:</span>
                 <div className="flex flex-wrap gap-1">
                   {displayMissingSkills.slice(0, 2).map((skill) => (
                     <span key={skill} className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-600">
@@ -633,7 +633,7 @@ export function JobsExperience() {
               ) : (
               <div className="mt-3 flex items-center gap-2">
                 <TrendingUp size={12} className="shrink-0 text-green-500" />
-                <span className="text-xs font-medium text-gray-500 dark:text-slate-400">Required skills unavailable for this job</span>
+                <span className="text-xs font-medium text-gray-500">Required skills unavailable for this job</span>
               </div>
               )}
 
@@ -681,13 +681,13 @@ export function JobsExperience() {
                   className={`rounded-xl border-2 px-4 py-3 font-extrabold transition-all ${
                     savedJobs.has(job.id)
                       ? "border-[#1D4ED8] bg-[#1D4ED8] text-white"
-                      : "border-gray-200 text-gray-600 hover:border-[#1D4ED8] hover:text-[#1D4ED8] dark:border-slate-700 dark:text-slate-300 dark:hover:border-blue-500 dark:hover:text-blue-300"
+                      : "border-gray-200 text-gray-600 hover:border-[#1D4ED8] hover:text-[#1D4ED8]"
                   }`}
                 >
                   <Bookmark size={18} fill={savedJobs.has(job.id) ? "currentColor" : "none"} />
                 </button>
               </div>
-              <p className="mt-3 text-xs text-gray-500 dark:text-slate-400">
+              <p className="mt-3 text-xs text-gray-500">
                 This does not submit an application to the employer. It only saves the job in your tracker.
               </p>
             </GlassCard>

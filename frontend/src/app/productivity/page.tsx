@@ -513,7 +513,7 @@ export default function ProductivityPage() {
 
         <section className="grid gap-6 xl:grid-cols-[.95fr_1.05fr]">
           <div className="space-y-6">
-            <div className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)] dark:border-slate-700 dark:bg-slate-900">
+            <div className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)]">
               <div className="mb-4 flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-2xl bg-[#ECFDF5] text-[#059669]">
                   <TrendingUp className="h-5 w-5" />
@@ -546,13 +546,13 @@ export default function ProductivityPage() {
               </div>
 
               <div className="mt-4 space-y-3">
-                <div className="rounded-2xl bg-[#FFF7ED] p-4 dark:bg-orange-950/40">
+                <div className="rounded-2xl bg-[#FFF7ED] p-4">
                   <p className="text-sm font-bold text-[#9A3412]">Apply to 5 jobs this week</p>
                   <p className="mt-1 text-sm text-[#7C2D12]">
                     Use the Jobs page, then move each application into the tracker board.
                   </p>
                 </div>
-                <div className="rounded-2xl bg-[#EFF6FF] p-4 dark:bg-blue-950/40">
+                <div className="rounded-2xl bg-[#EFF6FF] p-4">
                   <p className="text-sm font-bold text-[#1D4ED8]">
                     Finish every task due in the next 7 days
                   </p>
@@ -561,7 +561,7 @@ export default function ProductivityPage() {
                     {dueThisWeek === 1 ? "" : "s"} in that window.
                   </p>
                 </div>
-                <div className="rounded-2xl bg-[#F0FDF4] p-4 dark:bg-emerald-950/40">
+                <div className="rounded-2xl bg-[#F0FDF4] p-4">
                   <p className="text-sm font-bold text-[#15803D]">
                     Schedule interview prep blocks
                   </p>
@@ -575,7 +575,7 @@ export default function ProductivityPage() {
             </div>
           </div>
 
-          <div className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)] dark:border-slate-700 dark:bg-slate-900">
+          <div className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)]">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4338CA]">
@@ -591,7 +591,7 @@ export default function ProductivityPage() {
                 </div>
               </div>
 
-              <div className="rounded-full bg-[#F8FAFC] px-3 py-1 text-xs font-semibold text-[#475569] dark:bg-slate-800 dark:text-slate-300">
+              <div className="rounded-full bg-[#F8FAFC] px-3 py-1 text-xs font-semibold text-[#475569]">
                 {upcomingThisWeek.length} event{upcomingThisWeek.length === 1 ? "" : "s"} scheduled
               </div>
             </div>
@@ -603,7 +603,7 @@ export default function ProductivityPage() {
                   className={`rounded-2xl border p-3 ${
                     day.isToday
                       ? "border-[#93C5FD] bg-[#EFF6FF]"
-                      : "border-[#E2E8F0] bg-[#F8FAFC] dark:border-slate-700 dark:bg-slate-900"
+                      : "border-[#E2E8F0] bg-[#F8FAFC]"
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -612,7 +612,7 @@ export default function ProductivityPage() {
                     </p>
                     <span
                       className={`grid size-7 place-items-center rounded-full text-sm font-bold ${
-                        day.isToday ? "bg-[#1D4ED8] text-white" : "bg-white text-[#0F172A] dark:bg-slate-800 dark:text-slate-100"
+                        day.isToday ? "bg-[#1D4ED8] text-white" : "bg-white text-[#0F172A]"
                       }`}
                     >
                       {day.dayNumber}
@@ -625,7 +625,7 @@ export default function ProductivityPage() {
                       return (
                         <div
                           key={`event-${event.id}`}
-                          className="rounded-xl bg-white px-2.5 py-2 text-xs font-medium text-[#334155] shadow-sm dark:bg-slate-800 dark:text-slate-200"
+                          className="rounded-xl bg-white px-2.5 py-2 text-xs font-medium text-[#334155] shadow-sm"
                         >
                           <div className="flex items-center gap-1.5 text-[#1D4ED8]">
                             <AlarmClock className="h-3.5 w-3.5" />
@@ -644,7 +644,7 @@ export default function ProductivityPage() {
                     {day.todos.slice(0, 2).map((todo) => (
                       <div
                         key={`todo-${todo.id}`}
-                        className="rounded-xl bg-[#FEFCE8] px-2.5 py-2 text-xs font-medium text-[#713F12] dark:bg-amber-950/40 dark:text-amber-200"
+                        className="rounded-xl bg-[#FEFCE8] px-2.5 py-2 text-xs font-medium text-[#713F12]"
                       >
                         <div className="flex items-center gap-1.5">
                           <Clock3 className="h-3.5 w-3.5" />
@@ -655,7 +655,7 @@ export default function ProductivityPage() {
                     ))}
 
                     {day.events.length === 0 && day.todos.length === 0 && (
-                      <p className="pt-4 text-xs font-medium text-[#94A3B8] dark:text-slate-400">
+                      <p className="pt-4 text-xs font-medium text-[#94A3B8]">
                         Open for deep work
                       </p>
                     )}
@@ -665,7 +665,7 @@ export default function ProductivityPage() {
             </div>
 
             {upcomingEvents.length > 0 && (
-              <div className="mt-5 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 dark:border-slate-700 dark:bg-slate-800">
+              <div className="mt-5 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
                 <p className="text-sm font-bold text-[#0F172A]">Next important date</p>
                 <p className="mt-1 text-sm text-[#475569]">
                   {upcomingEvents[0].title} on {formatShortDate(upcomingEvents[0].event_date)}
@@ -685,7 +685,7 @@ export default function ProductivityPage() {
             />
           </div>
 
-          <div className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)] dark:border-slate-700 dark:bg-slate-900">
+          <div className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)]">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-2xl bg-[#F5F3FF] text-[#7C3AED]">
                 <Briefcase className="h-5 w-5" />
@@ -701,7 +701,7 @@ export default function ProductivityPage() {
             </div>
 
             <div className="mt-5 space-y-3">
-              <div className="rounded-2xl bg-[#F8FAFC] p-4 dark:bg-slate-800">
+              <div className="rounded-2xl bg-[#F8FAFC] p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#64748B]">
                   Pipeline size
                 </p>
@@ -710,13 +710,13 @@ export default function ProductivityPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-[#FEF2F2] p-4 dark:bg-red-950/40">
+                <div className="rounded-2xl bg-[#FEF2F2] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#991B1B]">
                     Overdue
                   </p>
                   <p className="mt-1 text-2xl font-extrabold text-[#B91C1C]">{overdueTodos}</p>
                 </div>
-                <div className="rounded-2xl bg-[#ECFDF5] p-4 dark:bg-emerald-950/40">
+                <div className="rounded-2xl bg-[#ECFDF5] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#166534]">
                     Interviewing
                   </p>
@@ -724,7 +724,7 @@ export default function ProductivityPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-[#EFF6FF] p-4 dark:bg-blue-950/40">
+              <div className="rounded-2xl bg-[#EFF6FF] p-4">
                 <p className="text-sm font-bold text-[#1D4ED8]">Recommended next step</p>
                 <p className="mt-1 text-sm text-[#1E3A8A]">
                   {applications.length === 0

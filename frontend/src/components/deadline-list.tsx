@@ -144,7 +144,7 @@ export function DeadlineList({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-100">Deadlines</h2>
+        <h2 className="text-lg font-semibold text-slate-950">Deadlines</h2>
         <button
           onClick={() => setShowForm(!showForm)}
           className="flex items-center gap-1 rounded-md bg-slate-700 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-800"
@@ -158,52 +158,52 @@ export function DeadlineList({
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900"
+          className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4"
         >
           <div>
-            <label htmlFor="deadline-title" className="block text-sm font-medium text-slate-700 dark:text-slate-200">Title *</label>
+            <label htmlFor="deadline-title" className="block text-sm font-medium text-slate-700">Title *</label>
             <input
               id="deadline-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Interview with Google"
-              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400"
+              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="deadline-date" className="block text-sm font-medium text-slate-700 dark:text-slate-200">Date *</label>
+            <label htmlFor="deadline-date" className="block text-sm font-medium text-slate-700">Date *</label>
             <input
               id="deadline-date"
               type="date"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="deadline-notes" className="block text-sm font-medium text-slate-700 dark:text-slate-200">Notes</label>
+            <label htmlFor="deadline-notes" className="block text-sm font-medium text-slate-700">Notes</label>
             <textarea
               id="deadline-notes"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               placeholder="Additional details..."
-              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400"
+              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
             />
           </div>
 
           <div>
-            <label htmlFor="deadline-goal" className="block text-sm font-medium text-slate-700 dark:text-slate-200">Goal Category</label>
+            <label htmlFor="deadline-goal" className="block text-sm font-medium text-slate-700">Goal Category</label>
             <select
               id="deadline-goal"
               value={goalCategory}
               onChange={(e) => setGoalCategory(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
             >
               <option value="">No specific goal</option>
               {GOAL_CATEGORIES.map((goal) => (
@@ -215,7 +215,7 @@ export function DeadlineList({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Link to (optional)</label>
+            <label className="block text-sm font-medium text-slate-700">Link to (optional)</label>
             <select
               aria-label="Link type"
               value={linkedType}
@@ -223,7 +223,7 @@ export function DeadlineList({
                 setLinkedType(e.target.value);
                 setLinkedId(undefined);
               }}
-              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
             >
               <option value="">No link</option>
               <option value="application">Job Application</option>
@@ -234,7 +234,7 @@ export function DeadlineList({
                 aria-label="Linked application"
                 value={linkedId || ""}
                 onChange={(e) => setLinkedId(Number(e.target.value) || undefined)}
-                className="mt-2 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className="mt-2 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
               >
                 <option value="">Select application...</option>
                 {linkedApplications.map((app) => (
@@ -250,7 +250,7 @@ export function DeadlineList({
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
               Cancel
             </button>
@@ -277,11 +277,11 @@ export function DeadlineList({
             return (
               <div
                 key={event.id}
-                className={`group flex items-center gap-3 rounded-lg border bg-white p-4 shadow-sm transition dark:bg-slate-900 ${
-                  daysUntil < 0 ? "border-red-200 dark:border-red-900/60" : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
+                className={`group flex items-center gap-3 rounded-lg border bg-white p-4 shadow-sm transition ${
+                  daysUntil < 0 ? "border-red-200" : "border-slate-200 hover:border-slate-300"
                 }`}
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
                   {daysUntil < 0 ? (
                     <AlertCircle className="h-5 w-5 text-red-500" />
                   ) : daysUntil <= 3 ? (
@@ -293,7 +293,7 @@ export function DeadlineList({
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-slate-950 dark:text-slate-100">{event.title}</h3>
+                    <h3 className="font-medium text-slate-950">{event.title}</h3>
                     {getStatusBadge(daysUntil)}
                   </div>
                   {goalMeta.goal && (
@@ -303,14 +303,14 @@ export function DeadlineList({
                       </span>
                     </div>
                   )}
-                  <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">{formatDate(event.event_date)}</p>
+                  <p className="mt-0.5 text-sm text-slate-600">{formatDate(event.event_date)}</p>
                   {linkedApp && (
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-xs text-slate-500">
                       {linkedApp.company} - {linkedApp.role}
                     </p>
                   )}
                   {goalMeta.cleanDescription && (
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{goalMeta.cleanDescription}</p>
+                    <p className="mt-1 text-xs text-slate-500">{goalMeta.cleanDescription}</p>
                   )}
                 </div>
 
@@ -332,7 +332,7 @@ export function DeadlineList({
                     <button
                       type="button"
                       onClick={cancelDelete}
-                      className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                      className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
                       aria-label="Cancel delete"
                     >
                       Cancel
@@ -344,7 +344,7 @@ export function DeadlineList({
                     className="opacity-0 transition-opacity group-hover:opacity-100"
                     aria-label="Delete deadline"
                   >
-                    <X className="h-4 w-4 text-slate-400 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-300" />
+                    <X className="h-4 w-4 text-slate-400 hover:text-red-500" />
                   </button>
                 )}
               </div>
@@ -352,9 +352,9 @@ export function DeadlineList({
           })}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center dark:border-slate-700 dark:bg-slate-900">
-          <Calendar className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-500" />
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">No deadlines scheduled</p>
+        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+          <Calendar className="mx-auto h-8 w-8 text-slate-300" />
+          <p className="mt-2 text-sm text-slate-500">No deadlines scheduled</p>
           <button
             onClick={() => setShowForm(true)}
             className="mt-2 text-sm font-medium text-cyan-600 hover:text-cyan-700"
