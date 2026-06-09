@@ -1051,9 +1051,7 @@ function AINudgesSection({ events }: { events: CalendarEvent[] }) {
         : `Great progress! You've applied to ${weeklyStats.applicationsThisWeek} jobs this week.`,
       icon: weeklyStats.applicationsThisWeek === 0 ? AlertCircle : CheckCircle2,
       color: weeklyStats.applicationsThisWeek === 0 ? "text-[#ef4444]" : "text-[#10b981]",
-      bg: weeklyStats.applicationsThisWeek === 0
-        ? "bg-red-50 dark:bg-red-950/40 dark:border-red-900/50"
-        : "bg-green-50 dark:bg-emerald-950/35 dark:border-emerald-900/50",
+      bg: weeklyStats.applicationsThisWeek === 0 ? "bg-red-50" : "bg-green-50",
     },
     {
       type: "suggestion",
@@ -1064,7 +1062,7 @@ function AINudgesSection({ events }: { events: CalendarEvent[] }) {
           : "You've received positive responses on some applications. Keep the momentum going!",
       icon: Lightbulb,
       color: "text-[#f59e0b]",
-      bg: "bg-amber-50 dark:bg-amber-950/35 dark:border-amber-900/50",
+      bg: "bg-amber-50",
     },
     {
       type: "reminder",
@@ -1073,7 +1071,7 @@ function AINudgesSection({ events }: { events: CalendarEvent[] }) {
         : "Excellent work on completing tasks this week! You're building strong habits.",
       icon: Clock,
       color: "text-[#3b82f6]",
-      bg: "bg-blue-50 dark:bg-blue-950/35 dark:border-blue-900/50",
+      bg: "bg-blue-50",
     },
   ];
 
@@ -1088,11 +1086,11 @@ function AINudgesSection({ events }: { events: CalendarEvent[] }) {
         <Stagger className="grid gap-4 md:grid-cols-3">
           {aiNudges.map((nudge, index) => (
             <Reveal key={index}>
-              <div className={`flex items-start gap-4 rounded-2xl border p-5 ${nudge.bg}`}>
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white dark:bg-slate-800">
+              <div className={`flex items-start gap-4 rounded-2xl ${nudge.bg} p-5 border border-transparent`}>
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white">
                   <nudge.icon size={20} className={nudge.color} />
                 </div>
-                <p className="text-sm font-medium leading-relaxed text-slate-900 dark:text-slate-100">
+                <p className="text-sm font-medium leading-relaxed text-black">
                   {nudge.message}
                 </p>
               </div>
