@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Todo } from "@/types/productivity";
-import { CheckCircle2, Circle, Trash2, Calendar, Link2, Edit2 } from "lucide-react";
+import { CheckCircle2, Circle, Trash2, Calendar, Link2, Edit2, Loader2 } from "lucide-react";
 import { TodoForm } from "./todo-form";
 import { parseGoalMetadata } from "./productivity-goals";
 
@@ -14,9 +14,9 @@ interface JobApplication {
 
 interface TodoItemProps {
   todo: Todo;
-  onToggle: (id: number, completed: boolean) => void;
-  onDelete: (id: number) => void;
-  onUpdate: (id: number, data: Partial<Todo>) => void;
+  onToggle: (id: number, completed: boolean) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
+  onUpdate: (id: number, data: Partial<Todo>) => Promise<void>;
   linkedApplications?: JobApplication[];
 }
 
@@ -28,18 +28,36 @@ export function TodoItem({
   linkedApplications = [],
 }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const handleToggle = () => {
-    onToggle(todo.id, !todo.is_completed);
+  const handleToggle = async () => {
+    setIsToggling(true);
+    try {
+      await onToggle(todo.id, !todo.is_completed);
+    } finally {
+      setIsToggling(false);
+    }
   };
 
-  const handleDelete = () => {
-    onDelete(todo.id);
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await onDelete(todo.id);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
-  const handleUpdate = (data: { title?: string; description?: string; due_date?: string }) => {
-    onUpdate(todo.id, data);
-    setIsEditing(false);
+  const handleUpdate = async (data: { title?: string; description?: string; due_date?: string }) => {
+    setIsUpdating(true);
+    try {
+      await onUpdate(todo.id, data);
+      setIsEditing(false);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const formatDate = (dateStr: string | null) => {
@@ -98,10 +116,13 @@ export function TodoItem({
         {/* Completion checkbox */}
         <button
           onClick={handleToggle}
-          className="mt-0.5 shrink-0 text-slate-400 transition-colors hover:text-cyan-600"
+          disabled={isToggling || isDeleting}
+          className="mt-0.5 shrink-0 rounded-full text-slate-400 transition-colors hover:text-cyan-600 disabled:cursor-not-allowed disabled:opacity-60"
           aria-label={todo.is_completed ? "Mark as incomplete" : "Mark as complete"}
         >
-          {todo.is_completed ? (
+          {isToggling ? (
+            <Loader2 className="h-5 w-5 animate-spin text-cyan-600" />
+          ) : todo.is_completed ? (
             <CheckCircle2 className="h-5 w-5 text-green-500" />
           ) : (
             <Circle className="h-5 w-5" />
@@ -165,9 +186,10 @@ export function TodoItem({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="flex gap-1 opacity-70 transition-opacity group-hover:opacity-100">
           <button
             onClick={() => setIsEditing(true)}
+            disabled={isUpdating || isToggling || isDeleting}
             className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
             aria-label="Edit todo"
           >
@@ -175,10 +197,11 @@ export function TodoItem({
           </button>
           <button
             onClick={handleDelete}
-            className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500"
+            disabled={isDeleting || isToggling}
+            className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="Delete todo"
           >
-            <Trash2 className="h-4 w-4" />
+            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
           </button>
         </div>
       </div>

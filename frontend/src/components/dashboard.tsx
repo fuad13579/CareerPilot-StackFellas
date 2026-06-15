@@ -1225,8 +1225,9 @@ function buildDashboardSkillFocus(
     })
     .map(([normalized, info], index) => {
       const trackedSkill = trackerSkillsByName.get(normalized);
-      const hasCvEvidence = cvSkills.has(normalized);
-      const proficiency = trackedSkill?.level ?? (hasCvEvidence ? 75 : 0);
+      const proficiency =
+        trackedSkill?.level ??
+        estimateSkillProficiency(info.label, cvSkillNames, cvSkills);
 
       return {
         id: `focus-${normalized.replace(/[^a-z0-9]+/g, "-")}-${index}`,
@@ -1290,6 +1291,27 @@ function inferSkillCategory(skillName: string): string {
   }
 
   return "Skill Gap";
+}
+
+function estimateSkillProficiency(
+  skillName: string,
+  cvSkillNames: string[],
+  cvSkills: Set<string>
+): number {
+  const normalized = skillName.trim().toLowerCase();
+  if (!normalized) return 0;
+  if (cvSkills.has(normalized)) return 75;
+
+  const category = inferSkillCategory(skillName);
+  const relatedCvSkills = cvSkillNames.filter(
+    (cvSkill) => inferSkillCategory(cvSkill) === category
+  );
+
+  if (relatedCvSkills.length >= 3) return 45;
+  if (relatedCvSkills.length > 0) return 30;
+
+  if (category !== "Skill Gap") return 15;
+  return 10;
 }
 
 function matchesAny(value: string, terms: string[]): boolean {
