@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CalendarEvent, CreateEventRequest } from "@/types/productivity";
-import { Calendar, X, AlertCircle, Clock } from "lucide-react";
+import { Calendar, AlertCircle, Clock, Loader2, Trash2 } from "lucide-react";
 import {
   GOAL_CATEGORIES,
   encodeGoalDescription,
@@ -56,6 +56,7 @@ export function DeadlineList({
   const [linkedId, setLinkedId] = useState<number | undefined>(undefined);
   const [goalCategory, setGoalCategory] = useState(initialGoal.goalId || "");
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [pendingDeleteTimeout, setPendingDeleteTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const beginDelete = (id: number) => {
@@ -74,8 +75,15 @@ export function DeadlineList({
   const confirmDelete = async (id: number) => {
     if (pendingDeleteTimeout) clearTimeout(pendingDeleteTimeout);
     setPendingDeleteTimeout(null);
-    setConfirmingDeleteId(null);
-    await onDelete(id);
+    setDeletingId(id);
+    try {
+      await onDelete(id);
+      setConfirmingDeleteId(null);
+    } catch {
+      setConfirmingDeleteId(id);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   useEffect(() => {
@@ -323,10 +331,12 @@ export function DeadlineList({
                     <button
                       type="button"
                       onClick={() => confirmDelete(event.id)}
-                      className="rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700"
+                      disabled={deletingId === event.id}
+                      className="inline-flex items-center gap-1 rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-300"
                       aria-label="Confirm delete"
                       autoFocus
                     >
+                      {deletingId === event.id && <Loader2 className="h-3 w-3 animate-spin" />}
                       Delete
                     </button>
                     <button
@@ -340,11 +350,12 @@ export function DeadlineList({
                   </div>
                 ) : (
                   <button
+                    type="button"
                     onClick={() => beginDelete(event.id)}
-                    className="opacity-0 transition-opacity group-hover:opacity-100"
+                    className="rounded-md p-2 text-slate-400 opacity-70 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
                     aria-label="Delete deadline"
                   >
-                    <X className="h-4 w-4 text-slate-400 hover:text-red-500" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 )}
               </div>

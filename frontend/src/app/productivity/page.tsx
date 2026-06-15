@@ -180,6 +180,7 @@ export default function ProductivityPage() {
 
   const handleToggleTodo = async (id: number, completed: boolean) => {
     try {
+      setError(null);
       const response = await fetch(`/api/todos/${id}`, {
         method: "PATCH",
         headers: {
@@ -194,35 +195,59 @@ export default function ProductivityPage() {
         const updatedTodos = todos.map((t) => (t.id === id ? updated : t));
         setTodos(updatedTodos);
         updateStats(updatedTodos);
+        await loadData();
       } else {
-        throw new Error("Failed to update todo");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          typeof errorData?.detail === "string" && errorData.detail
+            ? errorData.detail
+            : "Failed to update todo"
+        );
       }
-    } catch {
-      setError("Could not update todo because the backend is unavailable.");
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? `Could not update todo: ${error.message}`
+          : "Could not update todo because the backend is unavailable."
+      );
+      throw error;
     }
   };
 
   const handleDeleteTodo = async (id: number) => {
     try {
+      setError(null);
       const response = await fetch(`/api/todos/${id}`, {
         method: "DELETE",
         headers: { ...getCareerPilotHeaders() },
       });
 
       if (response.ok) {
-        const updatedTodos = todos.filter((t) => t.id !== id);
+        const updatedTodos = todos.filter((todo) => todo.id !== id);
         setTodos(updatedTodos);
         updateStats(updatedTodos);
+        await loadData();
       } else {
-        throw new Error("Failed to delete todo");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          typeof errorData?.detail === "string" && errorData.detail
+            ? errorData.detail
+            : "Failed to delete todo"
+        );
       }
-    } catch {
-      setError("Could not delete todo because the backend is unavailable.");
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? `Could not delete todo: ${error.message}`
+          : "Could not delete todo because the backend is unavailable."
+      );
+      throw error;
     }
   };
 
   const handleUpdateTodo = async (id: number, data: Partial<Todo>) => {
     try {
+      setError(null);
       const response = await fetch(`/api/todos/${id}`, {
         method: "PATCH",
         headers: {
@@ -237,10 +262,20 @@ export default function ProductivityPage() {
         const updatedTodos = todos.map((t) => (t.id === id ? updated : t));
         setTodos(updatedTodos);
       } else {
-        throw new Error("Failed to update todo");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          typeof errorData?.detail === "string" && errorData.detail
+            ? errorData.detail
+            : "Failed to update todo"
+        );
       }
-    } catch {
-      setError("Could not update todo because the backend is unavailable.");
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? `Could not update todo: ${error.message}`
+          : "Could not update todo because the backend is unavailable."
+      );
+      throw error;
     }
   };
 
@@ -269,14 +304,15 @@ export default function ProductivityPage() {
 
   const handleDeleteEvent = async (id: number) => {
     try {
+      setError(null);
       const response = await fetch(`/api/calendar/events/${id}`, {
         method: "DELETE",
         headers: { ...getCareerPilotHeaders() },
       });
 
       if (response.ok) {
-        const updatedEvents = events.filter((e) => e.id !== id);
-        setEvents(updatedEvents);
+        setEvents((currentEvents) => currentEvents.filter((event) => event.id !== id));
+        await loadData();
       } else {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
@@ -291,6 +327,7 @@ export default function ProductivityPage() {
           ? `Could not delete event: ${error.message}`
           : "Could not delete event because the backend is unavailable."
       );
+      throw error;
     }
   };
 
