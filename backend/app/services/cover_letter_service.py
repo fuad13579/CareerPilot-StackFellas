@@ -1,5 +1,4 @@
 """Cover letter generation service with RAG context."""
-import os
 
 from app.models.cover_letter_models import CoverLetterResponse
 from app.services.llm_provider import generate_chat_completion
@@ -10,16 +9,59 @@ from app.services.fallback_response_service import (
 )
 
 
+EVIDENCE_SECTION_PRIORITY = {
+    "experience": 0,
+    "projects": 1,
+    "skills": 2,
+    "education": 3,
+    "other": 4,
+}
+
+
 def get_cv_context_for_job(cv_id: str, job_title: str, job_description: str) -> tuple[list[dict], str]:
     """Retrieve relevant CV context for a job application."""
     query = f"Relevant experience, skills, education, and projects for {job_title}. Job description: {job_description}"
     try:
-        chunks = retrieve_relevant_chunks(cv_id=cv_id, query=query, top_k=5)
+        chunks = retrieve_relevant_chunks(
+            cv_id=cv_id,
+            query=query,
+            top_k=5,
+            intent_override="cover_letter",
+        )
     except FileNotFoundError:
         return [], ""
 
     context = "\n\n".join(chunk["text"] for chunk in chunks)
     return chunks, context
+
+
+def build_cover_letter_evidence(chunks: list[dict], max_items: int = 4) -> str:
+    evidence_lines: list[str] = []
+    for chunk in select_cover_letter_evidence_chunks(chunks, max_items=max_items):
+        snippet = " ".join(chunk.get("text", "").split())
+        if not snippet:
+            continue
+        if len(snippet) > 160:
+            snippet = f"{snippet[:157].rstrip(' ,;:-')}..."
+        evidence_lines.append(f"- {chunk.get('section', 'other')}: {snippet}")
+    return "\n".join(evidence_lines)
+
+
+def select_cover_letter_evidence_chunks(chunks: list[dict], max_items: int = 4) -> list[dict]:
+    useful_chunks = [chunk for chunk in chunks if chunk.get("section") != "other"]
+    other_chunks = [chunk for chunk in chunks if chunk.get("section") == "other"]
+    selected = sorted(
+        useful_chunks,
+        key=lambda chunk: (
+            EVIDENCE_SECTION_PRIORITY.get(chunk.get("section", "other"), 99),
+            -float(chunk.get("score", 0) or 0),
+        ),
+    )[:max_items]
+
+    if len(selected) < min(2, max_items):
+        selected.extend(other_chunks[: max_items - len(selected)])
+
+    return selected[:max_items]
 
 
 def generate_cover_letter_with_llm(
@@ -30,6 +72,7 @@ def generate_cover_letter_with_llm(
     location: str | None = None,
     required_skills: list[str] | None = None,
     job_url: str | None = None,
+    evidence_summary: str | None = None,
 ) -> str | None:
     """Generate a cover letter using the configured LLM provider chain.
 
@@ -49,6 +92,9 @@ Job URL: {job_url or "Not provided"}
 
 Based on the candidate's CV:
 {cv_context}
+
+Retrieved CV evidence:
+{evidence_summary or build_cover_letter_evidence_from_context(cv_context)}
 
 Requirements:
 - Mention the company name ({company})
@@ -129,6 +175,7 @@ def process_cover_letter_request(
     """Process a cover letter generation request."""
     # Retrieve relevant CV context
     chunks, cv_context = get_cv_context_for_job(cv_id, job_title, job_description)
+    evidence_summary = build_cover_letter_evidence(chunks)
 
     # Generate cover letter (try LLM, fallback to template)
     cover_letter = generate_cover_letter_with_llm(
@@ -139,6 +186,7 @@ def process_cover_letter_request(
         location=location,
         required_skills=required_skills,
         job_url=job_url,
+        evidence_summary=evidence_summary,
     )
     if cover_letter is None:
         job_data = {
@@ -160,3 +208,11 @@ def process_cover_letter_request(
         company=company,
         used_context=cv_context if cv_context else None,
     )
+
+
+def build_cover_letter_evidence_from_context(cv_context: str) -> str:
+    lines = [" ".join(line.split()) for line in cv_context.splitlines() if line.strip()]
+    trimmed_lines = []
+    for line in lines[:4]:
+        trimmed_lines.append(line if len(line) <= 160 else f"{line[:157].rstrip(' ,;:-')}...")
+    return "\n".join(f"- {line}" for line in trimmed_lines) if trimmed_lines else "- No strong CV evidence retrieved."

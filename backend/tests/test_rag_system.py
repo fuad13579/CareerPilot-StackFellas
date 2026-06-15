@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from app.services.cv_chunking_service import create_cv_chunks
 from app.services import vector_store_service as rag_store
 from app.services import assistant_service
 
@@ -46,6 +47,21 @@ def test_build_and_retrieve_rag_index_returns_relevant_chunk(monkeypatch, tmp_pa
     assert chunks[0]["text"] == "Python FastAPI SQL"
 
 
+def test_create_cv_chunks_adds_overlap_for_long_sections():
+    repeated_text = " ".join(f"token{i}" for i in range(220))
+    chunks = create_cv_chunks(
+        "cv-overlap-1",
+        {"experience": repeated_text},
+        max_chunk_chars=220,
+        overlap_chars=60,
+    )
+
+    assert len(chunks) >= 2
+    first_words = chunks[0]["text"].split()
+    second_words = chunks[1]["text"].split()
+    assert set(first_words[-8:]) & set(second_words[:12])
+
+
 def test_assistant_rebuilds_rag_from_saved_sections(monkeypatch):
     monkeypatch.setattr(
         "app.services.vector_store_service.retrieve_relevant_chunks",
@@ -74,6 +90,112 @@ def test_assistant_rebuilds_rag_from_saved_sections(monkeypatch):
     assert chunks[0]["section"] == "experience"
     assert built_payload["cv_id"] == "cv-rag-2"
     assert any(chunk["section"] == "skills" for chunk in built_payload["chunks"])
+    assert any("chunk_id" in chunk for chunk in built_payload["chunks"])
+
+
+def test_retrieve_relevant_chunks_applies_small_section_boost(monkeypatch, tmp_path):
+    monkeypatch.setattr(rag_store, "VECTOR_DB_DIRECTORY", tmp_path)
+
+    class FakeEmbeddingResult:
+        vectors = [
+            [1.0, 0.0],
+            [1.0, 0.0],
+        ]
+        provider = "test"
+        model_name = "test-model"
+
+    monkeypatch.setattr(
+        rag_store.embedding_service,
+        "embed_texts",
+        lambda texts: FakeEmbeddingResult(),
+    )
+    monkeypatch.setattr(
+        rag_store.embedding_service,
+        "embed_query",
+        lambda query: [1.0, 0.0],
+    )
+    monkeypatch.setattr(
+        rag_store.embedding_service,
+        "cosine_similarity",
+        lambda query_vector, candidate_vectors: [0.82, 0.79],
+    )
+
+    rag_store.build_cv_rag_index(
+        "cv-rag-boost-1",
+        [
+            {"section": "other", "text": "General summary text"},
+            {"section": "experience", "text": "Worked on data pipelines and ETL"},
+        ],
+    )
+
+    chunks = rag_store.retrieve_relevant_chunks(
+        "cv-rag-boost-1",
+        "Am I ready for a data engineer intern role?",
+        top_k=1,
+    )
+    assert chunks[0]["section"] == "experience"
+    assert chunks[0]["score"] > chunks[0]["base_score"]
+
+
+def test_retrieve_relevant_chunks_penalizes_other_for_focused_queries(monkeypatch, tmp_path):
+    monkeypatch.setattr(rag_store, "VECTOR_DB_DIRECTORY", tmp_path)
+
+    class FakeEmbeddingResult:
+        vectors = [
+            [1.0, 0.0],
+            [1.0, 0.0],
+        ]
+        provider = "test"
+        model_name = "test-model"
+
+    monkeypatch.setattr(
+        rag_store.embedding_service,
+        "embed_texts",
+        lambda texts: FakeEmbeddingResult(),
+    )
+    monkeypatch.setattr(
+        rag_store.embedding_service,
+        "embed_query",
+        lambda query: [1.0, 0.0],
+    )
+    monkeypatch.setattr(
+        rag_store.embedding_service,
+        "cosine_similarity",
+        lambda query_vector, candidate_vectors: [0.92, 0.89],
+    )
+
+    rag_store.build_cv_rag_index(
+        "cv-rag-other-penalty-1",
+        [
+            {"section": "other", "text": "Contact header text"},
+            {"section": "skills", "text": "Python SQL FastAPI"},
+        ],
+    )
+
+    chunks = rag_store.retrieve_relevant_chunks(
+        "cv-rag-other-penalty-1",
+        "What skills am I missing for a Google internship?",
+        top_k=1,
+    )
+    assert chunks[0]["section"] == "skills"
+    assert chunks[0]["section_boost"] > 0
+
+
+def test_format_cv_evidence_prefers_useful_sections_over_other():
+    evidence = assistant_service.format_cv_evidence(
+        [
+            {"section": "other", "text": "Name Email Phone GitHub", "score": 0.99},
+            {"section": "skills", "text": "Python SQL FastAPI", "score": 0.8},
+            {"section": "projects", "text": "Built a data dashboard", "score": 0.75},
+            {"section": "experience", "text": "Led backend integration work", "score": 0.7},
+        ],
+        max_items=3,
+    )
+
+    assert "Experience:" in evidence
+    assert "Projects:" in evidence
+    assert "Skills:" in evidence
+    assert "Other:" not in evidence
 
 
 def test_cv_upload_reports_rag_warning_when_auto_build_fails(client, monkeypatch):

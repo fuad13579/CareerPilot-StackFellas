@@ -79,7 +79,12 @@ def load_cv_rag_index(cv_id: str) -> dict:
     }
 
 
-def retrieve_relevant_chunks(cv_id: str, query: str, top_k: int = 3) -> list[dict]:
+def retrieve_relevant_chunks(
+    cv_id: str,
+    query: str,
+    top_k: int = 3,
+    intent_override: str | None = None,
+) -> list[dict]:
     index_data = load_cv_rag_index(cv_id)
     metadata = index_data["metadata"]
     chunks = metadata.get("chunks", [])
@@ -89,15 +94,21 @@ def retrieve_relevant_chunks(cv_id: str, query: str, top_k: int = 3) -> list[dic
     query_vector = embedding_service.embed_query(query)
     chunk_vectors = index_data["embeddings"].tolist()
     similarity_scores = embedding_service.cosine_similarity(query_vector, chunk_vectors)
+    query_intent = intent_override or detect_query_intent(query)
 
     ranked_results = []
     for idx, (chunk, score) in enumerate(zip(chunks, similarity_scores)):
+        section = chunk["section"]
+        section_boost = get_section_boost(section, query_intent)
+        final_score = float(score) + section_boost
         ranked_results.append(
             {
                 "chunk_id": chunk.get("chunk_id", f"chunk_{idx}"),
-                "section": chunk["section"],
+                "section": section,
                 "text": chunk["text"],
-                "score": round(float(score), 4),
+                "score": round(final_score, 4),
+                "base_score": round(float(score), 4),
+                "section_boost": round(section_boost, 4),
             }
         )
 
@@ -118,3 +129,44 @@ def extract_legacy_embeddings(metadata: dict) -> list[list[float]] | None:
         embeddings.append(embedding)
 
     return embeddings
+
+
+def detect_query_intent(query: str) -> str:
+    text = query.lower()
+
+    if any(term in text for term in ("cover letter", "motivation letter", "application letter")):
+        return "cover_letter"
+    if any(term in text for term in ("education", "degree", "university", "college", "gpa", "academic")):
+        return "education"
+    if any(term in text for term in ("missing skill", "missing skills", "skill gap", "skills gap")):
+        return "skills_gap"
+    if any(term in text for term in ("ready", "readiness", "qualified", "fit for", "fit score", "experience for")):
+        return "readiness"
+    if any(term in text for term in ("skills", "tech stack", "technology", "tools")):
+        return "skills_gap"
+    return "general"
+
+
+def get_section_boost(section: str, intent: str) -> float:
+    boosts = {
+        "skills_gap": {
+            "skills": 0.12,
+            "projects": 0.08,
+        },
+        "readiness": {
+            "experience": 0.12,
+            "projects": 0.08,
+            "skills": 0.06,
+        },
+        "cover_letter": {
+            "experience": 0.12,
+            "projects": 0.08,
+            "skills": 0.06,
+        },
+        "education": {
+            "education": 0.12,
+        },
+    }
+    if section == "other" and intent in {"skills_gap", "readiness", "cover_letter", "education"}:
+        return -0.04
+    return boosts.get(intent, {}).get(section, 0.0)

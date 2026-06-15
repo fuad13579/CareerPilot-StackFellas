@@ -4,6 +4,8 @@ from pathlib import Path
 
 
 SECTION_NAMES = ["skills", "education", "experience", "projects", "other"]
+DEFAULT_MAX_CHUNK_CHARS = 800
+DEFAULT_CHUNK_OVERLAP_CHARS = 120
 SECTION_ALIASES = {
     "skills": [
         "skills",
@@ -130,7 +132,8 @@ def normalize_heading(value: str) -> str:
 def create_cv_chunks(
     cv_id: str,
     sections: dict[str, str],
-    max_chunk_chars: int = 500,
+    max_chunk_chars: int = DEFAULT_MAX_CHUNK_CHARS,
+    overlap_chars: int = DEFAULT_CHUNK_OVERLAP_CHARS,
 ) -> list[dict]:
     chunks: list[dict] = []
 
@@ -139,7 +142,11 @@ def create_cv_chunks(
         if not section_text:
             continue
 
-        chunk_texts = split_text_into_chunks(section_text, max_chunk_chars=max_chunk_chars)
+        chunk_texts = split_text_into_chunks(
+            section_text,
+            max_chunk_chars=max_chunk_chars,
+            overlap_chars=overlap_chars,
+        )
         for index, chunk_text in enumerate(chunk_texts):
             chunks.append(
                 {
@@ -154,42 +161,144 @@ def create_cv_chunks(
     return chunks
 
 
-def split_text_into_chunks(text: str, max_chunk_chars: int = 500) -> list[str]:
+def split_text_into_chunks(
+    text: str,
+    max_chunk_chars: int = DEFAULT_MAX_CHUNK_CHARS,
+    overlap_chars: int = DEFAULT_CHUNK_OVERLAP_CHARS,
+) -> list[str]:
     paragraphs = [part.strip() for part in re.split(r"\n\s*\n", text) if part.strip()]
     if not paragraphs:
         paragraphs = [line.strip() for line in text.splitlines() if line.strip()]
 
-    chunks: list[str] = []
-    current_parts: list[str] = []
-    current_length = 0
-
+    atomic_units: list[str] = []
     for paragraph in paragraphs:
-        paragraph_length = len(paragraph)
-        if paragraph_length > max_chunk_chars:
-            for piece in split_long_text(paragraph, max_chunk_chars=max_chunk_chars):
-                if current_parts:
-                    chunks.append("\n".join(current_parts).strip())
-                    current_parts = []
-                    current_length = 0
-                chunks.append(piece)
-            continue
+        atomic_units.extend(split_paragraph_into_units(paragraph))
 
-        projected_length = current_length + paragraph_length + (1 if current_parts else 0)
-        if current_parts and projected_length > max_chunk_chars:
-            chunks.append("\n".join(current_parts).strip())
-            current_parts = []
-            current_length = 0
+    if len(atomic_units) == 1 and len(atomic_units[0]) > max_chunk_chars:
+        return split_long_text_with_overlap(
+            atomic_units[0],
+            max_chunk_chars=max_chunk_chars,
+            overlap_chars=overlap_chars,
+        )
 
-        current_parts.append(paragraph)
-        current_length += paragraph_length
+    return pack_units_into_chunks(
+        atomic_units,
+        max_chunk_chars=max_chunk_chars,
+        overlap_chars=overlap_chars,
+    )
 
-    if current_parts:
-        chunks.append("\n".join(current_parts).strip())
+
+def split_paragraph_into_units(paragraph: str) -> list[str]:
+    lines = [line.strip() for line in paragraph.splitlines() if line.strip()]
+    if len(lines) > 1 and sum(is_bullet_like(line) for line in lines) >= max(1, len(lines) // 2):
+        return lines
+    return [paragraph]
+
+
+def pack_units_into_chunks(
+    units: list[str],
+    max_chunk_chars: int = DEFAULT_MAX_CHUNK_CHARS,
+    overlap_chars: int = DEFAULT_CHUNK_OVERLAP_CHARS,
+) -> list[str]:
+    if not units:
+        return []
+
+    normalized_units: list[str] = []
+    for unit in units:
+        if len(unit) > max_chunk_chars:
+            normalized_units.extend(split_long_text(unit, max_chunk_chars=max_chunk_chars))
+        else:
+            normalized_units.append(unit)
+
+    chunks: list[str] = []
+    current_units: list[str] = []
+
+    for unit in normalized_units:
+        projected_length = joined_length(current_units + [unit])
+        if current_units and projected_length > max_chunk_chars:
+            chunks.append("\n".join(current_units).strip())
+            current_units = build_overlap_units(
+                current_units,
+                max_overlap_chars=overlap_chars,
+                max_chunk_chars=max_chunk_chars,
+            )
+
+        projected_length = joined_length(current_units + [unit])
+        if current_units and projected_length > max_chunk_chars:
+            chunks.append("\n".join(current_units).strip())
+            current_units = []
+
+        current_units.append(unit)
+
+    if current_units:
+        chunks.append("\n".join(current_units).strip())
 
     return chunks
 
 
-def split_long_text(text: str, max_chunk_chars: int = 500) -> list[str]:
+def build_overlap_units(
+    units: list[str],
+    max_overlap_chars: int,
+    max_chunk_chars: int,
+) -> list[str]:
+    if max_overlap_chars <= 0 or not units:
+        return []
+
+    overlap_units: list[str] = []
+    for unit in reversed(units):
+        if len(unit) > max_chunk_chars:
+            break
+        projected_length = joined_length([unit] + overlap_units)
+        if overlap_units and projected_length > max_overlap_chars:
+            break
+        overlap_units.insert(0, unit)
+
+    return overlap_units
+
+
+def joined_length(units: list[str]) -> int:
+    if not units:
+        return 0
+    return len("\n".join(units))
+
+
+def split_long_text(
+    text: str,
+    max_chunk_chars: int = DEFAULT_MAX_CHUNK_CHARS,
+) -> list[str]:
+    sentences = split_into_sentences(text)
+    if len(sentences) <= 1:
+        return split_long_text_by_words(text, max_chunk_chars=max_chunk_chars)
+
+    chunks: list[str] = []
+    current_sentences: list[str] = []
+
+    for sentence in sentences:
+        if len(sentence) > max_chunk_chars:
+            if current_sentences:
+                chunks.append(" ".join(current_sentences).strip())
+                current_sentences = []
+            chunks.extend(split_long_text_by_words(sentence, max_chunk_chars=max_chunk_chars))
+            continue
+
+        projected = len(" ".join(current_sentences + [sentence]).strip())
+        if current_sentences and projected > max_chunk_chars:
+            chunks.append(" ".join(current_sentences).strip())
+            current_sentences = [sentence]
+            continue
+
+        current_sentences.append(sentence)
+
+    if current_sentences:
+        chunks.append(" ".join(current_sentences).strip())
+
+    return chunks
+
+
+def split_long_text_by_words(
+    text: str,
+    max_chunk_chars: int = DEFAULT_MAX_CHUNK_CHARS,
+) -> list[str]:
     words = text.split()
     if not words:
         return []
@@ -213,3 +322,53 @@ def split_long_text(text: str, max_chunk_chars: int = 500) -> list[str]:
         chunks.append(" ".join(current_words))
 
     return chunks
+
+
+def split_long_text_with_overlap(
+    text: str,
+    max_chunk_chars: int = DEFAULT_MAX_CHUNK_CHARS,
+    overlap_chars: int = DEFAULT_CHUNK_OVERLAP_CHARS,
+) -> list[str]:
+    words = text.split()
+    if not words:
+        return []
+
+    chunks: list[str] = []
+    start = 0
+    while start < len(words):
+        current_words: list[str] = []
+        current_length = 0
+        end = start
+
+        while end < len(words):
+            word = words[end]
+            projected_length = current_length + len(word) + (1 if current_words else 0)
+            if current_words and projected_length > max_chunk_chars:
+                break
+            current_words.append(word)
+            current_length = projected_length
+            end += 1
+
+        chunks.append(" ".join(current_words))
+        if end >= len(words):
+            break
+
+        overlap_start = end
+        while overlap_start > start:
+            candidate_length = len(" ".join(words[overlap_start - 1:end]))
+            if overlap_start < end and candidate_length > overlap_chars:
+                break
+            overlap_start -= 1
+
+        start = overlap_start if start < overlap_start < end else end
+
+    return chunks
+
+
+def split_into_sentences(text: str) -> list[str]:
+    parts = re.split(r"(?<=[.!?])\s+", text.strip())
+    return [part.strip() for part in parts if part.strip()]
+
+
+def is_bullet_like(line: str) -> bool:
+    return bool(re.match(r"^([\-*]|\u2022|[0-9]+[\.)])\s+", line))
