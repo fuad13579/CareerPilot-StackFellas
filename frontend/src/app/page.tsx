@@ -192,22 +192,28 @@ export default function HomePage() {
         <section className="px-6 py-24">
           <div className="mx-auto max-w-3xl text-center">
             <Reveal>
-              <div className="rounded-3xl bg-gradient-to-br from-[#1D4ED8] to-[#1E40AF] px-8 py-16 text-white shadow-2xl">
-                <Clock size={40} className="mx-auto mb-6 opacity-80" />
-                <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-                  Ready to Launch Your Career?
-                </h2>
-                <p className="mt-4 text-base leading-relaxed text-white/80">
-                  Start with uploading your CV. CareerPilot will analyze it and prepare 
-                  intelligent agents to help you land your next opportunity.
-                </p>
-                <Link
-                  href="/upload"
-                  className="group mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-[#1D4ED8] shadow-md transition-all hover:bg-[#F9FAFB] hover:shadow-lg"
-                >
-                  Start with CV Upload
-                  <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
-                </Link>
+              <div className="relative overflow-hidden rounded-3xl border border-white/35 bg-gradient-to-br from-[#2563EB]/65 via-[#1D4ED8]/45 to-[#0F3AA8]/65 px-8 py-16 text-white shadow-[0_28px_80px_rgba(30,64,175,0.28)] backdrop-blur-2xl">
+                <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.38)_0%,rgba(255,255,255,0.12)_34%,rgba(255,255,255,0.02)_66%)]" />
+                <div className="absolute -left-16 top-8 h-48 w-48 rounded-full bg-cyan-200/30 blur-3xl" />
+                <div className="absolute -right-20 bottom-0 h-56 w-56 rounded-full bg-blue-900/35 blur-3xl" />
+
+                <div className="relative">
+                  <Clock size={40} className="mx-auto mb-6 text-white/85" />
+                  <h2 className="text-3xl font-extrabold tracking-tight !text-white sm:text-4xl">
+                    Ready to Launch Your Career?
+                  </h2>
+                  <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-white/85">
+                    Start with uploading your CV. CareerPilot will analyze it and prepare 
+                    intelligent agents to help you land your next opportunity.
+                  </p>
+                  <Link
+                    href="/upload"
+                    className="group mt-8 inline-flex items-center gap-2 rounded-xl border border-white/50 bg-white/85 px-6 py-3 text-sm font-semibold text-[#1D4ED8] shadow-[0_14px_34px_rgba(15,23,42,0.18)] backdrop-blur-md transition-all hover:bg-white hover:shadow-[0_18px_44px_rgba(15,23,42,0.22)]"
+                  >
+                    Start with CV Upload
+                    <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </div>
               </div>
             </Reveal>
           </div>

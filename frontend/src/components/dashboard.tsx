@@ -26,6 +26,7 @@ import {
 import { Reveal, Stagger } from "./motion-shell";
 import { useTracker } from "./tracker-context";
 import { getPersistedCvId, getPersistedCvSummary } from "./cv-storage";
+import { extractSectionEntriesWithFallback } from "./cv-section-parser";
 import { getCareerPilotHeaders } from "./user-storage";
 
 interface CvSnapshot {
@@ -92,12 +93,33 @@ interface TrackerTodoResponse {
   created_at: string;
 }
 
+function normalizeCvSnapshot(summary: CvSnapshot | null): CvSnapshot | null {
+  if (!summary) return null;
+
+  const experience = extractSectionEntriesWithFallback(
+    summary.experience?.join("\n\n"),
+    "experience",
+    summary.extractedText
+  );
+  const education = extractSectionEntriesWithFallback(
+    summary.education?.join("\n\n"),
+    "education",
+    summary.extractedText
+  );
+
+  return {
+    ...summary,
+    experience: experience.length > 0 ? experience : summary.experience || [],
+    education: education.length > 0 ? education : summary.education || [],
+  };
+}
+
 export function DashboardHome() {
   const [cvSnapshot, setCvSnapshot] = useState<CvSnapshot | null>(null);
 
   useEffect(() => {
     const loadSnapshot = () => {
-      setCvSnapshot(getPersistedCvSummary());
+      setCvSnapshot(normalizeCvSnapshot(getPersistedCvSummary()));
     };
 
     loadSnapshot();
@@ -125,7 +147,7 @@ export function DashboardHome() {
         if (!response.ok) return;
 
         const data = await response.json();
-        const summary = getPersistedCvSummary();
+        const summary = normalizeCvSnapshot(getPersistedCvSummary());
         if (!summary) return;
 
         const experience = extractSectionEntriesWithFallback(
@@ -527,148 +549,6 @@ function calculateRoadmapProgress({
     0,
     Math.min(100, Math.round((applicationScore * 40) + (todoScore * 30) + (profileScore * 30)))
   );
-}
-
-function extractSectionEntries(value: unknown): string[] {
-  if (typeof value !== "string") return [];
-
-  const text = value.replace(/\r\n/g, "\n").trim();
-  if (!text) return [];
-
-  const paragraphBlocks = text
-    .split(/\n\s*\n/)
-    .map((block) => block.trim())
-    .filter(Boolean)
-    .filter((block) => !/^experience$/i.test(block) && !/^education$/i.test(block));
-
-  if (paragraphBlocks.length > 1) {
-    return paragraphBlocks;
-  }
-
-  const lines = text
-    .split(/\n+/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .filter((line) => !/^experience$/i.test(line) && !/^education$/i.test(line));
-
-  const entries: string[] = [];
-  let currentEntry: string[] = [];
-
-  for (const line of lines) {
-    const startsNewEntry = isExperienceHeader(line) && currentEntry.length > 0;
-
-    if (startsNewEntry) {
-      entries.push(currentEntry.join("\n").trim());
-      currentEntry = [line];
-      continue;
-    }
-
-    currentEntry.push(line);
-  }
-
-  if (currentEntry.length > 0) {
-    entries.push(currentEntry.join("\n").trim());
-  }
-
-  return entries.length > 0 ? entries : lines;
-}
-
-function extractSectionEntriesWithFallback(
-  value: unknown,
-  sectionName: "experience" | "education",
-  extractedText?: string
-): string[] {
-  const directEntries = extractSectionEntries(value);
-  if (directEntries.length > 0) {
-    return directEntries;
-  }
-
-  const recoveredSection = extractNamedSectionFromText(extractedText, sectionName);
-  if (!recoveredSection) {
-    return [];
-  }
-
-  return extractSectionEntries(recoveredSection);
-}
-
-function extractNamedSectionFromText(
-  extractedText: string | undefined,
-  sectionName: "experience" | "education"
-): string {
-  if (!extractedText) return "";
-
-  const aliasesBySection = {
-    experience: [
-      "experience",
-      "work experience",
-      "professional experience",
-      "employment history",
-      "career history",
-    ],
-    education: [
-      "education",
-      "academic background",
-      "academic qualifications",
-      "qualifications",
-    ],
-  } as const;
-
-  const allAliases = Array.from(
-    new Set(Object.values(aliasesBySection).flat().map((alias) => normalizeHeading(alias)))
-  );
-
-  const lines = extractedText
-    .replace(/\r\n/g, "\n")
-    .split("\n")
-    .map((line) => line.trim());
-
-  let collecting = false;
-  const collected: string[] = [];
-
-  for (const line of lines) {
-    if (!line) {
-      if (collecting && collected.length > 0) {
-        collected.push("");
-      }
-      continue;
-    }
-
-    const normalized = normalizeHeading(line);
-    const isHeading = allAliases.includes(normalized);
-
-    if (isHeading) {
-      if (collecting) break;
-      collecting = aliasesBySection[sectionName]
-        .map((alias) => normalizeHeading(alias))
-        .includes(normalized);
-      continue;
-    }
-
-    if (collecting) {
-      collected.push(line);
-    }
-  }
-
-  return collected.join("\n").trim();
-}
-
-function normalizeHeading(value: string): string {
-  return value.toLowerCase().replace(/[^a-z]+/g, " ").trim();
-}
-
-function isExperienceHeader(line: string): boolean {
-  const normalized = line.toLowerCase();
-  const hasDateRange =
-    /\b(?:19|20)\d{2}\b/.test(line) ||
-    /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\b/.test(normalized) ||
-    /\bpresent\b/.test(normalized);
-
-  const looksLikeRoleLine =
-    normalized.includes(" at ") ||
-    normalized.includes(" | ") ||
-    normalized.includes(" - ");
-
-  return hasDateRange || looksLikeRoleLine;
 }
 
 // Map a backend JobCard to the dashboard's RecommendedJob shape. Defined

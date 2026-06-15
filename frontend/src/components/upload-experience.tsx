@@ -19,6 +19,7 @@ import {
   persistCvSnapshot,
   type PersistedCvSummary,
 } from "./cv-storage";
+import { extractSectionEntriesWithFallback } from "./cv-section-parser";
 import { getCareerPilotHeaders } from "./user-storage";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error";
@@ -53,9 +54,30 @@ const ACCEPTED_MIME_BY_EXTENSION: Record<string, string> = {
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const INVALID_CV_FILE_MESSAGE = "Please upload a valid CV file in PDF or DOCX format.";
 
+function normalizeCvSummary(summary: PersistedCvSummary | null): PersistedCvSummary | null {
+  if (!summary) return null;
+
+  const experience = extractSectionEntriesWithFallback(
+    summary.experience?.join("\n\n"),
+    "experience",
+    summary.extractedText
+  );
+  const education = extractSectionEntriesWithFallback(
+    summary.education?.join("\n\n"),
+    "education",
+    summary.extractedText
+  );
+
+  return {
+    ...summary,
+    experience: experience.length > 0 ? experience : summary.experience || [],
+    education: education.length > 0 ? education : summary.education || [],
+  };
+}
+
 export function UploadExperience() {
   const router = useRouter();
-  const persistedSummary = getPersistedCvSummary();
+  const persistedSummary = normalizeCvSummary(getPersistedCvSummary());
   const [status, setStatus] = useState<UploadStatus>(persistedSummary ? "success" : "idle");
   const [cvSummary, setCvSummary] = useState<CVSummary | null>(persistedSummary);
   const [error, setError] = useState<string>("");
@@ -223,147 +245,6 @@ export function UploadExperience() {
       setCvSummary(null);
       setStatus("error");
     }
-  };
-
-  const extractSectionEntries = (value: unknown): string[] => {
-    if (typeof value !== "string") return [];
-
-    const text = value.replace(/\r\n/g, "\n").trim();
-    if (!text) return [];
-
-    const paragraphBlocks = text
-      .split(/\n\s*\n/)
-      .map((block) => block.trim())
-      .filter(Boolean)
-      .filter((block) => !/^experience$/i.test(block) && !/^education$/i.test(block));
-
-    if (paragraphBlocks.length > 1) {
-      return paragraphBlocks;
-    }
-
-    const lines = text
-      .split(/\n+/)
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .filter((line) => !/^experience$/i.test(line) && !/^education$/i.test(line));
-
-    const entries: string[] = [];
-    let currentEntry: string[] = [];
-
-    for (const line of lines) {
-      const startsNewEntry = isExperienceHeader(line) && currentEntry.length > 0;
-
-      if (startsNewEntry) {
-        entries.push(currentEntry.join("\n").trim());
-        currentEntry = [line];
-        continue;
-      }
-
-      currentEntry.push(line);
-    }
-
-    if (currentEntry.length > 0) {
-      entries.push(currentEntry.join("\n").trim());
-    }
-
-    return entries.length > 0 ? entries : lines;
-  };
-
-  const extractSectionEntriesWithFallback = (
-    value: unknown,
-    sectionName: "experience" | "education",
-    extractedText?: string
-  ): string[] => {
-    const directEntries = extractSectionEntries(value);
-    if (directEntries.length > 0) {
-      return directEntries;
-    }
-
-    const recoveredSection = extractNamedSectionFromText(extractedText, sectionName);
-    if (!recoveredSection) {
-      return [];
-    }
-
-    return extractSectionEntries(recoveredSection);
-  };
-
-  const extractNamedSectionFromText = (
-    extractedText: string | undefined,
-    sectionName: "experience" | "education"
-  ): string => {
-    if (!extractedText) return "";
-
-    const aliasesBySection = {
-      experience: [
-        "experience",
-        "work experience",
-        "professional experience",
-        "employment history",
-        "career history",
-      ],
-      education: [
-        "education",
-        "academic background",
-        "academic qualifications",
-        "qualifications",
-      ],
-    } as const;
-
-    const allAliases = Array.from(
-      new Set(Object.values(aliasesBySection).flat().map((alias) => normalizeHeading(alias)))
-    );
-
-    const lines = extractedText
-      .replace(/\r\n/g, "\n")
-      .split("\n")
-      .map((line) => line.trim());
-
-    let collecting = false;
-    const collected: string[] = [];
-
-    for (const line of lines) {
-      if (!line) {
-        if (collecting && collected.length > 0) {
-          collected.push("");
-        }
-        continue;
-      }
-
-      const normalized = normalizeHeading(line);
-      const isHeading = allAliases.includes(normalized);
-
-      if (isHeading) {
-        if (collecting) break;
-        collecting = aliasesBySection[sectionName]
-          .map((alias) => normalizeHeading(alias))
-          .includes(normalized);
-        continue;
-      }
-
-      if (collecting) {
-        collected.push(line);
-      }
-    }
-
-    return collected.join("\n").trim();
-  };
-
-  const normalizeHeading = (value: string): string =>
-    value.toLowerCase().replace(/[^a-z]+/g, " ").trim();
-
-  const isExperienceHeader = (line: string): boolean => {
-    const normalized = line.toLowerCase();
-    const hasDateRange =
-      /\b(?:19|20)\d{2}\b/.test(line) ||
-      /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\b/.test(normalized) ||
-      /\bpresent\b/.test(normalized);
-
-    const looksLikeRoleLine =
-      normalized.includes(" at ") ||
-      normalized.includes(" | ") ||
-      normalized.includes(" - ");
-
-    return hasDateRange || looksLikeRoleLine;
   };
 
   const handleDrop = (e: React.DragEvent) => {
