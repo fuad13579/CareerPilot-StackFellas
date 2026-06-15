@@ -6,7 +6,6 @@ from app.models.assistant_models import (
     AssistantQueryResponse,
     AssistantSource,
 )
-from app.models.job_models import JobCard
 from app.services.llm_provider import generate_chat_completion, active_provider_name
 from app.services.vector_store_service import retrieve_relevant_chunks
 from app.services.fallback_response_service import (
@@ -23,6 +22,13 @@ from app.database import SessionLocal
 # In-memory session storage: anonymous_user_id:session_id -> list of messages
 SESSION_MEMORY: dict[str, list[dict[str, str]]] = {}
 MAX_HISTORY_MESSAGES = 10
+EVIDENCE_SECTION_PRIORITY = {
+    "experience": 0,
+    "projects": 1,
+    "skills": 2,
+    "education": 3,
+    "other": 4,
+}
 JOB_SEARCH_VERBS = (
     "find",
     "search",
@@ -357,23 +363,57 @@ def get_cv_context(cv_id: str, question: str) -> tuple[list[dict], str]:
 def _rebuild_rag_from_saved_cv(cv_id: str, question: str) -> list[dict]:
     """Rebuild RAG index from saved CV sections if vector store is missing."""
     try:
-        from app.services.cv_chunking_service import load_processed_cv_sections
+        from app.services.cv_chunking_service import create_cv_chunks, load_processed_cv_sections
         from app.services.vector_store_service import build_cv_rag_index
-        
+
         sections = load_processed_cv_sections(cv_id)
-        chunks = [
-            {"section": section_name, "text": section_content}
-            for section_name, section_content in sections.items()
-        ]
-        # Build RAG with proper chunk_id for each chunk
+        chunks = create_cv_chunks(cv_id, sections)
         build_cv_rag_index(cv_id, chunks)
-        
-        # Now retrieve with the same query
+
         from app.services.vector_store_service import retrieve_relevant_chunks
         return retrieve_relevant_chunks(cv_id=cv_id, query=question, top_k=3)
     except Exception as exc:
         print(f"[RAG DEBUG] Failed to rebuild RAG: {exc}")
         return []
+
+
+def format_cv_evidence(chunks: list[dict], max_items: int = 3) -> str:
+    evidence_lines: list[str] = []
+    for chunk in select_evidence_chunks(chunks, max_items=max_items):
+        snippet = summarize_chunk_text(chunk.get("text", ""))
+        if not snippet:
+            continue
+        evidence_lines.append(f"- {chunk.get('section', 'other').title()}: {snippet}")
+
+    if not evidence_lines:
+        return ""
+
+    return "CV evidence used:\n" + "\n".join(evidence_lines)
+
+
+def select_evidence_chunks(chunks: list[dict], max_items: int = 3) -> list[dict]:
+    useful_chunks = [chunk for chunk in chunks if chunk.get("section") != "other"]
+    other_chunks = [chunk for chunk in chunks if chunk.get("section") == "other"]
+    selected = sorted(
+        useful_chunks,
+        key=lambda chunk: (
+            EVIDENCE_SECTION_PRIORITY.get(chunk.get("section", "other"), 99),
+            -float(chunk.get("score", 0) or 0),
+        ),
+    )[:max_items]
+
+    if len(selected) < min(2, max_items):
+        selected.extend(other_chunks[: max_items - len(selected)])
+
+    return selected[:max_items]
+
+
+def summarize_chunk_text(text: str, max_length: int = 140) -> str:
+    clean_text = " ".join(text.split())
+    if len(clean_text) <= max_length:
+        return clean_text
+    truncated = clean_text[: max_length - 3].rstrip(" ,;:-")
+    return f"{truncated}..."
 
 
 def _load_job_data(job_id: str | None, anonymous_user_id: str | None) -> dict | None:
@@ -465,6 +505,9 @@ def process_assistant_query(
         job_data=job_data,
         history=history,
     )
+    evidence_block = format_cv_evidence(chunks)
+    if evidence_block:
+        answer = f"{answer}\n\n{evidence_block}"
 
     # Add assistant response to history
     add_to_conversation(session_id, cv_id, "assistant", answer, anonymous_user_id=anonymous_user_id)

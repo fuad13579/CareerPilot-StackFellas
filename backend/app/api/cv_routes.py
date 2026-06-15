@@ -13,7 +13,11 @@ from app.services.cv_extraction_service import (
     MAX_CV_FILE_SIZE_BYTES,
     extract_text_from_cv,
 )
-from app.services.cv_chunking_service import load_processed_cv_sections, save_processed_cv
+from app.services.cv_chunking_service import (
+    create_cv_chunks,
+    load_processed_cv_sections,
+    save_processed_cv,
+)
 from app.services.fit_score import extract_skills
 from app.services.user_context_service import require_anonymous_user_id
 from app.services.vector_store_service import build_cv_rag_index
@@ -159,10 +163,7 @@ async def upload_cv(
     # Build RAG index automatically after CV upload
     try:
         sections = load_processed_cv_sections(cv_id)
-        chunks = [
-            {"section": section_name, "text": section_content}
-            for section_name, section_content in sections.items()
-        ]
+        chunks = create_cv_chunks(cv_id, sections)
         build_cv_rag_index(cv_id, chunks)
     except Exception as exc:
         rag_index_built = False

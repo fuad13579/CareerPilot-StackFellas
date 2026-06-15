@@ -8,6 +8,10 @@ from sklearn.feature_extraction.text import HashingVectorizer
 
 
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+PRIMARY_EMBEDDING_PROVIDER = "sentence-transformers"
+PRIMARY_EMBEDDING_LABEL = "primary semantic embeddings"
+FALLBACK_EMBEDDING_PROVIDER = "sklearn-hashing"
+FALLBACK_EMBEDDING_LABEL = "demo-safe lightweight retrieval mode"
 
 
 @dataclass
@@ -37,8 +41,8 @@ class EmbeddingService:
                 embeddings = sentence_transformer.encode(texts, convert_to_numpy=True)
                 return EmbeddingResult(
                     vectors=embeddings.tolist(),
-                    provider="sentence-transformers",
-                    model_name=EMBEDDING_MODEL_NAME,
+                    provider=PRIMARY_EMBEDDING_PROVIDER,
+                    model_name=f"{EMBEDDING_MODEL_NAME} ({PRIMARY_EMBEDDING_LABEL})",
                 )
             except Exception:
                 self._disable_sentence_transformer()
@@ -85,8 +89,8 @@ class EmbeddingService:
         matrix = self._hashing_vectorizer.transform(texts).toarray()
         return EmbeddingResult(
             vectors=matrix.tolist(),
-            provider="sklearn-hashing",
-            model_name="HashingVectorizer-512",
+            provider=FALLBACK_EMBEDDING_PROVIDER,
+            model_name=f"HashingVectorizer-512 ({FALLBACK_EMBEDDING_LABEL})",
         )
 
     def _embed_query_with_hashing(self, query: str) -> list[float]:

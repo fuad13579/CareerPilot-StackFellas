@@ -1337,17 +1337,16 @@ function buildDashboardSkillFocus(
 
   const demandDrivenCards = Array.from(skillDemand.entries())
     .sort((a, b) => b[1].demandCount - a[1].demandCount)
+    .filter(([normalized]) => {
+      const trackedSkill = trackerSkillsByName.get(normalized);
+      const hasCvEvidence = cvSkills.has(normalized);
+      if (trackedSkill) return trackedSkill.level < 85;
+      return !hasCvEvidence;
+    })
     .map(([normalized, info], index) => {
       const trackedSkill = trackerSkillsByName.get(normalized);
       const hasCvEvidence = cvSkills.has(normalized);
       const proficiency = trackedSkill?.level ?? (hasCvEvidence ? 75 : 0);
-      const category = trackedSkill
-        ? "Tracked Skill"
-        : hasCvEvidence
-          ? "CV Skill"
-          : info.demandCount > 1
-            ? "High-Demand Gap"
-            : "Job Gap";
 
       return {
         id: `focus-${normalized.replace(/[^a-z0-9]+/g, "-")}-${index}`,
@@ -1362,33 +1361,59 @@ function buildDashboardSkillFocus(
                 ? "medium"
                 : "low"
         ) as "high" | "medium" | "low",
-        category,
+        category: inferSkillCategory(info.label),
       };
     });
 
-  const trackerSkillCards = state.skills.map((skill) => ({
+  const trackerSkillCards = state.skills
+    .filter((skill) => skill.level < 85)
+    .map((skill) => ({
     id: skill.id,
     name: skill.name,
     proficiency: skill.level,
     priority: (skill.level < 40 ? "high" : skill.level < 70 ? "medium" : "low") as "high" | "medium" | "low",
-    category: "Tracked Skill",
-  }));
-
-  const cvSkillCards = (cvSnapshot?.skills || []).slice(0, 6).map((skill, index) => ({
-    id: `cv-${skill.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${index}`,
-    name: skill,
-    proficiency: 75,
-    priority: "low" as const,
-    category: "CV Skill",
+    category: inferSkillCategory(skill.name),
   }));
 
   const seen = new Set<string>();
-  return [...demandDrivenCards, ...trackerSkillCards, ...cvSkillCards].filter((skill) => {
+  return [...demandDrivenCards, ...trackerSkillCards].filter((skill) => {
     const key = skill.name.toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
+}
+
+function inferSkillCategory(skillName: string): string {
+  const normalized = skillName.toLowerCase();
+
+  if (matchesAny(normalized, ["react", "next", "typescript", "javascript", "html", "css", "tailwind", "frontend", "ui"])) {
+    return "Frontend";
+  }
+  if (matchesAny(normalized, ["fastapi", "django", "flask", "node", "express", "backend", "system design", "microservice"])) {
+    return "Backend";
+  }
+  if (matchesAny(normalized, ["sql", "postgres", "mysql", "sqlite", "mongodb", "database", "warehouse", "snowflake", "redshift"])) {
+    return "Database";
+  }
+  if (matchesAny(normalized, ["api", "rest", "graphql", "openapi", "grpc"])) {
+    return "API";
+  }
+  if (matchesAny(normalized, ["aws", "azure", "gcp", "docker", "kubernetes", "terraform", "cloud", "devops", "ci/cd"])) {
+    return "Cloud";
+  }
+  if (matchesAny(normalized, ["etl", "spark", "hadoop", "airflow", "pandas", "numpy", "data", "pipeline"])) {
+    return "Data";
+  }
+  if (matchesAny(normalized, ["python", "java", "c++", "c#", "go", "rust", "programming"])) {
+    return "Programming";
+  }
+
+  return "Skill Gap";
+}
+
+function matchesAny(value: string, terms: string[]): boolean {
+  return terms.some((term) => value.includes(term));
 }
 
 function normalizeSkills(skills: string[]) {
