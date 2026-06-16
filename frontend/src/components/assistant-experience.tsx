@@ -97,6 +97,7 @@ const SOURCE_SECTION_PRIORITY: Record<string, number> = {
 };
 
 const NO_CV_MESSAGE = "Please upload your CV first.";
+const ASSISTANT_QUERY_TIMEOUT_MS = 45_000;
 const SEED_ASSISTANT_MESSAGE: Message = {
   id: "assistant-seed",
   role: "assistant",
@@ -179,6 +180,18 @@ function getDisplaySources(sources: Message["sources"]): NonNullable<Message["so
       return (right.score ?? 0) - (left.score ?? 0);
     })
     .slice(0, 3);
+}
+
+function getAssistantFailureMessage(error: unknown): string {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return "The assistant took too long to respond. Please try again in a moment.";
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Failed to get assistant response.";
 }
 
 export function AssistantExperience() {
@@ -375,6 +388,9 @@ export function AssistantExperience() {
     setMessages((prev) => [...prev, createMessage("user", trimmedQuestion)]);
     setIsLoading(true);
 
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), ASSISTANT_QUERY_TIMEOUT_MS);
+
     try {
       const response = await fetch("/api/assistant/query", {
         method: "POST",
@@ -382,6 +398,7 @@ export function AssistantExperience() {
           ...getCareerPilotHeaders(),
           "Content-Type": "application/json",
         },
+        signal: controller.signal,
         body: JSON.stringify({
           cv_id: activeCvId,
           session_id: activeSessionId,
@@ -478,12 +495,11 @@ export function AssistantExperience() {
         },
       ]);
     } catch (err) {
-      setError(
-        err instanceof Error && err.message
-          ? err.message
-          : "Failed to get assistant response."
-      );
+      const failureMessage = getAssistantFailureMessage(err);
+      setError(failureMessage);
+      setMessages((prev) => [...prev, createMessage("assistant", failureMessage)]);
     } finally {
+      window.clearTimeout(timeout);
       setIsLoading(false);
     }
   };
