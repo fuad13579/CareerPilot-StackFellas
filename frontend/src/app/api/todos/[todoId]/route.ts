@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+const NO_STORE_HEADERS = { "Cache-Control": "no-store" };
+
 async function forward(request: Request, method: string, todoId: string) {
   const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
   const userId = request.headers.get("x-careerpilot-user-id") || "";
@@ -14,10 +16,15 @@ async function forward(request: Request, method: string, todoId: string) {
 
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
-    return NextResponse.json(await response.json().catch(() => ({})), { status: response.status });
+    const data = await response.json().catch(() => ({}));
+    return NextResponse.json(data, { status: response.status, headers: NO_STORE_HEADERS });
   }
 
-  return new NextResponse(await response.text(), { status: response.status });
+  const text = await response.text().catch(() => "");
+  return NextResponse.json(
+    { detail: text.trim() || response.statusText || `Failed to ${method.toLowerCase()} todo` },
+    { status: response.status, headers: NO_STORE_HEADERS }
+  );
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ todoId: string }> }) {
