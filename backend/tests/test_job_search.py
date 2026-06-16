@@ -8,7 +8,7 @@ from app.models.job_models import JobCard, FitScoreResponse
 from app.api.job_routes import _resolve_search_filters
 from app.utils.job_search_filters import estimate_salary_floor, filter_jobs_by_salary
 from app.services.job_recommendation_service import calculate_fit_score, sort_jobs_by_fit_score
-from app.services.job_search_service import fetch_live_jobs, _normalize_job, rank_jobs
+from app.services.job_search_service import fetch_live_jobs, _normalize_description, _normalize_job, rank_jobs
 
 
 @pytest.fixture
@@ -203,6 +203,20 @@ class TestLiveJobSearch:
         assert job.company == "Test Corp"
         assert job.job_id == "123"
         assert job.source == "Remotive"
+
+    def test_normalize_description_strips_html_with_attributes(self):
+        description = (
+            '<p class="p1" style="font-variant-numeric: normal;">'
+            "Build APIs &amp; integrations<br>Own delivery"
+            "</p>"
+        )
+
+        clean = _normalize_description(description)
+
+        assert "<p" not in clean
+        assert "style=" not in clean
+        assert "Build APIs & integrations" in clean
+        assert "Own delivery" in clean
 
     def test_rank_jobs_prefers_location_match_over_remote_fallback(self):
         jobs = [

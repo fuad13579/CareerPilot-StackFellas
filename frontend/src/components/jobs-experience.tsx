@@ -68,6 +68,25 @@ interface ApiJobResponse {
   source?: string;
 }
 
+function normalizeJobDescription(value: string | null | undefined): string {
+  if (!value) return "";
+
+  return value
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/<\s*(br|\/p|\/li|\/div|\/section|\/article|\/ul|\/ol)\s*\/?>/gi, "\n")
+    .replace(/<\s*(li|p|div|section|article|ul|ol)(?:\s+[^>]*)?>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s*\n\s*/g, "\n")
+    .split(/\s+/)
+    .join(" ")
+    .trim();
+}
+
 function inferJobType(apiJob: ApiJobResponse): Job["type"] {
   const role = apiJob.role.toLowerCase();
   const location = (apiJob.location || "").toLowerCase();
@@ -118,7 +137,7 @@ function mapApiJobToJob(apiJob: ApiJobResponse): Job {
     matchingSkills: apiJob.matched_skills || [],
     requiredSkills: apiJob.required_skills || [...(apiJob.matched_skills || []), ...(apiJob.missing_skills || [])],
     jobUrl: apiJob.job_url || "",
-    description: apiJob.description || "",
+    description: normalizeJobDescription(apiJob.description) || "",
     source: apiJob.source,
   };
 }
@@ -381,7 +400,7 @@ export function JobsExperience() {
       fitScore: fitScore ?? 0,
       deadline: job.deadline ?? "",
       nextAction: "Follow up with recruiter in 1 week",
-      jobDescription: job.description || job.matchReason,
+      jobDescription: normalizeJobDescription(job.description) || job.matchReason,
       requiredSkills: job.requiredSkills || [],
       jobUrl: job.jobUrl || job.id,
     });

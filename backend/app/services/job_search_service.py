@@ -1,6 +1,8 @@
 import asyncio
+import html
 import logging
 import os
+import re
 from datetime import datetime
 from typing import Any
 
@@ -210,11 +212,14 @@ def _normalize_description(description: str | None, max_length: int = 500) -> st
     """Clean and truncate job description."""
     if not description:
         return ""
-    # Clean HTML tags
-    clean = description.replace("<br>", "\n").replace("<br/>", "\n").replace("<p>", "").replace("</p>", "\n")
-    # Remove extra whitespace
+
+    clean = html.unescape(str(description))
+    clean = re.sub(r"<\s*(br|/p|/li|/div|/section|/article|/ul|/ol)\s*/?>", "\n", clean, flags=re.IGNORECASE)
+    clean = re.sub(r"<\s*(li|p|div|section|article|ul|ol)(?:\s+[^>]*)?>", "\n", clean, flags=re.IGNORECASE)
+    clean = re.sub(r"<[^>]+>", " ", clean)
+    clean = re.sub(r"\s*\n\s*", "\n", clean)
     clean = " ".join(clean.split())
-    # Truncate
+
     if len(clean) > max_length:
         clean = clean[:max_length].rsplit(" ", 1)[0] + "..."
     return clean
