@@ -12,7 +12,6 @@ import {
   PenTool,
   RefreshCw,
   Sparkles,
-  TrendingUp,
 } from "lucide-react";
 import { getPersistedCvId } from "./cv-storage";
 import { getCareerPilotHeaders } from "./user-storage";
@@ -40,6 +39,21 @@ interface CoverLetterResponse {
   job_title: string;
   company: string;
   used_context?: string | null;
+}
+
+interface TrackerApplicationApiResponse {
+  id?: string | number | null;
+  role?: string | null;
+  company?: string | null;
+  location?: string | null;
+  deadline?: string | null;
+  next_action?: string | null;
+  notes?: string | null;
+  job_description?: string | null;
+  required_skills?: unknown;
+  job_url?: string | null;
+  status?: string | null;
+  fit_score?: number | null;
 }
 
 const NO_CV_MESSAGE = "Please upload your CV first.";
@@ -82,8 +96,23 @@ function extractErrorMessage(payload: unknown, fallback: string): string {
   return fallback;
 }
 
-function formatRequiredSkills(skills: string[]): string {
-  return skills.length > 0 ? skills.slice(0, 6).join(", ") : "Not provided";
+function normalizeJobDescription(value: string | null | undefined): string {
+  if (!value) return "";
+
+  return value
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/<\s*(br|\/p|\/li|\/div|\/section|\/article|\/ul|\/ol)\s*\/?>/gi, "\n")
+    .replace(/<\s*(li|p|div|section|article|ul|ol)(?:\s+[^>]*)?>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s*\n\s*/g, "\n")
+    .split(/\s+/)
+    .join(" ")
+    .trim();
 }
 
 export function CoverLetterSection() {
@@ -130,14 +159,14 @@ export function CoverLetterSection() {
         }
 
         const mappedApplications = Array.isArray(payload)
-          ? payload.map((app: any) => ({
+          ? (payload as TrackerApplicationApiResponse[]).map((app) => ({
               id: String(app.id),
               role: app.role || "Untitled role",
               company: app.company || "Unknown company",
               location: app.location || "",
               deadline: app.deadline || null,
               nextAction: app.next_action || app.notes || null,
-              jobDescription: app.job_description || null,
+              jobDescription: normalizeJobDescription(app.job_description) || null,
               requiredSkills: Array.isArray(app.required_skills) ? app.required_skills : [],
               jobUrl: app.job_url || null,
               status: app.status || "Saved",
@@ -185,14 +214,14 @@ export function CoverLetterSection() {
       }
 
       const mappedApplications = Array.isArray(payload)
-        ? payload.map((app: any) => ({
+        ? (payload as TrackerApplicationApiResponse[]).map((app) => ({
             id: String(app.id),
             role: app.role || "Untitled role",
             company: app.company || "Unknown company",
             location: app.location || "",
             deadline: app.deadline || null,
             nextAction: app.next_action || app.notes || null,
-            jobDescription: app.job_description || null,
+            jobDescription: normalizeJobDescription(app.job_description) || null,
             requiredSkills: Array.isArray(app.required_skills) ? app.required_skills : [],
             jobUrl: app.job_url || null,
             status: app.status || "Saved",
@@ -241,7 +270,7 @@ export function CoverLetterSection() {
           job_title: selectedApplication.role,
           company: selectedApplication.company,
           job_description:
-            selectedApplication.jobDescription ||
+            normalizeJobDescription(selectedApplication.jobDescription) ||
             selectedApplication.nextAction ||
             selectedApplication.notes ||
             "Saved tracker application",
@@ -521,7 +550,7 @@ export function CoverLetterSection() {
               <div className="min-w-[200px] flex-1">
                 <p className="text-sm font-bold text-gray-700">Job Description</p>
                 <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-600">
-                  {selectedApplication.jobDescription || "No job description was saved with this application."}
+                  {normalizeJobDescription(selectedApplication.jobDescription) || "No job description was saved with this application."}
                 </p>
               </div>
               <div className="min-w-[180px] flex-1">

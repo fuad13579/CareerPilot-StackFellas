@@ -32,6 +32,19 @@ const ROLE_TERMS = [
   "trainee",
   "specialist",
 ];
+const ROLE_PREFIX_TERMS = [
+  "backend",
+  "frontend",
+  "full stack",
+  "full-stack",
+  "data",
+  "software",
+  "web",
+  "mobile",
+  "cloud",
+  "ai",
+  "machine learning",
+];
 
 export function extractSectionEntriesWithFallback(
   value: unknown,
@@ -51,7 +64,7 @@ export function extractSectionEntriesWithFallback(
   return extractSectionEntries(recoveredSection, sectionName);
 }
 
-function extractSectionEntries(value: unknown, sectionName: CvEntrySectionName): string[] {
+export function extractSectionEntries(value: unknown, sectionName: CvEntrySectionName): string[] {
   if (typeof value !== "string") return [];
 
   const text = normalizeEntryBoundaries(value.replace(/\r\n/g, "\n").trim(), sectionName);
@@ -94,10 +107,42 @@ function normalizeEntryBoundaries(text: string, sectionName: CvEntrySectionName)
     .replace(/\n{3,}/g, "\n\n");
 
   if (sectionName === "experience") {
+    normalized = mergeWrappedExperienceHeaders(normalized);
     normalized = insertInlineExperienceBoundaries(normalized);
   }
 
   return normalized.trim();
+}
+
+function mergeWrappedExperienceHeaders(text: string): string {
+  const lines = text.split("\n");
+  const mergedLines: string[] = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const currentLine = lines[index]?.trim() || "";
+    const nextLine = lines[index + 1]?.trim() || "";
+
+    if (isDanglingRolePrefix(currentLine) && isExperienceHeaderContinuation(nextLine)) {
+      mergedLines.push(`${currentLine} ${nextLine}`);
+      index += 1;
+      continue;
+    }
+
+    mergedLines.push(lines[index]);
+  }
+
+  return mergedLines.join("\n");
+}
+
+function isDanglingRolePrefix(line: string): boolean {
+  const normalized = line.toLowerCase().replace(/\s+/g, " ").trim();
+  return ROLE_PREFIX_TERMS.includes(normalized);
+}
+
+function isExperienceHeaderContinuation(line: string): boolean {
+  const normalized = line.toLowerCase();
+  const startsWithRoleTerm = ROLE_TERMS.some((term) => normalized.startsWith(term));
+  return startsWithRoleTerm && isExperienceHeader(line);
 }
 
 function insertInlineExperienceBoundaries(text: string): string {
