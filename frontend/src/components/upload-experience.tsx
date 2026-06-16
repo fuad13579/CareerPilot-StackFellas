@@ -33,6 +33,7 @@ interface CVSummary {
   skills?: string[];
   experience?: string[];
   education?: string[];
+  projects?: string[];
 }
 
 interface RagStatus {
@@ -46,6 +47,8 @@ interface RagStatus {
   embedding_model?: string | null;
   last_built_at?: string | null;
 }
+
+type RagIndexState = "unknown" | "built" | "failed";
 
 const ACCEPTED_MIME_BY_EXTENSION: Record<string, string> = {
   ".pdf": "application/pdf",
@@ -67,11 +70,17 @@ function normalizeCvSummary(summary: PersistedCvSummary | null): PersistedCvSumm
     "education",
     summary.extractedText
   );
+  const projects = extractSectionEntriesWithFallback(
+    summary.projects?.join("\n\n"),
+    "projects",
+    summary.extractedText
+  );
 
   return {
     ...summary,
     experience: experience.length > 0 ? experience : summary.experience || [],
     education: education.length > 0 ? education : summary.education || [],
+    projects: projects.length > 0 ? projects : summary.projects || [],
   };
 }
 
@@ -84,6 +93,7 @@ export function UploadExperience() {
   const [isDragging, setIsDragging] = useState(false);
   const [ragStatus, setRagStatus] = useState<RagStatus | null>(null);
   const [ragWarning, setRagWarning] = useState("");
+  const [ragIndexState, setRagIndexState] = useState<RagIndexState>("unknown");
   const [isLoadingRagStatus, setIsLoadingRagStatus] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -114,6 +124,7 @@ export function UploadExperience() {
     setCvSummary(null);
     setRagStatus(null);
     setRagWarning("");
+    setRagIndexState("unknown");
 
     try {
       const formData = new FormData();
@@ -158,6 +169,11 @@ export function UploadExperience() {
         "education",
         data.extracted_text
       );
+      const projectSections = extractSectionEntriesWithFallback(
+        sectionsData?.sections?.projects,
+        "projects",
+        data.extracted_text
+      );
 
       // Save CV skills and ID to localStorage for Jobs page
       const snapshot: PersistedCvSummary = {
@@ -169,6 +185,7 @@ export function UploadExperience() {
         skills: data.skills || data.extracted_skills || [],
         experience: experienceSections.length > 0 ? experienceSections : data.experience || [],
         education: educationSections.length > 0 ? educationSections : data.education || [],
+        projects: projectSections.length > 0 ? projectSections : data.projects || [],
       };
       persistCvSnapshot(snapshot, String(data.cv_id));
 
@@ -183,6 +200,7 @@ export function UploadExperience() {
         skills: data.skills || [],
         experience: experienceSections.length > 0 ? experienceSections : data.experience || [],
         education: educationSections.length > 0 ? educationSections : data.education || [],
+        projects: projectSections.length > 0 ? projectSections : data.projects || [],
       };
 
       setRagWarning(
@@ -190,6 +208,7 @@ export function UploadExperience() {
           ? data.rag_warning
           : ""
       );
+      setRagIndexState(data.rag_index_built === false ? "failed" : "built");
       setCvSummary(cvSummary);
       setStatus("success");
 
@@ -230,7 +249,11 @@ export function UploadExperience() {
           ragErr instanceof Error && ragErr.message
             ? ragErr.message
             : "Failed to load RAG status after upload.";
-        setRagWarning((current) => current || statusMessage);
+        setRagWarning((current) => {
+          if (current) return current;
+          if (data.rag_index_built === false) return statusMessage;
+          return "RAG index was created, but live status could not be refreshed.";
+        });
         setRagStatus(null);
       } finally {
         setIsLoadingRagStatus(false);
@@ -275,6 +298,7 @@ export function UploadExperience() {
     setError("");
     setRagStatus(null);
     setRagWarning("");
+    setRagIndexState("unknown");
     setIsLoadingRagStatus(false);
     clearPersistedCvSnapshot();
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -456,6 +480,23 @@ export function UploadExperience() {
                   </div>
                 )}
 
+                {/* Projects */}
+                {cvSummary.projects && cvSummary.projects.length > 0 && (
+                  <div>
+                    <p className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-500">
+                      Projects
+                    </p>
+                    <ul className="space-y-3">
+                      {cvSummary.projects.map((project, i) => (
+                        <li key={i} className="flex items-start gap-3 text-base text-gray-700">
+                          <span className="mt-2 size-2 shrink-0 rounded-full bg-blue-600" />
+                          {project}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {/* Education */}
                 {cvSummary.education && cvSummary.education.length > 0 && (
                   <div>
@@ -508,7 +549,10 @@ export function UploadExperience() {
                             ? ragStatus.index_exists && ragStatus.embeddings_exists
                               ? "Your CV is ready for grounded assistant answers."
                               : "Your CV was uploaded, but the retrieval index is incomplete."
-                            : ragWarning || "RAG status unavailable after upload."}
+                            : ragWarning ||
+                              (ragIndexState === "built"
+                                ? "RAG index was created, but live status could not be refreshed."
+                                : "RAG status unavailable after upload.")}
                       </p>
                     </div>
                     {ragStatus && (

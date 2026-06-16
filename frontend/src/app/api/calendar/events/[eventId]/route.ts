@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+const NO_STORE_HEADERS = { "Cache-Control": "no-store" };
+
 export async function GET(request: Request, { params }: { params: Promise<{ eventId: string }> }) {
   try {
     const { eventId } = await params;
@@ -11,24 +13,24 @@ export async function GET(request: Request, { params }: { params: Promise<{ even
         "Content-Type": "application/json",
         ...(userId ? { "x-careerpilot-user-id": userId } : {}),
       },
-      next: { revalidate: 15 },
+      cache: "no-store",
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
         { detail: errorData.detail || "Failed to fetch calendar event" },
-        { status: response.status }
+        { status: response.status, headers: NO_STORE_HEADERS }
       );
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, { headers: NO_STORE_HEADERS });
   } catch (error) {
     console.error("Calendar event get proxy error:", error);
     return NextResponse.json(
       { detail: "Failed to connect to calendar service" },
-      { status: 500 }
+      { status: 500, headers: NO_STORE_HEADERS }
     );
   }
 }

@@ -38,7 +38,6 @@ export function TodoForm({
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(parsedInitial.cleanDescription || "");
   const [dueDate, setDueDate] = useState(initialData?.due_date || "");
-  const [linkedType, setLinkedType] = useState(initialData?.linked_type || "");
   const [linkedId, setLinkedId] = useState<number | undefined>(
     initialData?.linked_id || undefined
   );
@@ -52,7 +51,7 @@ export function TodoForm({
       title: title.trim(),
       description: encodeGoalDescription(description.trim() || undefined, goalCategory || undefined),
       due_date: dueDate || undefined,
-      linked_type: linkedType || undefined,
+      linked_type: linkedId ? "application" : undefined,
       linked_id: linkedId,
     });
   };
@@ -134,36 +133,19 @@ export function TodoForm({
           Link to (optional)
         </label>
 
-        <div className="mt-2 space-y-2">
-          <select
-            aria-label="Link type"
-            value={linkedType}
-            onChange={(e) => {
-              setLinkedType(e.target.value);
-              setLinkedId(undefined);
-            }}
-            className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-          >
-            <option value="">No link</option>
-            <option value="application">Job Application</option>
-          </select>
-
-          {linkedType === "application" && linkedApplications.length > 0 && (
-            <select
-              aria-label="Linked application"
-              value={linkedId || ""}
-              onChange={(e) => setLinkedId(Number(e.target.value) || undefined)}
-              className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-            >
-              <option value="">Select application...</option>
-              {linkedApplications.map((app) => (
-                <option key={app.id} value={app.id}>
-                  {app.company} - {app.role}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
+        <select
+          aria-label="Linked application"
+          value={linkedId || ""}
+          onChange={(e) => setLinkedId(Number(e.target.value) || undefined)}
+          className="mt-2 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+        >
+          <option value="">No link</option>
+          {linkedApplications.map((app) => (
+            <option key={app.id} value={app.id}>
+              {app.company} - {app.role}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Actions */}

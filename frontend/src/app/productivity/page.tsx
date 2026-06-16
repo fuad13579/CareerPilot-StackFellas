@@ -35,6 +35,7 @@ async function fetchWithTimeout(url: string, timeoutMs = 3000) {
     return await fetch(url, {
       signal: controller.signal,
       headers: getCareerPilotHeaders(),
+      cache: "no-store",
     });
   } finally {
     window.clearTimeout(timeout);
@@ -543,8 +544,8 @@ export default function ProductivityPage() {
           </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[.95fr_1.05fr]">
-          <div className="space-y-6">
+        <section className="grid gap-6">
+          <div className="space-y-6 xl:grid xl:grid-cols-2 xl:gap-6 xl:space-y-0">
             <div className="rounded-[26px] border border-[#E5E7EB] bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,.05)]">
               <div className="mb-4 flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-2xl bg-[#ECFDF5] text-[#059669]">

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+const NO_STORE_HEADERS = { "Cache-Control": "no-store" };
+
 export async function GET(request: Request) {
   try {
     const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
@@ -10,24 +12,24 @@ export async function GET(request: Request) {
         "Content-Type": "application/json",
         ...(userId ? { "x-careerpilot-user-id": userId } : {}),
       },
-      next: { revalidate: 15 },
+      cache: "no-store",
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
         { detail: errorData.detail || "Failed to fetch todos" },
-        { status: response.status }
+        { status: response.status, headers: NO_STORE_HEADERS }
       );
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, { headers: NO_STORE_HEADERS });
   } catch (error) {
     console.error("Todos proxy error:", error);
     return NextResponse.json(
       { detail: "Failed to connect to todo service" },
-      { status: 500 }
+      { status: 500, headers: NO_STORE_HEADERS }
     );
   }
 }

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+const NO_STORE_HEADERS = { "Cache-Control": "no-store" };
+
 export async function GET(request: Request) {
   try {
     const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
@@ -10,15 +12,16 @@ export async function GET(request: Request) {
         "Content-Type": "application/json",
         ...(userId ? { "x-careerpilot-user-id": userId } : {}),
       },
+      cache: "no-store",
     });
 
     const data = await response.json().catch(() => ({}));
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(data, { status: response.status, headers: NO_STORE_HEADERS });
   } catch (error) {
     console.error("Calendar events proxy error:", error);
     return NextResponse.json(
       { detail: "Failed to connect to calendar service" },
-      { status: 500 }
+      { status: 500, headers: NO_STORE_HEADERS }
     );
   }
 }

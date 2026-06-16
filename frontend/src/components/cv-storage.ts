@@ -7,6 +7,7 @@ export interface PersistedCvSummary {
   skills?: string[];
   experience?: string[];
   education?: string[];
+  projects?: string[];
 }
 
 const CV_STORAGE_KEY = "careerpilot_cv_summary";

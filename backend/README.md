@@ -229,6 +229,44 @@ Key storage paths:
 
 This works well for a hackathon MVP on a persistent VM, but it is not the right long-term design for multi-instance production scaling.
 
+## RAG Embedding Model Cache
+
+The primary RAG embedding path uses `sentence-transformers/all-MiniLM-L6-v2`. The backend defaults to local-only transformer loading via `SENTENCE_TRANSFORMER_LOCAL_ONLY=true`; if the model is not already cached, embedding falls back to `HashingVectorizer-512`.
+
+Cache the model once on a fresh VM:
+
+```bash
+cd ~/CareerPilot-StackFellas/backend
+source .venv/bin/activate
+SENTENCE_TRANSFORMER_LOCAL_ONLY=false python - <<'PY'
+from sentence_transformers import SentenceTransformer
+SentenceTransformer("all-MiniLM-L6-v2", local_files_only=False)
+print("cached model loaded")
+PY
+```
+
+Check which provider is active:
+
+```bash
+python - <<'PY'
+from app.services.embedding_service import embedding_service
+result = embedding_service.embed_texts(["Python FastAPI backend APIs"])
+print(result.provider)
+print(result.model_name)
+print(len(result.vectors[0]) if result.vectors else 0)
+PY
+```
+
+Expected output for semantic embeddings:
+
+```text
+sentence-transformers
+all-MiniLM-L6-v2 (primary semantic embeddings)
+384
+```
+
+CVs uploaded before the model was cached may still have hashing-based vector indexes. Re-upload those CVs, or rebuild their RAG indexes, to use semantic embeddings.
+
 ## Testing
 
 Run the backend test suite:

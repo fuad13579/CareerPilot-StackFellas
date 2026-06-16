@@ -505,9 +505,6 @@ def process_assistant_query(
         job_data=job_data,
         history=history,
     )
-    evidence_block = format_cv_evidence(chunks)
-    if evidence_block:
-        answer = f"{answer}\n\n{evidence_block}"
 
     # Add assistant response to history
     add_to_conversation(session_id, cv_id, "assistant", answer, anonymous_user_id=anonymous_user_id)

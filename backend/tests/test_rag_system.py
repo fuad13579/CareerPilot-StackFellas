@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from app.services.cv_chunking_service import create_cv_chunks
+from app.services.cv_chunking_service import create_cv_chunks, split_cv_into_sections
 from app.services import vector_store_service as rag_store
 from app.services import assistant_service
 
@@ -60,6 +60,34 @@ def test_create_cv_chunks_adds_overlap_for_long_sections():
     first_words = chunks[0]["text"].split()
     second_words = chunks[1]["text"].split()
     assert set(first_words[-8:]) & set(second_words[:12])
+
+
+def test_split_cv_sections_keeps_project_experience_and_achievements_separate():
+    sections = split_cv_into_sections(
+        "\n".join(
+            [
+                "SKILLS",
+                "Python, FastAPI, React",
+                "PROJECT EXPERIENCE",
+                "CareerPilot - AI Career Co-pilot | Full-Stack Project",
+                "- Built a career platform.",
+                "Task Manager API | Backend Project",
+                "- Developed task endpoints.",
+                "EXPERIENCE",
+                "Student Developer / Team Lead - StackFellas",
+                "- Led a 3-member team.",
+                "ACHIEVEMENTS & INTERESTS",
+                "- Built hackathon projects.",
+            ]
+        )
+    )
+
+    assert "PROJECT EXPERIENCE" not in sections["skills"]
+    assert "CareerPilot" in sections["projects"]
+    assert "Task Manager API" in sections["projects"]
+    assert "ACHIEVEMENTS" not in sections["experience"]
+    assert "Student Developer" in sections["experience"]
+    assert "Built hackathon projects" in sections["other"]
 
 
 def test_assistant_rebuilds_rag_from_saved_sections(monkeypatch):

@@ -87,6 +87,15 @@ interface RagStatus {
   last_built_at?: string | null;
 }
 
+const SOURCE_SECTION_PRIORITY: Record<string, number> = {
+  experience: 0,
+  projects: 1,
+  skills: 2,
+  education: 3,
+  target_job: 4,
+  other: 9,
+};
+
 const NO_CV_MESSAGE = "Please upload your CV first.";
 const SEED_ASSISTANT_MESSAGE: Message = {
   id: "assistant-seed",
@@ -112,6 +121,10 @@ function createMessage(role: Message["role"], content: string): Message {
     content,
     timestampLabel: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
   };
+}
+
+function stripInlineCvEvidence(content: string): string {
+  return content.replace(/\n{2,}CV evidence used:\n[\s\S]*$/i, "").trim();
 }
 
 function extractErrorMessage(payload: unknown, fallback: string): string {
@@ -150,6 +163,24 @@ function extractErrorMessage(payload: unknown, fallback: string): string {
   return fallback;
 }
 
+function getDisplaySources(sources: Message["sources"]): NonNullable<Message["sources"]> {
+  if (!sources) return [];
+
+  return [...sources]
+    .filter((source) => source.text.trim().length > 0)
+    .sort((left, right) => {
+      const leftPriority = SOURCE_SECTION_PRIORITY[left.section.toLowerCase()] ?? 8;
+      const rightPriority = SOURCE_SECTION_PRIORITY[right.section.toLowerCase()] ?? 8;
+
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+
+      return (right.score ?? 0) - (left.score ?? 0);
+    })
+    .slice(0, 3);
+}
+
 export function AssistantExperience() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([SEED_ASSISTANT_MESSAGE]);
@@ -165,6 +196,7 @@ export function AssistantExperience() {
   const [ragStatus, setRagStatus] = useState<RagStatus | null>(null);
   const [ragStatusError, setRagStatusError] = useState("");
   const [isLoadingRagStatus, setIsLoadingRagStatus] = useState(false);
+  const [expandedEvidenceIds, setExpandedEvidenceIds] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -239,7 +271,7 @@ export function AssistantExperience() {
             ) => ({
               id: `history-${index}-${m.content.slice(0, 8)}`,
               role: m.role,
-              content: m.content,
+              content: m.role === "assistant" ? stripInlineCvEvidence(m.content) : m.content,
               timestampLabel: m.created_at
                 ? new Date(m.created_at).toLocaleTimeString([], {
                     hour: "2-digit",
@@ -373,7 +405,7 @@ export function AssistantExperience() {
 
       const answer =
         typeof payload.answer === "string" && payload.answer.trim()
-          ? payload.answer
+          ? stripInlineCvEvidence(payload.answer)
           : "I could not generate a response for that request.";
 
       const provider =
@@ -825,30 +857,68 @@ export function AssistantExperience() {
                 </div>
               )}
 
-              {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
-                <div className="mt-3 rounded-xl border border-[#DBEAFE] bg-[#F8FBFF] p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#1D4ED8]">
-                    Grounded In Your CV
-                  </p>
-                  <div className="mt-2 space-y-2">
-                    {msg.sources.slice(0, 3).map((source, index) => (
-                      <div key={`${source.section}-${index}`} className="rounded-lg bg-white p-2.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-[#0F172A]">{source.section}</span>
-                          {typeof source.score === "number" && (
-                            <span className="text-[11px] font-semibold text-[#64748B]">
-                              score {source.score.toFixed(2)}
-                            </span>
-                          )}
+              {msg.role === "assistant" &&
+                (() => {
+                  const displaySources = getDisplaySources(msg.sources);
+                  if (displaySources.length === 0) return null;
+
+                  const isExpanded = expandedEvidenceIds.has(msg.id);
+
+                  return (
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExpandedEvidenceIds((current) => {
+                            const next = new Set(current);
+                            if (next.has(msg.id)) {
+                              next.delete(msg.id);
+                            } else {
+                              next.add(msg.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        className="inline-flex items-center gap-2 rounded-full border border-[#BFDBFE] bg-[#F8FBFF] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] text-[#1D4ED8] transition hover:border-[#93C5FD] hover:bg-[#EFF6FF]"
+                      >
+                        {isExpanded ? "Hide CV evidence" : "View CV evidence"}
+                        <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] text-[#64748B]">
+                          {displaySources.length}
+                        </span>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="mt-2 rounded-xl border border-[#DBEAFE] bg-[#F8FBFF] p-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#1D4ED8]">
+                            Grounded In Your CV
+                          </p>
+                          <div className="mt-2 space-y-2">
+                            {displaySources.map((source, index) => (
+                              <div
+                                key={`${source.section}-${index}`}
+                                className="rounded-lg bg-white p-2.5"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-xs font-bold text-[#0F172A]">
+                                    {source.section}
+                                  </span>
+                                  {typeof source.score === "number" && (
+                                    <span className="text-[11px] font-semibold text-[#64748B]">
+                                      score {source.score.toFixed(2)}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="mt-1 line-clamp-3 text-xs leading-5 text-[#475569]">
+                                  {source.text}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <p className="mt-1 line-clamp-3 text-xs leading-5 text-[#475569]">
-                          {source.text}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                      )}
+                    </div>
+                  );
+                })()}
             </div>
 
             {msg.role === "user" && (
