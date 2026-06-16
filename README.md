@@ -222,6 +222,36 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 pytest -q
 ```
 
+## RAG Embedding Model Cache
+
+CareerPilot uses `sentence-transformers/all-MiniLM-L6-v2` for semantic CV retrieval when the model is available locally. The backend defaults to `SENTENCE_TRANSFORMER_LOCAL_ONLY=true`, so a new server will not download the model during a user request. If the model is not cached, retrieval falls back to `HashingVectorizer-512`.
+
+On a new Azure VM, cache the model once:
+
+```bash
+cd ~/CareerPilot-StackFellas/backend
+source .venv/bin/activate
+SENTENCE_TRANSFORMER_LOCAL_ONLY=false python - <<'PY'
+from sentence_transformers import SentenceTransformer
+SentenceTransformer("all-MiniLM-L6-v2", local_files_only=False)
+print("cached model loaded")
+PY
+```
+
+Verify the active embedding provider:
+
+```bash
+python - <<'PY'
+from app.services.embedding_service import embedding_service
+result = embedding_service.embed_texts(["Python FastAPI backend APIs"])
+print(result.provider)
+print(result.model_name)
+print(len(result.vectors[0]) if result.vectors else 0)
+PY
+```
+
+Expected semantic mode is `sentence-transformers`, `all-MiniLM-L6-v2`, and vector dimension `384`. CVs uploaded before the model was cached may still have hashing-based vector indexes; re-upload those CVs or rebuild their RAG index to use semantic embeddings.
+
 ## Deployment Notes
 
 ### Frontend

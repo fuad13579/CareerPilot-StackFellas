@@ -1,4 +1,4 @@
-type CvEntrySectionName = "experience" | "education";
+type CvEntrySectionName = "experience" | "education" | "projects";
 
 const SECTION_ALIASES: Record<CvEntrySectionName | "skills" | "projects" | "other", string[]> = {
   experience: [
@@ -16,7 +16,15 @@ const SECTION_ALIASES: Record<CvEntrySectionName | "skills" | "projects" | "othe
   ],
   skills: ["skills", "technical skills", "core skills", "key skills", "technologies", "tech stack"],
   projects: ["projects", "project experience", "academic projects", "personal projects", "selected projects"],
-  other: ["profile summary", "summary", "certifications", "achievements", "interests"],
+  other: [
+    "profile summary",
+    "summary",
+    "certifications",
+    "achievements",
+    "interests",
+    "achievements interests",
+    "achievements activities",
+  ],
 };
 
 const MONTH_PATTERN = "(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)";
@@ -29,6 +37,7 @@ const ROLE_TERMS = [
   "intern",
   "lead",
   "manager",
+  "mentor",
   "trainee",
   "specialist",
 ];
@@ -67,7 +76,10 @@ export function extractSectionEntriesWithFallback(
 export function extractSectionEntries(value: unknown, sectionName: CvEntrySectionName): string[] {
   if (typeof value !== "string") return [];
 
-  const text = normalizeEntryBoundaries(value.replace(/\r\n/g, "\n").trim(), sectionName);
+  const text = keepOnlyRequestedSection(
+    normalizeEntryBoundaries(value.replace(/\r\n/g, "\n").trim(), sectionName),
+    sectionName
+  );
   if (!text) return [];
 
   const lines = text
@@ -83,7 +95,9 @@ export function extractSectionEntries(value: unknown, sectionName: CvEntrySectio
     const startsNewEntry =
       sectionName === "experience"
         ? isExperienceHeader(line) && currentEntry.length > 0
-        : isEducationHeader(line) && currentEntry.length > 0;
+        : sectionName === "education"
+          ? isEducationHeader(line) && currentEntry.length > 0
+          : isProjectHeader(line) && currentEntry.length > 0;
 
     if (startsNewEntry) {
       entries.push(currentEntry.join("\n").trim());
@@ -101,6 +115,29 @@ export function extractSectionEntries(value: unknown, sectionName: CvEntrySectio
   return entries.length > 0 ? entries : lines;
 }
 
+function keepOnlyRequestedSection(text: string, sectionName: CvEntrySectionName): string {
+  const targetAliases = SECTION_ALIASES[sectionName].map((alias) => normalizeHeading(alias));
+  const lines = text.split("\n");
+  const keptLines: string[] = [];
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    const normalized = normalizeHeading(line);
+    const isHeading = isKnownSectionHeading(line);
+
+    if (isHeading) {
+      if (targetAliases.includes(normalized)) {
+        continue;
+      }
+      break;
+    }
+
+    keptLines.push(rawLine);
+  }
+
+  return keptLines.join("\n").trim();
+}
+
 function normalizeEntryBoundaries(text: string, sectionName: CvEntrySectionName): string {
   let normalized = text
     .replace(/[\u2022\u25aa\u25cf\u25e6\uf0b7]\s*/g, "\n- ")
@@ -109,6 +146,9 @@ function normalizeEntryBoundaries(text: string, sectionName: CvEntrySectionName)
   if (sectionName === "experience") {
     normalized = mergeWrappedExperienceHeaders(normalized);
     normalized = insertInlineExperienceBoundaries(normalized);
+  }
+  if (sectionName === "projects") {
+    normalized = insertInlineProjectBoundaries(normalized);
   }
 
   return normalized.trim();
@@ -123,6 +163,12 @@ function mergeWrappedExperienceHeaders(text: string): string {
     const nextLine = lines[index + 1]?.trim() || "";
 
     if (isDanglingRolePrefix(currentLine) && isExperienceHeaderContinuation(nextLine)) {
+      mergedLines.push(`${currentLine} ${nextLine}`);
+      index += 1;
+      continue;
+    }
+
+    if (isIncompleteRoleHeader(currentLine) && isHeaderRemainder(nextLine)) {
       mergedLines.push(`${currentLine} ${nextLine}`);
       index += 1;
       continue;
@@ -145,11 +191,36 @@ function isExperienceHeaderContinuation(line: string): boolean {
   return startsWithRoleTerm && isExperienceHeader(line);
 }
 
+function isIncompleteRoleHeader(line: string): boolean {
+  const normalized = line.toLowerCase().replace(/\s+/g, " ").trim();
+  const hasRoleTerm = ROLE_TERMS.some((term) => normalized.includes(term));
+  return hasRoleTerm && /[-|]\s*$/.test(line.trim());
+}
+
+function isHeaderRemainder(line: string): boolean {
+  const normalized = line.toLowerCase();
+  const hasDate =
+    /\b(?:19|20)\d{2}\b/.test(line) ||
+    new RegExp(`\\b${MONTH_PATTERN}\\b`).test(normalized) ||
+    /\bpresent\b/.test(normalized);
+  const hasSeparator = normalized.includes(" | ") || normalized.includes(" - ");
+  return hasSeparator && hasDate;
+}
+
 function insertInlineExperienceBoundaries(text: string): string {
   const roleHeaderPattern =
     /([^\n])\s+([A-Z][A-Za-z&/().+# ]{2,80}\s*(?:\|| at | - )\s*[A-Z][A-Za-z0-9&/().+# ]{2,90}\s+(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\s+)?(?:19|20)\d{2}\b)/g;
+  const wrappedRoleHeaderPattern =
+    /([.!?])\s+([A-Z][A-Za-z&/().+# ]{2,80}\s+-\s+[A-Z][A-Za-z0-9&/().+# ]{2,90}\s+\|\s+(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\s+)?(?:19|20)\d{2}\b)/g;
 
-  return text.replace(roleHeaderPattern, "$1\n$2");
+  return text.replace(wrappedRoleHeaderPattern, "$1\n$2").replace(roleHeaderPattern, "$1\n$2");
+}
+
+function insertInlineProjectBoundaries(text: string): string {
+  const projectHeaderPattern =
+    /([^\n])\s+([A-Z][A-Za-z0-9&/().+#: ]{2,90}\s*(?:\|| - |:)\s*[A-Z][A-Za-z0-9&/().+#: ]{2,90})/g;
+
+  return text.replace(projectHeaderPattern, "$1\n$2");
 }
 
 function extractNamedSectionFromText(
@@ -225,4 +296,19 @@ function isExperienceHeader(line: string): boolean {
 function isEducationHeader(line: string): boolean {
   const normalized = line.toLowerCase();
   return /\b(?:19|20)\d{2}\b/.test(line) || /\b(b\.?sc|m\.?sc|bachelor|master|degree|university|college)\b/.test(normalized);
+}
+
+function isProjectHeader(line: string): boolean {
+  const normalized = line.toLowerCase();
+  const hasProjectSeparator =
+    normalized.includes(" | ") ||
+    normalized.includes(" - ") ||
+    normalized.includes(":");
+  const hasProjectSignal =
+    /\b(project|api|app|platform|dashboard|manager|tracker|system|website|portfolio)\b/.test(
+      normalized
+    );
+  const isBullet = /^[-*]\s+/.test(line);
+
+  return !isBullet && hasProjectSeparator && hasProjectSignal;
 }

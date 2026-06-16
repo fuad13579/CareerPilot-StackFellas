@@ -31,10 +31,20 @@ SECTION_ALIASES = {
     ],
     "projects": [
         "projects",
+        "project experience",
         "academic projects",
         "personal projects",
         "professional projects",
         "selected projects",
+    ],
+    "other": [
+        "profile summary",
+        "summary",
+        "certifications",
+        "achievements",
+        "interests",
+        "achievements interests",
+        "achievements activities",
     ],
 }
 PROCESSED_CV_DIRECTORY = (

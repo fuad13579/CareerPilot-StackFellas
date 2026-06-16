@@ -38,6 +38,7 @@ interface CvSnapshot {
   skills?: string[];
   experience?: string[];
   education?: string[];
+  projects?: string[];
 }
 
 interface RecommendedJob {
@@ -106,11 +107,17 @@ function normalizeCvSnapshot(summary: CvSnapshot | null): CvSnapshot | null {
     "education",
     summary.extractedText
   );
+  const projects = extractSectionEntriesWithFallback(
+    summary.projects?.join("\n\n"),
+    "projects",
+    summary.extractedText
+  );
 
   return {
     ...summary,
     experience: experience.length > 0 ? experience : summary.experience || [],
     education: education.length > 0 ? education : summary.education || [],
+    projects: projects.length > 0 ? projects : summary.projects || [],
   };
 }
 

@@ -459,7 +459,7 @@ export function JobsExperience() {
       <div className="flex items-center gap-2">
         <Briefcase size={18} className="text-[#1D4ED8]" />
         <span className="text-sm font-bold text-gray-600">
-          {isSearching && isInitialLoad ? "Loading jobs..." : `${jobs.length} jobs found`}
+          {isSearching && isInitialLoad ? "Loading jobs..." : `Showing ${jobs.length} jobs`}
         </span>
         {isLive && !isSearching && (
           <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">

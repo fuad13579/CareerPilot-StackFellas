@@ -12,6 +12,7 @@ import {
   PenTool,
   RefreshCw,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { getPersistedCvId } from "./cv-storage";
 import { getCareerPilotHeaders } from "./user-storage";
@@ -126,6 +127,7 @@ export function CoverLetterSection() {
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [removingApplicationId, setRemovingApplicationId] = useState<string>("");
 
   const cvId = getPersistedCvId();
   const hasCv = Boolean(cvId);
@@ -237,6 +239,38 @@ export function CoverLetterSection() {
       setStatus("error");
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const removeApplication = async (applicationId: string) => {
+    setRemovingApplicationId(applicationId);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/tracker/applications/${encodeURIComponent(applicationId)}`, {
+        method: "DELETE",
+        headers: getCareerPilotHeaders(),
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(extractErrorMessage(payload, "Failed to remove saved application."));
+      }
+
+      const remainingApplications = applications.filter((application) => application.id !== applicationId);
+      setApplications(remainingApplications);
+
+      if (selectedApplicationId === applicationId) {
+        setSelectedApplicationId(remainingApplications[0]?.id || "");
+        setCoverLetter("");
+        setEditedLetter("");
+        setStatus(remainingApplications.length > 0 ? "idle" : "idle");
+      }
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : "Failed to remove saved application.");
+      setStatus("error");
+    } finally {
+      setRemovingApplicationId("");
     }
   };
 
@@ -449,9 +483,8 @@ export function CoverLetterSection() {
             {applications.map((application) => {
               const isSelected = application.id === selectedApplicationId;
               return (
-                <button
+                <div
                   key={application.id}
-                  onClick={() => setSelectedApplicationId(application.id)}
                   className={`rounded-2xl border-2 p-5 text-left transition-all ${
                     isSelected
                       ? "border-blue-600 bg-blue-50 ring-2 ring-blue-600 ring-offset-2"
@@ -463,11 +496,26 @@ export function CoverLetterSection() {
                       <p className="font-bold text-gray-900">{application.role}</p>
                       <p className="text-sm font-medium text-blue-600">{application.company}</p>
                     </div>
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                      isSelected ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
-                    }`}>
-                      {application.status}
-                    </span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                        isSelected ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
+                      }`}>
+                        {application.status}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeApplication(application.id)}
+                        disabled={removingApplicationId === application.id}
+                        className="rounded-full p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                        aria-label={`Remove ${application.role} at ${application.company}`}
+                      >
+                        {removingApplicationId === application.id ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={14} />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mt-4 space-y-2 text-sm text-gray-600">
@@ -505,7 +553,16 @@ export function CoverLetterSection() {
                       </span>
                     </div>
                   )}
-                </button>
+                  {!isSelected && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedApplicationId(application.id)}
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-blue-200 px-3 py-1 text-xs font-bold text-blue-700 transition hover:border-blue-600 hover:bg-blue-50"
+                    >
+                      Select
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
