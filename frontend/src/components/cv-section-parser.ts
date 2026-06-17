@@ -161,6 +161,11 @@ function mergeWrappedExperienceHeaders(text: string): string {
   for (let index = 0; index < lines.length; index += 1) {
     const currentLine = lines[index]?.trim() || "";
     const nextLine = lines[index + 1]?.trim() || "";
+    let nextContentIndex = index + 1;
+    while (nextContentIndex < lines.length && !lines[nextContentIndex]?.trim()) {
+      nextContentIndex += 1;
+    }
+    const nextContentLine = lines[nextContentIndex]?.trim() || "";
 
     if (isDanglingRolePrefix(currentLine) && isExperienceHeaderContinuation(nextLine)) {
       mergedLines.push(`${currentLine} ${nextLine}`);
@@ -171,6 +176,16 @@ function mergeWrappedExperienceHeaders(text: string): string {
     if (isIncompleteRoleHeader(currentLine) && isHeaderRemainder(nextLine)) {
       mergedLines.push(`${currentLine} ${nextLine}`);
       index += 1;
+      continue;
+    }
+
+    if (
+      isIncompleteRoleHeader(currentLine) &&
+      nextContentIndex > index + 1 &&
+      isHeaderRemainder(nextContentLine)
+    ) {
+      mergedLines.push(`${currentLine} ${nextContentLine}`);
+      index = nextContentIndex;
       continue;
     }
 

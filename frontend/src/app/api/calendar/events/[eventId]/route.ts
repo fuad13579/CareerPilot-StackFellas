@@ -50,12 +50,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ev
     });
 
     const data = await response.json().catch(() => ({}));
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(data, { status: response.status, headers: NO_STORE_HEADERS });
   } catch (error) {
     console.error("Calendar event update proxy error:", error);
     return NextResponse.json(
       { detail: "Failed to connect to calendar service" },
-      { status: 500 }
+      { status: 500, headers: NO_STORE_HEADERS }
     );
   }
 }
@@ -89,12 +89,12 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ e
       data.detail = response.statusText || "Failed to delete event";
     }
 
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(data, { status: response.status, headers: NO_STORE_HEADERS });
   } catch (error) {
     console.error("Calendar event delete proxy error:", error);
     return NextResponse.json(
       { detail: "Failed to connect to calendar service" },
-      { status: 500 }
+      { status: 500, headers: NO_STORE_HEADERS }
     );
   }
 }
