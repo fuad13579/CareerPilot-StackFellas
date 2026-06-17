@@ -40,12 +40,12 @@ export async function POST(request: Request) {
     });
 
     const data = await response.json().catch(() => ({}));
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(data, { status: response.status, headers: NO_STORE_HEADERS });
   } catch (error) {
     console.error("Calendar event create proxy error:", error);
     return NextResponse.json(
       { detail: "Failed to connect to calendar service" },
-      { status: 500 }
+      { status: 500, headers: NO_STORE_HEADERS }
     );
   }
 }

@@ -199,6 +199,14 @@ export default function ProductivityPage() {
         await loadData();
       } else {
         const errorData = await response.json().catch(() => ({}));
+        if (response.status === 404) {
+          const updatedTodos = todos.filter((todo) => todo.id !== id);
+          setTodos(updatedTodos);
+          updateStats(updatedTodos);
+          await loadData();
+          return;
+        }
+
         throw new Error(
           typeof errorData?.detail === "string" && errorData.detail
             ? errorData.detail
@@ -272,6 +280,14 @@ export default function ProductivityPage() {
         setTodos(updatedTodos);
       } else {
         const errorData = await response.json().catch(() => ({}));
+        if (response.status === 404) {
+          const updatedTodos = todos.filter((todo) => todo.id !== id);
+          setTodos(updatedTodos);
+          updateStats(updatedTodos);
+          await loadData();
+          return;
+        }
+
         throw new Error(
           typeof errorData?.detail === "string" && errorData.detail
             ? errorData.detail
@@ -324,6 +340,12 @@ export default function ProductivityPage() {
         await loadData();
       } else {
         const errorData = await response.json().catch(() => ({}));
+        if (response.status === 404) {
+          setEvents((currentEvents) => currentEvents.filter((event) => event.id !== id));
+          await loadData();
+          return;
+        }
+
         throw new Error(
           typeof errorData?.detail === "string" && errorData.detail
             ? errorData.detail
